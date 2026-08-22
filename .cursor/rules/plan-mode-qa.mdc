@@ -1,0 +1,26 @@
+---
+description: Every Plan-mode implementation must include a QA checklist
+alwaysApply: true
+---
+
+# Plan-mode QA checklist
+
+When you are in **Plan mode** (or writing/updating a plan), every implementation decision must include a **QA checklist**. Do not finalize a plan without it.
+
+This repo is the **Next.js landing** only (App Router). No Expo, no Feature tab, no product API unless the slice is waitlist.
+
+## Must appear in the plan
+
+1. **Subagent split** — named implementers (do not leave “the agent will just code”).
+2. **Functional verify** — `npm run build` plus check the changed section in the browser (desktop and a phone width).
+3. **App Router** — Server Components by default; `'use client'` only for hooks / browser APIs. `next/font` for type. `next/link` for routes. No `react-router-dom`.
+4. **Responsiveness** — landing sections work at phone and desktop widths.
+5. **Runtime memory leaks** — kill GSAP/rAF/IntersectionObserver on unmount if you add them.
+6. **N-scene freeze** — N/A unless a scene embed is added; then playing ≤ 1.
+7. **Before commit** — build green. No pair of Feature-tab shots required.
+8. **Browser teardown** — after Playwright/Chromium: `browser.close()`. Do not kill the user’s personal Chrome.
+
+```text
+❌ BAD — plan with only “make it Next.js” and no build/verify
+✅ GOOD — plan lists files + npm run build + which sections to click
+```
