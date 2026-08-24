@@ -1,26 +1,26 @@
-import Nav from '@/components/Nav'
-import Hero from '@/components/Hero'
-import StairWipe from '@/components/StairWipe'
-import HowItWorks from '@/components/HowItWorks'
-import Fields from '@/components/Fields'
-import WhyGenerative from '@/components/WhyGenerative'
-import Closer from '@/components/Closer'
-import Footer from '@/components/Footer'
+import Nav from "@/components/Nav";
+import Hero from "@/components/Hero";
+import TheIdea from "@/components/TheIdea";
+import HowItLives from "@/components/HowItLives";
+import NotThis from "@/components/NotThis";
+import Faq from "@/components/Faq";
+import GetTheApp from "@/components/GetTheApp";
+import Footer from "@/components/Footer";
+import "@/components/chapters.css";
 
 export default function Home() {
   return (
     <>
-      <div id="top" />
       <Nav />
       <main>
         <Hero />
-        <StairWipe />
-        <HowItWorks />
-        <Fields />
-        <WhyGenerative />
-        <Closer />
+        <TheIdea />
+        <HowItLives />
+        <NotThis />
+        <GetTheApp />
+        <Faq />
       </main>
       <Footer />
     </>
-  )
+  );
 }

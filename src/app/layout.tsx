@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Fraunces, Instrument_Sans, Space_Mono } from 'next/font/google'
+import ScrollRoot from '@/components/ScrollRoot'
 import './globals.css'
 import './landing.css'
 
@@ -20,9 +21,9 @@ const spaceMono = Space_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Incantly — Say it. See it. Use it.',
+  title: 'Incantly — Your text, alive.',
   description:
-    'Incantly builds the interface you need, the moment you need it — a chart, a 3D model, a form, a live dashboard. Built for the moment, gone when you are done.',
+    'Incantly brings your text to life — a live simulation on the page, on iPhone, iPad, Android, and tablets.',
   icons: { icon: '/favicon.svg' },
 }
 
@@ -30,9 +31,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${instrumentSans.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${instrumentSans.variable} ${spaceMono.variable} antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      <body>
+        <ScrollRoot>{children}</ScrollRoot>
+      </body>
     </html>
   )
 }
