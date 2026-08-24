@@ -1,10 +1,8 @@
-import Link from 'next/link'
-import { appHref } from '@/lib/app-url'
 import LogoMark from './Logo'
 
 export default function Nav() {
   return (
-    <header className="nav">
+    <header className="nav nav--dark">
       <a className="nav-logo" href="#top">
         <LogoMark size={28} />
         <span>
@@ -12,12 +10,21 @@ export default function Nav() {
         </span>
       </a>
       <nav className="nav-links">
-        <a href="#how">How it works</a>
-        <a href="#fields">Use cases</a>
-        <a href="#why">Why Incantly</a>
-        <Link className="nav-cta" href={appHref('/auth?mode=signup')}>
-          Try Incantly
-        </Link>
+        <a className="nav-hash" href="#idea">
+          The idea
+        </a>
+        <a className="nav-hash" href="#how">
+          How it lives
+        </a>
+        <a className="nav-hash" href="#not-this">
+          Not this
+        </a>
+        <a className="nav-hash" href="#faq">
+          FAQ
+        </a>
+        <a className="nav-cta" href="#get-app">
+          Get the app
+        </a>
       </nav>
     </header>
   )

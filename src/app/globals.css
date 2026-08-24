@@ -37,19 +37,20 @@
 }
 
 html {
-  scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
+  scroll-behavior: auto;
+  overflow-x: clip;
+  overflow-y: auto;
 }
 
 body {
   margin: 0;
-  background: var(--bg-paper);
+  background: #0f1111;
   color: var(--ink-primary);
   font-family: var(--font-sans);
   font-size: 17px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 h1,
