@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420" fill="none">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title>Visuals made from your ideas</title>
+  <desc>A tangled ink thought unwinds into a colorful imagined world: a peach arch, a floating golden sun, and a blue sphere. Gentle drawing and floating animations bring the idea to life.</desc>
+  <defs>
+    <pattern id="hatching" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(24)">
+      <path d="M2 0V8" stroke="#272620" stroke-width=".8" opacity=".27"/>
+    </pattern>
+    <clipPath id="scene">
+      <path d="M324 104Q322 96 334 96L535 83Q546 83 547 95L556 286Q557 297 545 300L333 320Q321 321 322 309Z"/>
+    </clipPath>
+    <style>
+      .ink{stroke:#272620;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+      .fine{stroke:#272620;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+      .thread{stroke-dasharray:360;stroke-dashoffset:360;animation:unwind 7s ease-in-out infinite}
+      .sun{animation:float 7s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+      .spark{animation:glimmer 7s ease-in-out infinite}
+      .pencil{animation:sketch 7s ease-in-out infinite;transform-box:fill-box;transform-origin:20% 90%}
+      @keyframes unwind{0%,8%{stroke-dashoffset:360;opacity:0}15%{opacity:1}48%,82%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+      @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+      @keyframes glimmer{0%,25%,100%{opacity:.3}48%,72%{opacity:1}}
+      @keyframes sketch{0%,100%{transform:rotate(0deg)}36%{transform:rotate(-4deg)}58%{transform:rotate(2deg)}}
+      @media(prefers-reduced-motion:reduce){.thread,.sun,.spark,.pencil{animation:none}.thread{stroke-dashoffset:0}}
+    </style>
+  </defs>
+  <!-- A thought, still a little tangled. -->
+  <path d="M78 161C87 132 117 124 142 133C163 121 191 140 192 162C216 181 206 215 179 224C158 244 133 233 122 229C92 240 68 219 73 199C60 187 65 171 78 161Z" fill="#E8E2F1"/>
+  <g class="ink">
+    <path d="M88 185C76 157 108 142 125 160C146 181 115 222 103 200C89 173 158 142 175 168C194 196 145 217 132 191C118 163 164 146 182 171C205 203 172 221 156 201C140 181 168 166 177 185C185 204 158 220 142 210"/>
+    <path d="M103 177C118 150 151 172 142 195C133 216 107 190 125 178C145 163 172 207 185 192" stroke-width="1.6"/>
+    <path d="M74 144L67 135M106 125L108 113M187 136L196 127" stroke-width="1.8"/>
+  </g>
+  <path d="M86 237L117 244L141 241L158 245L179 233" stroke="url(#hatching)" stroke-width="9"/>
+  <circle cx="81" cy="218" r="3.5" fill="#272620"/>
+  <circle cx="64" cy="231" r="2" fill="#272620"/>
+  <!-- The ink finds a direction. -->
+  <path d="M189 204C214 208 206 254 231 254C256 254 252 220 235 224C215 228 240 273 271 243C285 230 291 206 311 196" stroke="#D7D1C5" stroke-width="1.8" stroke-linecap="round"/>
+  <path class="ink thread" d="M189 204C214 208 206 254 231 254C256 254 252 220 235 224C215 228 240 273 271 243C285 230 291 206 311 196"/>
+  <path class="ink" d="M300 191L313 194L308 207"/>
+  <g class="spark fine">
+    <path d="M254 179L256 165M248 172L263 173"/>
+    <path d="M277 285L282 280M276 279L282 285"/>
+  </g>
+  <!-- An idea becomes a little world. -->
+  <path d="M339 111L552 98L568 308L337 330Z" fill="url(#hatching)"/>
+  <path d="M324 104Q322 96 334 96L535 83Q546 83 547 95L556 286Q557 297 545 300L333 320Q321 321 322 309Z" fill="#E9F0EB"/>
+  <g clip-path="url(#scene)">
+    <path d="M316 258C369 240 408 243 442 250C489 260 524 226 567 229L568 327L318 336Z" fill="#F2ECDD"/>
+    <path class="fine" d="M322 259C365 244 402 243 431 249M501 245Q533 231 555 231" opacity=".5"/>
+    <g class="sun">
+      <path d="M479 120C494 117 507 127 508 142C510 157 498 169 484 169C469 170 458 159 459 145C458 133 466 123 479 120Z" fill="#F2CE71" class="ink"/>
+      <path class="fine" d="M490 161Q503 154 502 141"/>
+    </g>
+    <path d="M366 275L426 291L514 267L456 253Z" fill="#DADDD0"/>
+    <path d="M415 281L446 288L499 273L469 264Z" fill="url(#hatching)"/>
+    <!-- Offset edges give the imagined arch a tangible volume. -->
+    <path d="M369 270L369 205C368 167 389 143 417 145C430 143 441 148 451 158L468 175L449 194L406 184L394 277Z" fill="#D99886" class="ink"/>
+    <path d="M389 281L388 219C386 181 404 157 432 159C461 157 478 177 479 208L481 265L454 275L452 213C452 197 445 187 434 187C422 187 415 199 415 217L416 284L389 281Z" fill="#EDB09A" class="ink"/>
+    <path d="M369 270L389 281M369 206L388 219M407 147L426 159M415 217L434 207L434 278L416 284" class="ink"/>
+    <path d="M434 207Q433 195 437 188Q452 190 452 213L454 275L434 278Z" fill="#B97768"/>
+    <path d="M434 207L434 278L454 275" class="ink"/>
+    <path class="fine" d="M374 222L383 229M374 233L383 240M374 244L383 251M374 255L383 262M439 230L447 225M439 240L447 235M439 250L448 245M439 260L448 255" opacity=".55"/>
+    <path d="M396 211C396 186 412 170 429 170" stroke="#FAE2CD" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <path class="ink" d="M324 104Q322 96 334 96L535 83Q546 83 547 95L556 286Q557 297 545 300L333 320Q321 321 322 309Z"/>
+  <!-- A shape escapes the edges of the drawing. -->
+  <ellipse cx="514" cy="314" rx="34" ry="7" fill="url(#hatching)"/>
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -5;0 0" dur="7s" repeatCount="indefinite"/>
+    <path d="M510 255C529 253 544 265 545 282C547 300 533 312 516 312C498 313 485 301 485 284C484 269 495 257 510 255Z" fill="#AECBD6" class="ink"/>
+    <path class="fine" d="M496 266C509 260 526 268 529 284C532 296 525 305 519 309"/>
+    <path class="fine" d="M486 281C501 293 526 292 543 281"/>
+    <path d="M493 297L500 302M497 290L506 298M504 291L512 298" class="fine" opacity=".5"/>
+  </g>
+  <!-- A small pencil keeps the visual open to possibility. -->
+  <g class="pencil">
+    <path d="M272 339L309 292L321 302L283 348L267 354Z" fill="#F2CE71" class="ink"/>
+    <path d="M272 339L283 348L267 354Z" fill="#FAF8F2" class="ink"/>
+    <path d="M267 354L272 343L277 349Z" fill="#272620"/>
+    <path d="M309 292L316 284Q319 281 323 284L328 288Q331 291 328 294L321 302Z" fill="#EDB09A" class="ink"/>
+    <path d="M307 296L318 305M277 338L309 301" class="fine"/>
+  </g>
+  <path class="fine" d="M293 355Q314 358 334 349M302 364L320 361" opacity=".6"/>
+  <g class="spark ink">
+    <path d="M565 129L577 124M562 110L566 99M575 145L583 147"/>
+    <path d="M465 61L466 72M460 67L472 66" stroke-width="1.6"/>
+    <circle cx="584" cy="107" r="2" fill="#272620" stroke="none"/>
+  </g>
+</svg>

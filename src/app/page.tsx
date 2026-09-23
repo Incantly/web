@@ -9,7 +9,7 @@ import { IncantlyFooter } from '../components/landing/Footer'
 export default function Home() {
   return (
     <>
-      <main id="top">
+      <main id="top" className="min-h-svh">
           <IncantlyHero />
           <IncantlyProductShowcase />
           <IncantlyThinkFurther />

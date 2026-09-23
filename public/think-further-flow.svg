@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="480" viewBox="0 0 760 480" fill="none" role="img" aria-labelledby="title desc">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title id="title">Stay in your flow</title>
+  <desc id="desc">A lightly sketched notebook and an Incantly conversation sit side by side. A warm coral thread gently carries a thought between them, keeping research connected to the notes.</desc>
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+      <path d="M2 0V7" stroke="#292923" stroke-width=".7" opacity=".28"/>
+    </pattern>
+    <path id="thread" d="M382 249C445 224 417 347 467 366C504 381 562 368 563 321"/>
+    <style>
+      .ink{stroke:#292923;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+      .fine{stroke:#292923;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+      .label{font-family:Georgia,'Times New Roman',serif;fill:#292923}
+      .spark{transform-box:fill-box;transform-origin:center;animation:glimmer 4s ease-in-out infinite}
+      .conversation{animation:breathe 6s ease-in-out infinite}
+      @keyframes glimmer{0%,65%,100%{opacity:.45;transform:scale(.88)}30%{opacity:1;transform:scale(1.08)}}
+      @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+      @media(prefers-reduced-motion:reduce){.spark,.conversation{animation:none}.traveler{display:none}}
+    </style>
+  </defs>
+  <!-- A few light pen marks ground the paper without a heavy shadow. -->
+  <path d="M137 386Q255 400 390 378L388 387Q255 410 141 395Z" fill="url(#hatch)"/>
+  <path d="M457 333Q551 341 641 327L639 337Q547 351 459 341Z" fill="url(#hatch)"/>
+  <!-- The notebook remains the center of the work. -->
+  <g transform="rotate(-3 268 239)">
+    <path d="M145 94Q141 82 156 81L374 84Q388 85 389 100L391 370Q391 385 377 388L151 385Q137 383 138 369Z" fill="#E7ECDD" class="ink"/>
+    <path d="M134 89Q134 78 147 78L366 80Q378 80 379 94L381 366Q381 377 368 378L145 376Q131 376 132 362Z" fill="#FFFEF9" class="ink"/>
+    <path d="M160 81Q158 224 160 374" stroke="#292923" stroke-width="1.1" opacity=".28"/>
+    <path d="M345 80L345 122L355 115L364 123L365 80" fill="#ECCB79" class="fine"/>
+    <g class="fine">
+      <path d="M139 111C119 102 118 124 138 123"/>
+      <path d="M138 156C117 148 118 170 138 168"/>
+      <path d="M137 202C117 194 117 215 137 214"/>
+      <path d="M137 247C116 239 117 261 137 259"/>
+      <path d="M136 293C116 285 116 307 137 305"/>
+      <path d="M136 339C116 330 116 353 137 351"/>
+    </g>
+    <text x="181" y="120" class="label" font-size="14" font-style="italic">Notes to self</text>
+    <path d="M181 136Q241 134 283 136" class="fine" opacity=".45"/>
+    <text x="181" y="170" class="label" font-size="21">What makes</text>
+    <text x="181" y="198" class="label" font-size="21">an idea stick?</text>
+    <path d="M181 229Q250 226 337 230L337 248Q257 246 181 249Z" fill="#F2DEAA"/>
+    <text x="185" y="243" class="label" font-size="14">Connect it to what you know.</text>
+    <g class="fine" opacity=".65">
+      <path d="M182 272Q247 270 326 273"/>
+      <path d="M182 287Q218 286 287 288"/>
+    </g>
+    <path d="M185 323Q194 317 201 324Q207 333 198 340Q187 342 183 333Q181 327 185 323Z" fill="#E7ECDD" class="fine"/>
+    <path d="M216 323Q246 321 279 323M216 337Q258 335 299 337" class="fine" opacity=".65"/>
+    <path d="M317 327Q334 337 345 320M338 321L346 317L347 326" class="fine"/>
+    <path d="M361 230Q372 227 374 238Q375 247 365 248" class="fine"/>
+  </g>
+  <!-- One continuous thread keeps the conversation attached to the thought. -->
+  <use href="#thread" stroke="#C77B60" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="382" cy="249" r="4.5" fill="#C77B60"/>
+  <circle class="traveler" r="4" fill="#FAF8F1" stroke="#C77B60" stroke-width="2">
+    <animateMotion dur="7s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.85;1" calcMode="linear">
+      <mpath href="#thread"/>
+    </animateMotion>
+  </circle>
+  <!-- Research is beside the page, not a replacement for it. -->
+  <g class="conversation">
+    <path d="M451 158Q443 157 442 171L443 291Q442 307 456 308L474 308L461 329Q488 327 505 309L632 312Q650 312 651 296L653 175Q654 161 639 160Z" fill="#EDF0E6" class="ink"/>
+    <path d="M444 198Q541 196 652 199" class="fine"/>
+    <path d="M460 178Q465 164 472 179Q478 186 482 175" class="ink"/>
+    <text x="493" y="184" class="label" font-size="16">Incantly</text>
+    <circle cx="632" cy="180" r="3" fill="#7F9279"/>
+    <text x="462" y="226" class="label" font-size="16">Let’s follow that thought.</text>
+    <path d="M463 242Q533 240 611 243M463 255Q510 253 578 255" class="fine" opacity=".55"/>
+    <path d="M460 273Q459 269 466 269L611 270Q619 270 619 277L618 289Q618 293 611 293L466 292Q460 293 460 286Z" fill="#FFFEF9" class="fine"/>
+    <circle cx="475" cy="279" r="4.5" class="fine"/>
+    <path d="M479 283L483 287" class="fine"/>
+    <text x="493" y="285" class="label" font-size="12">Explore connections</text>
+  </g>
+  <!-- Sparse, whimsical accents. -->
+  <g class="spark ink">
+    <path d="M418 109L417 121M412 115L424 114"/>
+    <path d="M437 128L443 123" stroke-width="1.6"/>
+  </g>
+  <g class="fine">
+    <path d="M668 229L679 225M670 243L684 244M666 255L675 261"/>
+    <path d="M104 302Q93 299 98 290Q100 286 104 289Q108 295 100 305Q96 310 99 313" opacity=".65"/>
+  </g>
+  <path d="M483 392Q510 401 538 391" stroke="#C77B60" stroke-width="1.3" stroke-linecap="round" opacity=".6"/>
+</svg>
