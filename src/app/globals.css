@@ -25,10 +25,16 @@
   --palette-sage: #ccd8d1;
 
   /*
-   * Closing band fill, sampled from the Paper footer design
-   * (“Your ideas deserve a place to grow”).
+   * Closing eyebrow accent, sampled from the Paper footer design.
    */
   --palette-pine: #3e6b51;
+
+  /*
+   * Middle blue for primary buttons, hero side-note arrows, and the
+   * closing band. White on --palette-blue is 5.4:1; on -deep it is 6.4:1.
+   */
+  --palette-blue: #2b62d9;
+  --palette-blue-deep: #2459c4;
 
   /* Semantic roles */
   --ui-canvas: var(--palette-white);
@@ -53,8 +59,12 @@
   --ui-feature-journal: var(--palette-soft);
 
   /* Closing band + eyebrow accent (Paper footer) */
-  --ui-band: var(--palette-pine);
+  --ui-band: var(--palette-blue);
   --ui-accent: var(--palette-pine);
+
+  /* Primary buttons + hero side-note arrows */
+  --ui-button: var(--palette-blue);
+  --ui-button-hover: var(--palette-blue-deep);
 }
 
 /* Tailwind theme: colors, fonts, breakpoints, animations. */
@@ -88,14 +98,50 @@
   --color-feature-journal: var(--ui-feature-journal);
   --color-band: var(--ui-band);
   --color-accent: var(--ui-accent);
+  --color-button: var(--ui-button);
+  --color-button-hover: var(--ui-button-hover);
 
   --animate-hero-drift: hero-drift 4.5s ease-in-out infinite;
   --animate-hero-drift-slow: hero-drift 5.5s ease-in-out infinite reverse;
+  --animate-draw-left: draw-left 6s ease-in-out infinite;
+  --animate-draw-right: draw-right 6s ease-in-out infinite;
+  --animate-head-left: head-left 6s ease-in-out infinite;
+  --animate-head-right: head-right 6s ease-in-out infinite;
 
   @keyframes hero-drift {
     50% {
       transform: translateY(-0.5rem) rotate(7deg);
     }
+  }
+
+  /*
+   * Hero side-note arrows: the left arrow draws first, then the right,
+   * both hold, then the cycle restarts every few seconds.
+   */
+  @keyframes draw-left {
+    0%, 4% { stroke-dashoffset: 1; opacity: 0; }
+    8% { opacity: 1; }
+    26%, 86% { stroke-dashoffset: 0; opacity: 1; }
+    94%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+
+  @keyframes draw-right {
+    0%, 24% { stroke-dashoffset: 1; opacity: 0; }
+    28% { opacity: 1; }
+    46%, 86% { stroke-dashoffset: 0; opacity: 1; }
+    94%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+
+  @keyframes head-left {
+    0%, 20% { opacity: 0; }
+    26%, 86% { opacity: 1; }
+    94%, 100% { opacity: 0; }
+  }
+
+  @keyframes head-right {
+    0%, 42% { opacity: 0; }
+    48%, 86% { opacity: 1; }
+    94%, 100% { opacity: 0; }
   }
 }
 

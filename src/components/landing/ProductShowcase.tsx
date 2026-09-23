@@ -23,7 +23,7 @@ function Intro() {
 
 function Tabs() {
   const linkClass =
-    'inline-flex min-h-11 items-center border-b-2 border-transparent px-1 py-2 text-[0.8125rem] font-semibold text-subtle no-underline hover:border-action hover:text-foreground focus-visible:border-action focus-visible:text-foreground aria-[current=page]:border-action aria-[current=page]:text-foreground'
+    'inline-flex min-h-11 items-center border-b-2 border-transparent px-1 py-2 text-[0.8125rem] font-semibold text-subtle no-underline hover:border-button hover:text-button focus-visible:border-button focus-visible:text-button aria-[current=page]:border-button aria-[current=page]:text-button'
   return (
     <nav className="mx-auto mt-11 flex max-w-[72rem] flex-wrap justify-center gap-x-4 gap-y-1 border-b border-default" aria-label="Ways to work in Incantly">
       <a href="#product-notes" aria-current="page" className={linkClass}>Your notes</a>

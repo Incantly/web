@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 const productLinks = [
   { label: 'Product', href: '#product' },
   { label: 'How it works', href: '#how-it-works' },
@@ -15,8 +17,8 @@ export function IncantlyFooter() {
     <footer className="bg-canvas">
       <div className="mx-auto grid max-w-[76rem] gap-10 pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] pt-[clamp(3rem,8vw,5rem)] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
         <div>
-          <a className="whitespace-nowrap font-display text-[clamp(1.75rem,4vw,2.25rem)] tracking-[-0.04em] text-foreground no-underline" href="#top" aria-label="Incantly home">
-            <span aria-hidden="true">✳</span> incantly
+          <a className="flex items-center gap-2 whitespace-nowrap font-display text-[clamp(1.75rem,4vw,2.25rem)] tracking-[-0.04em] text-foreground no-underline" href="#top" aria-label="Incantly home">
+            <Image src="/incantly-logo.svg" alt="" width={24} height={33} className="h-[2rem] w-auto" aria-hidden="true" /> incantly
           </a>
           <p className="mt-3 text-base leading-[1.6] text-muted">Bring your notes to life.</p>
         </div>
