@@ -4,6 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Incantly — Bring your notes to life',
   description: 'Incantly turns notes into living learning environments.',
+  icons: { icon: '/incantly-logo.svg' },
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

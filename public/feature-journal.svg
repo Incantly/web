@@ -25,7 +25,7 @@
     <path d="M86 142L117 138M87 149L108 147" stroke-width="1.6"/>
     <path d="M351 134L376 135M359 141L376 142" stroke-width="1.3"/>
     <!-- A question, revisited quietly rather than a moving book. -->
-    <path d="M106 177Q110 159 131 158Q149 158 153 174Q157 193 138 199Q116 205 108 189" stroke="#BD964E" stroke-width="6" opacity=".12">
+    <path d="M106 177Q110 159 131 158Q149 158 153 174Q157 193 138 199Q116 205 108 189" stroke="#2B62D9" stroke-width="6" opacity=".12">
       <animate attributeName="opacity" values=".12;.12;.42;.42;.12;.12" keyTimes="0;.12;.3;.47;.7;1" dur="10s" repeatCount="indefinite"/>
     </path>
     <path d="M121 171Q122 163 130 163Q140 163 139 172Q139 177 133 180Q130 182 131 186" stroke-width="2.5"/>

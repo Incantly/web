@@ -11,6 +11,7 @@
       .ink{stroke:#292923;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
       .fine{stroke:#292923;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
       .label{font-family:Georgia,'Times New Roman',serif;fill:#292923}
+      .conversation .label{fill:#2B62D9}
       .spark{transform-box:fill-box;transform-origin:center;animation:glimmer 4s ease-in-out infinite}
       .conversation{animation:breathe 6s ease-in-out infinite}
       @keyframes glimmer{0%,65%,100%{opacity:.45;transform:scale(.88)}30%{opacity:1;transform:scale(1.08)}}
@@ -64,7 +65,7 @@
     <path d="M444 198Q541 196 652 199" class="fine"/>
     <path d="M460 178Q465 164 472 179Q478 186 482 175" class="ink"/>
     <text x="493" y="184" class="label" font-size="16">Incantly</text>
-    <circle cx="632" cy="180" r="3" fill="#7F9279"/>
+    <circle cx="632" cy="180" r="3" fill="#2B62D9"/>
     <text x="462" y="226" class="label" font-size="16">Let’s follow that thought.</text>
     <path d="M463 242Q533 240 611 243M463 255Q510 253 578 255" class="fine" opacity=".55"/>
     <path d="M460 273Q459 269 466 269L611 270Q619 270 619 277L618 289Q618 293 611 293L466 292Q460 293 460 286Z" fill="#FFFEF9" class="fine"/>

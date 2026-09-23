@@ -17,10 +17,10 @@ function HeroNavigation() {
       </a>
 
       <nav className="hidden items-center gap-[clamp(1.5rem,2.8vw,2.5rem)] text-[0.875rem] lg:flex" aria-label="Primary navigation">
-        <a className="text-foreground no-underline transition-[background-color,color,transform] duration-[180ms] hover:text-action focus-visible:text-action" href="#product">Product</a>
-        <a className="text-foreground no-underline transition-[background-color,color,transform] duration-[180ms] hover:text-action focus-visible:text-action" href="#how-it-works">How it works</a>
-        <a className="text-foreground no-underline transition-[background-color,color,transform] duration-[180ms] hover:text-action focus-visible:text-action" href="#learners">For learners</a>
-        <a className="text-foreground no-underline transition-[background-color,color,transform] duration-[180ms] hover:text-action focus-visible:text-action" href="#about">About</a>
+        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#product">Product</a>
+        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#how-it-works">How it works</a>
+        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#learners">For learners</a>
+        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#about">About</a>
       </nav>
 
       <a className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-[0.625rem] border border-button bg-button px-[0.9rem] py-2.5 text-[0.8125rem] font-medium text-inverse transition-[background-color,color,transform] duration-[180ms] hover:bg-button-hover focus-visible:bg-button-hover sm:px-[1.15rem]" href="#get-started">Get started</a>

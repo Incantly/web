@@ -29,7 +29,7 @@
       <g>
         <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 60;0 60;0 0" keyTimes="0;.17;.42;.74;1" dur="12s" repeatCount="indefinite"/>
         <path d="M288 190 294 190 295 198 287 198Z" fill="#faf8f2"/>
-        <path d="M312 216C312 228 303 237 291 237C278 237 269 228 269 216C269 203 278 196 291 196C304 195 312 204 312 216Z" fill="#aecbca"/>
+        <path d="M312 216C312 228 303 237 291 237C278 237 269 228 269 216C269 203 278 196 291 196C304 195 312 204 312 216Z" fill="#2B62D9"/>
         <path d="M276 213Q277 204 286 203" stroke="#faf8f2" stroke-width="3"/>
         <path d="m295 230 9-8m-4 9 7-7" stroke-width="1" opacity=".55"/>
       </g>
@@ -58,7 +58,7 @@
     <path d="M226 392v4m40-4v4m40-4v4m40-4v4m40-4v4" fill="none" stroke-width="1" opacity=".6"/>
     <g>
       <animateTransform attributeName="transform" type="translate" values="0 0;0 0;160 0;160 0;0 0" keyTimes="0;.17;.42;.74;1" dur="12s" repeatCount="indefinite"/>
-      <path d="M215 379Q215 368 226 368Q237 368 237 379Q237 390 226 390Q215 390 215 379Z" fill="#e6aa90" stroke-width="2"/>
+      <path d="M215 379Q215 368 226 368Q237 368 237 379Q237 390 226 390Q215 390 215 379Z" fill="#2B62D9" stroke-width="2"/>
       <path d="M223 375v8m5-8v8" fill="none" stroke-width="1.1"/>
     </g>
   </g>
