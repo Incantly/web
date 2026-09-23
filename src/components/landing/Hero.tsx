@@ -34,12 +34,12 @@ function HeroArtwork() {
       <div className="hero-artwork-float hero-artwork-float-start">✦</div>
       <Image
         className="hero-artwork-image"
-        src="/incantly-original-hero.png"
+        src="/hero-section-image.svg"
         alt=""
         width={1024}
         height={1024}
         priority
-        sizes="(max-width: 639px) 180px, 238px"
+        sizes="(max-width: 639px) 288px, 396px"
       />
       <div className="hero-artwork-float hero-artwork-float-end">✳</div>
     </div>
@@ -49,7 +49,7 @@ function HeroArtwork() {
 function HeroContent() {
   return (
     <div className="hero-content">
-      <h1 id="hero-heading">A notebook for everything your ideas become.</h1>
+      <h1 id="hero-heading">A notebook for everything <span className="hero-h1-second">your ideas become.</span></h1>
       <p className="hero-description">
         Write a thought. Follow a question. Turn what you are learning into visuals
         and interactive experiences, all inside your notes.
