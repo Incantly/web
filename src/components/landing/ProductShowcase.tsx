@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Dithering } from '@paper-design/shaders-react'
 import { eyebrowClass } from '../../lib/ui'
 
 type ProductShowcasePart = { children?: ReactNode }
@@ -38,8 +39,21 @@ function Surface() {
   const sideLinkClass =
     'flex min-h-11 items-center gap-2 rounded-[0.4rem] px-2.5 py-2 text-[0.75rem] text-subtle no-underline hover:bg-surface hover:text-foreground focus-visible:bg-surface focus-visible:text-foreground'
   return (
-    <div className="mx-auto mt-10 max-w-[78rem] rounded-[1.25rem] border border-default bg-surface p-[clamp(0.75rem,3vw,2rem)]">
-      <div className="flex min-h-[38rem] overflow-hidden rounded-xl border border-default bg-raised" id="product-notes">
+    <div className="relative mx-auto mt-10 max-w-[78rem] overflow-hidden rounded-[1.25rem] border border-default bg-surface p-[clamp(0.75rem,3vw,2rem)]">
+      <div aria-hidden="true" className="absolute inset-0 hidden opacity-90 motion-safe:block">
+        <Dithering
+          speed={0.25}
+          shape="warp"
+          type="4x4"
+          size={4}
+          scale={1}
+          frame={5929.724999967142}
+          colorBack="#00000000"
+          colorFront="#99CDFC"
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div className="relative flex min-h-[38rem] overflow-hidden rounded-xl border border-default bg-raised" id="product-notes">
         <aside className="grid w-full content-start gap-3 border-b border-default p-5 sm:w-[13.5rem] sm:shrink-0 sm:border-b-0 sm:border-r sm:px-4 sm:py-6" aria-label="Incantly workspace">
           <div className="font-display text-[1.2rem] tracking-[-0.04em] text-foreground">incantly</div>
           <p className={`${eyebrowClass} mt-3`}>My space</p>
