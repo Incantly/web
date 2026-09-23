@@ -7,3 +7,28 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## UI color system
+
+- Read `docs/design-system.md` before creating or changing UI.
+- Treat the color rules in that document as mandatory.
+- Never add a raw hex, RGB, HSL, or named color inside a component or page.
+- Use semantic `--ui-*` tokens in CSS and semantic Tailwind color utilities in JSX.
+- Change the palette only in the primitive block at the top of `src/app/globals.css`.
+- Do not use `--palette-*` primitives directly in components.
+
+## Responsive UI
+
+- Responsiveness is required during implementation, not as a later cleanup pass.
+- Build mobile-first from the 320px baseline, then enhance at the project
+  breakpoints defined in `src/app/globals.css`.
+- Every UI change must be checked at 320px, 375px, 768px, 1024px, and 1440px.
+- Prefer flexible grid, flexbox, `minmax()`, `clamp()`, and intrinsic sizing over
+  fixed widths or JavaScript viewport measurements.
+- Components must tolerate long text, empty content, zoom, and dynamic data
+  without horizontal page scrolling or clipped controls.
+- Touch targets must be at least 44px by 44px. Hover behavior must have touch
+  and keyboard equivalents.
+- Use responsive image sizes and explicit dimensions to avoid layout shift.
+- Full-bleed fixed or sticky UI must account for safe-area insets.
+- A UI task is not complete until its responsive states have been verified.
