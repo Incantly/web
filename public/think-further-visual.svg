@@ -31,9 +31,9 @@
   <path d="M351 151Q421 153 464 149" stroke="#9FBFB4" stroke-width="5" stroke-linecap="round"/>
   <!-- A Venn-like explanation with deliberately organic contours. -->
   <path d="M497 204C478 173 438 166 407 186C376 206 375 248 395 275C415 303 455 309 484 289C512 270 515 231 497 204Z" fill="#D8E8E0"/>
-  <path d="M583 192C555 172 520 180 501 205C479 235 485 276 516 295C547 314 584 299 601 270C618 243 610 211 583 192Z" fill="#F2D8BF"/>
+  <path d="M583 192C555 172 520 180 501 205C479 235 485 276 516 295C547 314 584 299 601 270C618 243 610 211 583 192Z" fill="#BFD2FF"/>
   <g clip-path="url(#leftShape)">
-    <path d="M583 192C555 172 520 180 501 205C479 235 485 276 516 295C547 314 584 299 601 270C618 243 610 211 583 192Z" fill="#C2CBA0"/>
+    <path d="M583 192C555 172 520 180 501 205C479 235 485 276 516 295C547 314 584 299 601 270C618 243 610 211 583 192Z" fill="#2B62D9"/>
     <path d="M482 198H519V295H482Z" fill="url(#hatch)" opacity=".42"/>
   </g>
   <path d="M497 204C478 173 438 166 407 186C376 206 375 248 395 275C415 303 455 309 484 289C512 270 515 231 497 204Z" class="ink"/>
@@ -53,7 +53,7 @@
   <path d="M497 285Q496 308 508 323Q515 332 538 333" class="fine"/>
   <path d="M532 328L540 333L533 338" class="fine"/>
   <text x="550" y="339" class="label" font-size="18" font-style="italic">new insight</text>
-  <path d="M549 349Q591 353 634 347" stroke="#C2CBA0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M549 349Q591 353 634 347" stroke="#2B62D9" stroke-width="4" stroke-linecap="round"/>
   <path d="M352 376Q416 374 472 376M353 387Q400 385 431 387" class="fine" opacity=".46"/>
   <!-- The original thought remains in the notebook. -->
   <path d="M64 290Q125 277 184 290Q214 271 287 272L302 452Q230 448 191 467Q124 450 74 464Z" fill="url(#hatch)" opacity=".65"/>

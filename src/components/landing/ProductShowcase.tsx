@@ -40,7 +40,7 @@ function Surface() {
     'flex min-h-11 items-center gap-2 rounded-[0.4rem] px-2.5 py-2 text-[0.75rem] text-subtle no-underline hover:bg-surface hover:text-foreground focus-visible:bg-surface focus-visible:text-foreground'
   return (
     <div className="relative mx-auto mt-10 max-w-[78rem] overflow-hidden rounded-[1.25rem] border border-default bg-surface p-[clamp(0.75rem,3vw,2rem)]">
-      <div aria-hidden="true" className="absolute inset-0 hidden opacity-90 motion-safe:block">
+      <div aria-hidden="true" className="absolute inset-0 hidden opacity-90 motion-safe:block [mask-image:radial-gradient(115%_100%_at_50%_50%,black_55%,transparent_100%)]">
         <Dithering
           speed={0.25}
           shape="warp"

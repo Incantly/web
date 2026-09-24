@@ -22,8 +22,8 @@
   <!-- A roomy, hand-inked miniature experiment -->
   <path d="M131 115Q120 115 120 128L119 397Q120 416 140 417L590 416Q612 416 612 396L613 133Q613 114 594 115Z" fill="url(#hatch)" transform="translate(7 8)"/>
   <path d="M128 107Q111 108 111 127L110 387Q109 407 131 408L585 409Q607 409 607 388L608 127Q608 109 588 108Z" fill="#FFFEFA" class="ink"/>
-  <path d="M112 350Q218 339 337 350T606 349L606 390Q605 408 585 408L131 407Q111 407 111 387Z" fill="#E8EDE3"/>
-  <path d="M113 350Q214 340 334 350T604 350" stroke="#A0AD99" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M112 350Q218 339 337 350T606 349L606 390Q605 408 585 408L131 407Q111 407 111 387Z" fill="#DCE7FF"/>
+  <path d="M113 350Q214 340 334 350T604 350" stroke="#2B62D9" stroke-width="1.4" stroke-linecap="round"/>
   <path d="M136 378Q242 382 328 378M398 378Q486 382 580 377" class="fine" opacity=".45"/>
   <!-- Question, opening directly into the scene -->
   <path d="M73 66Q67 55 82 51Q134 44 191 50Q205 51 204 67L203 113Q203 124 190 125L155 125L142 143L138 125L84 125Q69 125 70 111Z" fill="#F4D985" class="ink"/>

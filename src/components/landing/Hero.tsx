@@ -6,7 +6,11 @@ type HeroFrameProps = {
 }
 
 function HeroFrame({ children }: HeroFrameProps) {
-  return <section className="flex min-h-svh flex-col overflow-hidden bg-canvas" aria-labelledby="hero-heading">{children}</section>
+  return (
+    <section className="flex min-h-svh flex-col overflow-hidden bg-canvas" aria-labelledby="hero-heading">
+      {children}
+    </section>
+  )
 }
 
 function HeroNavigation() {
@@ -23,15 +27,14 @@ function HeroNavigation() {
         <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#about">About</a>
       </nav>
 
-      <a className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-[0.625rem] border border-button bg-button px-[0.9rem] py-2.5 text-[0.8125rem] font-medium text-inverse transition-[background-color,color,transform] duration-[180ms] hover:bg-button-hover focus-visible:bg-button-hover sm:px-[1.15rem]" href="#get-started">Get started</a>
+      <a className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-[0.625rem] border border-button bg-button px-[0.9rem] py-2.5 text-[0.8125rem] font-medium text-inverse transition-[background-color,color,transform] duration-[180ms] hover:bg-button-hover focus-visible:bg-button-hover sm:px-[1.15rem]" href="/auth">Get started</a>
     </header>
   )
 }
 
 function HeroArtwork() {
   return (
-    <div className="relative mb-2 grid w-[clamp(18rem,31.5vw,24.75rem)] place-items-center lg:col-start-2 lg:row-start-1" aria-hidden="true">
-      <div className="absolute left-[-12%] top-[20%] font-display text-[clamp(1.1rem,2vw,1.5rem)] text-button motion-safe:animate-hero-drift">✦</div>
+    <div className="relative mb-2 grid w-[clamp(18rem,31.5vw,24.75rem)] place-items-center" aria-hidden="true">
       <Image
         className="h-auto w-full bg-transparent"
         src="/hero-section-image.svg"
@@ -48,13 +51,13 @@ function HeroArtwork() {
 
 function HeroContent() {
   return (
-    <div className="relative z-[1] flex w-full max-w-[47rem] flex-col items-center pt-0 text-center lg:col-start-2 lg:row-start-2 lg:max-w-[64rem]">
+    <div className="relative z-[1] flex w-full max-w-[47rem] flex-col items-center pt-0 text-center lg:max-w-[64rem]">
       <h1 id="hero-heading" className="m-0 font-display text-[clamp(3rem,7vw,5.25rem)] font-normal leading-[0.96] tracking-[-0.06em] text-foreground text-balance">A notebook for everything <span className="lg:block">your ideas can become.</span></h1>
       <p className="mt-6 max-w-[35rem] text-[clamp(1rem,1.5vw,1.125rem)] leading-[1.6] text-muted text-pretty sm:mt-7">
         Write a thought. Follow a question. Turn what you are learning into visuals
         and interactive experiences, all inside your notes.
       </p>
-      <a className="mt-7 inline-flex min-h-12 min-w-[10.25rem] items-center justify-center rounded-[0.5625rem] bg-button text-[0.875rem] font-semibold text-inverse no-underline transition-[background-color,color,transform] duration-[180ms] hover:-translate-y-0.5 hover:bg-button-hover focus-visible:-translate-y-0.5 focus-visible:bg-button-hover" href="#get-started">Start exploring</a>
+      <a className="mt-7 inline-flex min-h-12 min-w-[10.25rem] items-center justify-center rounded-[0.5625rem] bg-button text-[0.875rem] font-semibold text-inverse no-underline transition-[background-color,color,transform] duration-[180ms] hover:-translate-y-0.5 hover:bg-button-hover focus-visible:-translate-y-0.5 focus-visible:bg-button-hover" href="/auth">Start exploring</a>
     </div>
   )
 }
