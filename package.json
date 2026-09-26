@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@incantly/canvas": "file:../../incantly-canvas/canvas/packages/core",
+    "@incantly/core": "file:../../incantly-canvas/canvas/packages/core",
     "@incantly/canvas-react": "file:../../incantly-canvas/canvas/packages/react",
     "@paper-design/shaders-react": "^0.0.81",
     "next": "16.3.2",
