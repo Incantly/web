@@ -149,6 +149,138 @@
   border-top: 1px solid var(--incantly-document-border);
 }
 
+/*
+ * Details (collapsible sections). The editor renders a div wrapper with a
+ * toggle button; static HTML and export previews use native
+ * <details>/<summary>, so both shapes are styled from the same tokens.
+ */
+.incantly-document-editor .ProseMirror div[data-type='details'],
+.incantly-document-editor .ProseMirror details {
+  margin-block: 0 var(--incantly-document-block-gap);
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--incantly-document-border) 22%, transparent);
+}
+
+.incantly-document-editor .ProseMirror div[data-type='details'] > button {
+  display: inline-grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-inline-end: 0.35rem;
+  padding: 0 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: var(--incantly-document-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  place-items: center;
+  vertical-align: middle;
+}
+
+.incantly-document-editor .ProseMirror div[data-type='details'] > button:hover,
+.incantly-document-editor .ProseMirror div[data-type='details'] > button:focus-visible {
+  border-color: var(--incantly-document-border);
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-document-editor .ProseMirror div[data-type='details'] > button + div > summary {
+  display: inline-block;
+  min-width: min(12rem, 100%);
+  min-height: 1.65em;
+  font-weight: 600;
+  vertical-align: middle;
+  cursor: text;
+}
+
+.incantly-document-editor .ProseMirror details > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Inline math renders KaTeX inside the sentence; the pointer signals it is editable. */
+.incantly-document-editor .ProseMirror span[data-type='inline-math'].tiptap-mathematics-render--editable {
+  cursor: pointer;
+}
+
+.incantly-document-editor .ProseMirror div[data-type='detailsContent'] {
+  padding-block-start: 0.5rem;
+}
+
+/* Code-block language picker (bubble toolbar). */
+.incantly-format-language select {
+  min-height: 2.75rem;
+  max-width: 11rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-format-language select:hover,
+.incantly-format-language select:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/*
+ * Syntax highlighting. Lowlight decorates code with `hljs-*` classes;
+ * every token color resolves to a semantic `--ui-code-*` role so the
+ * palette stays the single source of truth.
+ */
+.incantly-document-editor .ProseMirror pre code .hljs-keyword,
+.incantly-document-editor .ProseMirror pre code .hljs-selector-tag,
+.incantly-document-editor .ProseMirror pre code .hljs-doctag {
+  color: var(--ui-code-keyword);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-string,
+.incantly-document-editor .ProseMirror pre code .hljs-regexp,
+.incantly-document-editor .ProseMirror pre code .hljs-template-string {
+  color: var(--ui-code-string);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-comment,
+.incantly-document-editor .ProseMirror pre code .hljs-quote {
+  color: var(--ui-code-comment);
+  font-style: italic;
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-number,
+.incantly-document-editor .ProseMirror pre code .hljs-literal {
+  color: var(--ui-code-number);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-title,
+.incantly-document-editor .ProseMirror pre code .hljs-title.function_,
+.incantly-document-editor .ProseMirror pre code .hljs-function {
+  color: var(--ui-code-function);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-attr,
+.incantly-document-editor .ProseMirror pre code .hljs-attribute,
+.incantly-document-editor .ProseMirror pre code .hljs-variable,
+.incantly-document-editor .ProseMirror pre code .hljs-template-variable,
+.incantly-document-editor .ProseMirror pre code .hljs-name,
+.incantly-document-editor .ProseMirror pre code .hljs-type,
+.incantly-document-editor .ProseMirror pre code .hljs-built_in,
+.incantly-document-editor .ProseMirror pre code .hljs-selector-id,
+.incantly-document-editor .ProseMirror pre code .hljs-selector-class,
+.incantly-document-editor .ProseMirror pre code .hljs-meta,
+.incantly-document-editor .ProseMirror pre code .hljs-operator,
+.incantly-document-editor .ProseMirror pre code .hljs-punctuation {
+  color: var(--ui-code-title);
+}
+
 .incantly-document-editor .ProseMirror pre {
   overflow: auto;
   padding: 0.9rem 1rem;
@@ -183,7 +315,6 @@
   background: color-mix(in srgb, var(--incantly-document-border) 38%, transparent);
 }
 
-.incantly-document-editor .ProseMirror [data-incantly-node='mathBlock'],
 .incantly-document-editor .ProseMirror [data-incantly-node='image'],
 .incantly-document-editor .ProseMirror [data-incantly-node='fileAttachment'],
 .incantly-document-editor .ProseMirror [data-incantly-node='audio'],
@@ -199,8 +330,33 @@
   background: color-mix(in srgb, var(--incantly-document-border) 22%, transparent);
 }
 
-.incantly-document-editor .ProseMirror [data-incantly-node='mathBlock']::before {
-  content: 'Math block · ' attr(latex);
+.incantly-document-editor .ProseMirror div[data-type='block-math'] {
+  overflow-x: auto;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--incantly-document-border) 22%, transparent);
+}
+
+/* Math formula editor (bubble toolbar). */
+.incantly-format-math input {
+  min-height: 2.75rem;
+  min-width: 10rem;
+  max-width: 14rem;
+  padding-inline: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.incantly-format-math input:hover,
+.incantly-format-math input:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
 }
 
 .incantly-document-editor .ProseMirror [data-incantly-node='image']::before,

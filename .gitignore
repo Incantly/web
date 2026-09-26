@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results
+/e2e-artifacts/screenshots
+/e2e-artifacts/playwright-report.json
 
 # next.js
 /.next/

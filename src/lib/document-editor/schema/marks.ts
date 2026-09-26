@@ -21,12 +21,18 @@ const Citation = Mark.create({
   renderHTML: ({ HTMLAttributes }) => ['cite', mergeAttributes(HTMLAttributes, { 'data-citation-id': HTMLAttributes.citationId }), 0],
 })
 
-const InlineMath = Mark.create({
-  name: 'inlineMath',
+/**
+ * Legacy inline-math mark. The stock InlineMath *node* owns the
+ * `inlineMath` name now (ProseMirror forbids a node and a mark sharing one),
+ * so this mark is registered under an alias. Canonical `inlineMath` marks in
+ * older documents still load and round-trip through it.
+ */
+const InlineMathMark = Mark.create({
+  name: 'inlineMathMark',
   addAttributes: () => ({ latex: { default: null } }),
   parseHTML: () => [{ tag: 'span[data-inline-math]', getAttrs: (element) => ({ latex: (element as HTMLElement).dataset.inlineMath }) }],
   renderHTML: ({ HTMLAttributes }) => ['span', mergeAttributes(HTMLAttributes, { 'data-inline-math': HTMLAttributes.latex }), 0],
 })
 
 /** Marks not supplied by the deliberately restricted StarterKit configuration. */
-export const incantlyDocumentMarks: Extensions = [TextColor, Highlight, Citation, InlineMath]
+export const incantlyDocumentMarks: Extensions = [TextColor, Highlight, Citation, InlineMathMark]

@@ -129,7 +129,7 @@ function proseMirrorMark(mark: { type: { name: string }; attrs: Record<string, u
     case 'citation': return typeof mark.attrs.citationId === 'string'
       ? { type: 'citation', citationId: citationId(mark.attrs.citationId) }
       : null
-    case 'inlineMath': return typeof mark.attrs.latex === 'string'
+    case 'inlineMathMark': return typeof mark.attrs.latex === 'string'
       ? { type: 'inlineMath', latex: mark.attrs.latex }
       : null
     default: return null

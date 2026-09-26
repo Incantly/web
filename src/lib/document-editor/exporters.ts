@@ -87,6 +87,7 @@ export async function exportDocumentWeb(documentValue: IncantlyDocument, format:
   }
   const { Document, HeadingLevel, Packer, PageBreak, Paragraph, TextRun, Table, TableCell, TableRow } = docxApi
   const textRuns = (content: Extract<IncantlyDocument['content'][number], { type: 'paragraph' | 'heading' }>['content']) => content.map((item) => {
+    if (item.type === 'inlineMath') return new TextRun({ text: `$${item.latex}$` })
     if (item.type !== 'text') return new TextRun({ break: 1 })
     const marks = new Set(item.marks?.map((mark) => mark.type))
     return new TextRun({ text: item.text, bold: marks.has('bold'), italics: marks.has('italic'), strike: marks.has('strike') })
@@ -98,6 +99,7 @@ export async function exportDocumentWeb(documentValue: IncantlyDocument, format:
     if (node.type === 'paragraph') return [new Paragraph({ children: textRuns(node.content) })]
     if (node.type === 'bulletList' || node.type === 'orderedList') return node.content.flatMap((item, index) => [new Paragraph({ text: item.content.map((child) => 'content' in child ? child.content.map((inline) => 'text' in inline ? inline.text : '').join('') : '').join(' '), bullet: node.type === 'bulletList' ? { level: depth } : undefined, numbering: node.type === 'orderedList' ? { reference: 'incantly-numbering', level: depth, instance: index } : undefined })])
     if (node.type === 'checklist') return node.content.map((item) => new Paragraph({ text: `${item.attrs.checked ? '☒' : '☐'} ${item.content.map((child) => 'content' in child ? child.content.map((inline) => 'text' in inline ? inline.text : '').join('') : '').join(' ')}` }))
+    if (node.type === 'details') return [new Paragraph({ children: [new TextRun({ text: node.attrs.summary || 'Details', bold: true })] }), ...(renderNodes(node.content, depth + 1) as Array<InstanceType<typeof Paragraph> | InstanceType<typeof Table>>)]
     if (node.type === 'table') return [new Table({ rows: node.content.map((row) => new TableRow({ children: row.content.map((cell) => new TableCell({ children: renderNodes(cell.content) as InstanceType<typeof Paragraph>[] })) })) })]
     if (node.type === 'mathBlock') return [new Paragraph({ text: node.attrs.latex })]
     if (node.type === 'image' || node.type === 'audio' || node.type === 'fileAttachment' || node.type === 'pdfEmbed') return [new Paragraph({ text: `[${node.type}: ${'assetId' in node.attrs ? node.attrs.assetId : ''}]` })]

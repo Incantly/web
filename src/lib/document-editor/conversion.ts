@@ -66,12 +66,13 @@ function markToProseMirror(mark: TextMark): ProseMirrorMark {
     case 'link': return { type: 'link', attrs: compact({ href: mark.href, title: mark.title }) }
     case 'textColor': case 'highlight': return { type: mark.type, attrs: { color: mark.color } }
     case 'citation': return { type: 'citation', attrs: { citationId: mark.citationId } }
-    case 'inlineMath': return { type: 'inlineMath', attrs: { latex: mark.latex } }
+    case 'inlineMath': return { type: 'inlineMathMark', attrs: { latex: mark.latex } }
   }
 }
 
 function inlineToProseMirror(node: InlineNode): JSONContent {
   if (node.type === 'hardBreak') return { type: 'hardBreak' }
+  if (node.type === 'inlineMath') return { type: 'inlineMath', attrs: { latex: node.latex } }
   return {
     type: 'text',
     text: node.text,
@@ -86,8 +87,18 @@ function nodeToProseMirror(node: DocumentNode, path: string, issues: DocumentAda
       return { ...base, attrs: compact({ id: node.id, alignment: node.attrs?.alignment, lineHeight: node.attrs?.lineHeight }), content: node.content.map(inlineToProseMirror) }
     case 'heading':
       return { ...base, attrs: compact({ id: node.id, ...node.attrs }), content: node.content.map(inlineToProseMirror) }
-    case 'blockquote': case 'listItem': case 'checklistItem': case 'tableHeaderCell': case 'tableCell': {
+    case 'blockquote': {
       const content = nodesToProseMirror(node.content, `${path}.content`, issues)
+      return { ...base, content }
+    }
+    case 'listItem': case 'checklistItem': case 'tableHeaderCell': case 'tableCell': {
+      const content = nodesToProseMirror(node.content, `${path}.content`, issues)
+      if (node.type === 'listItem' && content[0]?.type !== 'paragraph') {
+        // Stock ListItem requires paragraph-first content; repair instead of
+        // dropping the item so no canonical document can fail the schema.
+        content.unshift({ type: 'paragraph', attrs: { id: createDocumentNodeId() }, content: [] })
+        issues.push({ code: 'repaired_content', path: `${path}.content`, message: 'Prepended a paragraph to a list item', action: 'repaired' })
+      }
       return { ...base, attrs: compact({ id: node.id, ...('attrs' in node ? node.attrs : {}) }), content }
     }
     case 'bulletList': case 'orderedList': case 'checklist': case 'table': case 'tableRow': {
@@ -96,9 +107,25 @@ function nodeToProseMirror(node: DocumentNode, path: string, issues: DocumentAda
     }
     case 'codeBlock':
       return { ...base, attrs: compact({ id: node.id, language: node.attrs?.language }), content: node.text ? [{ type: 'text', text: node.text }] : [] }
+    case 'details': {
+      const summary = node.attrs?.summary ?? ''
+      return {
+        ...base,
+        attrs: compact({ id: node.id, open: node.attrs?.open === true ? true : undefined }),
+        content: [
+          { type: 'detailsSummary', content: summary ? [{ type: 'text', text: summary }] : [] },
+          { type: 'detailsContent', content: nodesToProseMirror(node.content, `${path}.content`, issues) },
+        ],
+      }
+    }
     case 'horizontalRule': case 'pageBreak':
       return base
-    case 'mathBlock': case 'image': case 'fileAttachment': case 'audio': case 'videoEmbed': case 'pdfEmbed': case 'canvasEmbed':
+    case 'mathBlock':
+      return {
+        type: 'blockMath',
+        attrs: compact({ id: node.id, latex: node.attrs?.latex ?? '', numbered: node.attrs?.numbered === true ? true : undefined, label: node.attrs?.label }),
+      }
+    case 'image': case 'fileAttachment': case 'audio': case 'videoEmbed': case 'pdfEmbed': case 'canvasEmbed':
       return { ...base, attrs: compact({ id: node.id, ...node.attrs }) }
     default:
       issues.push({ code: 'unsupported_node', path, message: `Unsupported Incantly node "${String((node as { type?: unknown }).type)}"`, action: 'omitted' })
@@ -143,7 +170,7 @@ function markFromProseMirror(mark: JSONContent, path: string, issues: DocumentAd
     case 'link': return compact({ type: 'link', href: value.href, title: value.title })
     case 'textColor': case 'highlight': return { type: mark.type, color: value.color }
     case 'citation': return { type: 'citation', citationId: value.citationId }
-    case 'inlineMath': return { type: 'inlineMath', latex: value.latex }
+    case 'inlineMathMark': return { type: 'inlineMath', latex: value.latex }
     default:
       issues.push({ code: 'unsupported_mark', path, message: `Unsupported ProseMirror mark "${String(mark.type)}"`, action: 'omitted' })
       return null
@@ -152,6 +179,11 @@ function markFromProseMirror(mark: JSONContent, path: string, issues: DocumentAd
 
 function inlineFromProseMirror(node: JSONContent, path: string, issues: DocumentAdapterIssue[]): unknown | null {
   if (node.type === 'hardBreak') return { type: 'hardBreak' }
+  if (node.type === 'inlineMath') {
+    return typeof attrs(node).latex === 'string' && attrs(node).latex
+      ? { type: 'inlineMath', latex: attrs(node).latex }
+      : null
+  }
   if (node.type !== 'text' || typeof node.text !== 'string') {
     issues.push({ code: 'unsupported_node', path, message: `Unsupported inline node "${String(node.type)}"`, action: 'omitted' })
     return null
@@ -194,7 +226,21 @@ function nodeFromProseMirror(node: JSONContent, path: string, issues: DocumentAd
     }
     case 'horizontalRule': case 'pageBreak': return { id, type: node.type }
     case 'codeBlock': return { id, type: 'codeBlock', ...optionalAttrs(compact({ language: value.language })), text: children(node).map((child) => typeof child.text === 'string' ? child.text : '').join('') }
-    case 'mathBlock': return { id, type: 'mathBlock', attrs: compact({ latex: value.latex, numbered: value.numbered, label: value.label }) }
+    case 'details': {
+      const summaryNode = children(node).find((child) => child.type === 'detailsSummary')
+      const contentNode = children(node).find((child) => child.type === 'detailsContent')
+      const summary = summaryNode ? children(summaryNode).map((child) => typeof child.text === 'string' ? child.text : '').join('') : ''
+      const content = contentNode ? children(contentNode).flatMap((child, index) => {
+        const converted = nodeFromProseMirror(child, `${path}.content[${index}]`, issues)
+        return converted ? [converted] : []
+      }) : []
+      return { id, type: 'details', attrs: { summary, ...(value.open === true ? { open: true } : {}) }, content }
+    }
+    case 'blockMath': return {
+      id,
+      type: 'mathBlock',
+      attrs: compact({ latex: typeof value.latex === 'string' ? value.latex : '', numbered: value.numbered === true ? true : undefined, label: typeof value.label === 'string' ? value.label : undefined }),
+    }
     case 'image': return { id, type: 'image', attrs: compact({ assetId: value.assetId, alt: value.alt, caption: value.caption, width: value.width, height: value.height, display: value.display }) }
     case 'fileAttachment': return { id, type: 'fileAttachment', attrs: compact({ assetId: value.assetId, filename: value.filename, mimeType: value.mimeType, display: value.display }) }
     case 'audio': return { id, type: 'audio', attrs: compact({ assetId: value.assetId, title: value.title, caption: value.caption }) }

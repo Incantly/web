@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
 @import '../lib/document-editor/document.css';
 
 /*
@@ -66,6 +67,18 @@
   /* Primary buttons + hero side-note arrows */
   --ui-button: var(--palette-blue);
   --ui-button-hover: var(--palette-blue-deep);
+
+  /*
+   * Code-block syntax tokens. Fixed hues for lowlight `hljs-*` token
+   * classes (mapped in the document stylesheet). Each holds at least
+   * 4.5:1 against the raised surface.
+   */
+  --ui-code-keyword: #cf222e;
+  --ui-code-string: #0a3069;
+  --ui-code-comment: #59636e;
+  --ui-code-number: #0550ae;
+  --ui-code-function: #8250df;
+  --ui-code-title: #953800;
 }
 
 /* Tailwind theme: colors, fonts, breakpoints, animations. */

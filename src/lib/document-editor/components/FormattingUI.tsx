@@ -3,8 +3,52 @@ import type { Editor } from '@tiptap/core'
 import { useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
+import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
 
 type Command = (editor: Editor) => boolean
+
+export interface DollarMathCandidate {
+  from: number
+  to: number
+  latex: string
+}
+
+/**
+ * Finds a `$latex$` span around a collapsed caret. Code blocks are excluded
+ * (a dollar there is literal), and so are existing math atoms (the caret can
+ * never sit inside one). Positions are document positions for deleteRange.
+ *
+ * The caret may sit right after the closing dollar (the natural moment just
+ * after typing it). To keep plain currency quiet, collapsed-caret offers
+ * require a math-ish character in the span; an explicit text selection of
+ * `$...$` always qualifies as deliberate intent.
+ */
+const MATHY = /[\\^_{}=+]/
+
+export function findDollarMathCandidate(state: Editor['state']): DollarMathCandidate | null {
+  const { selection } = state
+  if (!selection.empty) {
+    const text = state.doc.textBetween(selection.from, selection.to, undefined, '￼')
+    const selected = /^\$([^$\n￼]{1,200})\$$/.exec(text)
+    if (selected) return { from: selection.from, to: selection.to, latex: selected[1] }
+    return null
+  }
+  const $from = selection.$from
+  const parent = $from.parent
+  if (!parent.isTextblock || parent.type.name === 'codeBlock') return null
+  const text = parent.textBetween(0, parent.content.size, undefined, '￼')
+  const pattern = /\$([^$\n￼]{1,200})\$/g
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(text)) !== null) {
+    const start = match.index
+    const end = start + match[0].length
+    if ($from.parentOffset > start && $from.parentOffset <= end && MATHY.test(match[1])) {
+      const from = $from.start() + start
+      return { from, to: from + match[0].length, latex: match[1] }
+    }
+  }
+  return null
+}
 
 interface FormatButtonProps {
   label: string
@@ -38,7 +82,19 @@ function useFormattingState(editor: Editor | null) {
       strike: current.isActive('strike'), code: current.isActive('code'), paragraph: current.isActive('paragraph'),
       heading1: current.isActive('heading', { level: 1 }), heading2: current.isActive('heading', { level: 2 }),
       bulletList: current.isActive('bulletList'), orderedList: current.isActive('orderedList'),
-      blockquote: current.isActive('blockquote'), canUndo: current.can().chain().focus().undo().run(),
+      blockquote: current.isActive('blockquote'), codeBlock: current.isActive('codeBlock'),
+      // isActive is range-sensitive and drops when a selection spans out of
+      // the block; either selection end inside a code block means the user
+      // is working with code (boundary positions resolve to the neighbor).
+      inCodeBlock: [current.state.selection.$from, current.state.selection.$to]
+        .some((pos) => pos.parent.type.name === 'codeBlock'),
+      mathBlock: current.isActive('blockMath'),
+      mathLatex: (current.getAttributes('blockMath').latex as string | undefined) ?? '',
+      inlineMath: current.isActive('inlineMath'),
+      inlineMathLatex: (current.getAttributes('inlineMath').latex as string | undefined) ?? '',
+      dollarMath: findDollarMathCandidate(current.state),
+      codeLanguage: (current.getAttributes('codeBlock').language as string | undefined) ?? '',
+      canUndo: current.can().chain().focus().undo().run(),
       canRedo: current.can().chain().focus().redo().run(),
     }) : null,
   })
@@ -95,14 +151,74 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
   const editor = suppliedEditor ?? contextualEditor
   const state = useFormattingState(editor)
   if (!editor || !state || !state.editable) return null
+  // A detected formula gets a single-purpose bubble: just the convert
+  // button, no Bold/Italic/Underline/Code noise. One click converts.
+  const convertOnly = state.dollarMath !== null && !state.mathBlock && !state.inlineMath && !state.inCodeBlock
+  // A selected formula gets only its LaTeX editor for the same reason:
+  // text marks cannot apply inside a math atom, so the buttons would lie.
+  const mathEditing = !convertOnly && (state.mathBlock || state.inlineMath)
+  const convertCommand: Command = (current) => {
+    const candidate = findDollarMathCandidate(current.state) ?? state.dollarMath
+    if (!candidate) return false
+    if (current.state.doc.resolve(candidate.from).parent.type.name === 'codeBlock') return false
+    // Two steps: deleteRange collapses the selection, and positions
+    // before `from` are untouched by the deletion, so the insert
+    // lands exactly where the dollars were.
+    if (!current.chain().focus().deleteRange({ from: candidate.from, to: candidate.to }).run()) return false
+    return current.chain().focus().insertContentAt(candidate.from, { type: 'inlineMath', attrs: { latex: candidate.latex } }).run()
+  }
   return (
-    <BubbleMenu editor={editor} shouldShow={({ state: current }) => !current.selection.empty}>
+    <BubbleMenu editor={editor} shouldShow={({ state: current }) => !current.selection.empty || findDollarMathCandidate(current) !== null}>
       <div {...props} className={['incantly-document-bubble-toolbar', className].filter(Boolean).join(' ')}
         role="toolbar" aria-label={props['aria-label'] ?? 'Selection formatting'}>
-        <FormatButton editor={editor} label="Bold" shortcut="Mod-B" active={state.bold} command={toggleMark('bold')}><strong>B</strong></FormatButton>
-        <FormatButton editor={editor} label="Italic" shortcut="Mod-I" active={state.italic} command={toggleMark('italic')}><em>I</em></FormatButton>
-        <FormatButton editor={editor} label="Underline" shortcut="Mod-U" active={state.underline} command={toggleMark('underline')}><u>U</u></FormatButton>
-        <FormatButton editor={editor} label="Inline code" shortcut="Mod-E" active={state.code} command={toggleMark('code')}>&lt;/&gt;</FormatButton>
+        {convertOnly && state.dollarMath ? (
+          <FormatButton editor={editor} label={`Convert ${state.dollarMath.latex} to math`} command={convertCommand}>∑</FormatButton>
+        ) : mathEditing ? (
+          <label className="incantly-format-math">
+            <span className="sr-only">Math formula (LaTeX)</span>
+            <input
+              aria-label="Math formula (LaTeX)"
+              type="text"
+              placeholder="LaTeX…"
+              value={state.mathBlock ? state.mathLatex : state.inlineMathLatex}
+              onChange={(event) => {
+                // No .focus() here: refocusing the editor on every keystroke
+                // would steal the caret out of this input while typing.
+                // Re-selecting the atom instead keeps the NodeSelection (and
+                // the bubble) alive across the attribute transaction.
+                const latex = event.target.value
+                const type = state.mathBlock ? 'blockMath' : 'inlineMath'
+                const { from } = editor.state.selection
+                editor.chain().updateAttributes(type, { latex }).setNodeSelection(from).run()
+              }}
+            />
+          </label>
+        ) : (
+          <>
+            <FormatButton editor={editor} label="Bold" shortcut="Mod-B" active={state.bold} command={toggleMark('bold')}><strong>B</strong></FormatButton>
+            <FormatButton editor={editor} label="Italic" shortcut="Mod-I" active={state.italic} command={toggleMark('italic')}><em>I</em></FormatButton>
+            <FormatButton editor={editor} label="Underline" shortcut="Mod-U" active={state.underline} command={toggleMark('underline')}><u>U</u></FormatButton>
+            <FormatButton editor={editor} label="Inline code" shortcut="Mod-E" active={state.code} command={toggleMark('code')}>&lt;/&gt;</FormatButton>
+          </>
+        )}
+        {state.inCodeBlock ? (
+          <label className="incantly-format-language">
+            <span className="sr-only">Code language</span>
+            <select
+              aria-label="Code language"
+              value={CODE_BLOCK_LANGUAGES.some((option) => option.value === state.codeLanguage) ? state.codeLanguage : ''}
+              onChange={(event) => {
+                const language = event.target.value
+                editor.chain().focus().updateAttributes('codeBlock', { language: language || null }).run()
+              }}
+            >
+              <option value="">Plain text</option>
+              {CODE_BLOCK_LANGUAGES.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
     </BubbleMenu>
   )

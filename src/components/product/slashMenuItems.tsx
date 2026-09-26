@@ -12,6 +12,7 @@ const toggleOrderedList: Command = (editor) => editor.chain().focus().toggleList
 const toggleBlockquote: Command = (editor) => editor.chain().focus().toggleWrap('blockquote').run()
 const setCodeBlock: Command = (editor) => editor.chain().focus().setNode('codeBlock').run()
 const insertDivider: Command = (editor) => editor.chain().focus().insertContent({ type: 'horizontalRule' }).run()
+const insertDetails: Command = (editor) => editor.chain().focus().setDetails().run()
 const setQuestionHeading: Command = (editor) =>
   editor.chain().focus().setNode('heading', { level: 2 }).insertContent('What do you want to find out?').run()
 
@@ -36,6 +37,7 @@ export const incantlySlashMenuItems: readonly SlashMenuItem[] = [
   { id: 'bullet-list', label: 'Bullet list', description: 'Unordered dots', keywords: ['unordered', 'bullet', 'bullets', 'bullet list', 'dot points'], command: toggleBulletList },
   { id: 'numbered-list', label: 'Numbered list', description: 'Ordered 1, 2, 3', keywords: ['ordered', 'ordered list', 'numbered', 'number list', 'number lists', 'numbers'], command: toggleOrderedList },
   { id: 'blockquote', label: 'Blockquote', description: 'Pull a passage aside', keywords: ['quote', 'quotes', 'citation', 'blockquote'], command: toggleBlockquote },
+  { id: 'details', label: 'Details', description: 'Collapsible section with a summary', keywords: ['details', 'detail', 'disclosure', 'collapsible', 'collapse', 'toggle', 'summary', 'fold', 'accordion'], command: insertDetails },
   { id: 'code-block', label: 'Code block', description: 'Monospace snippet', keywords: ['code', 'codeblock', 'code block', 'snippet'], command: setCodeBlock },
   { id: 'divider', label: 'Divider', description: 'A rule across the page', keywords: ['rule', 'line', 'divider', 'horizontal rule', 'separator'], command: insertDivider },
 ]
@@ -51,6 +53,7 @@ const itemIcons: Record<string, IconName> = {
   'bullet-list': 'menu',
   'numbered-list': 'menu',
   blockquote: 'quote',
+  details: 'chevron',
   'code-block': 'code',
   divider: 'minus',
 }

@@ -32,13 +32,16 @@ export const documentRichCommands = {
   setTextColor: (editor: Editor, color: string): boolean =>
     editor.chain().focus().setMark('textColor', { color }).run(),
   setInlineMath: (editor: Editor, latex: string): boolean =>
-    editor.chain().focus().setMark('inlineMath', { latex }).run(),
+    editor.chain().focus().setMark('inlineMathMark', { latex }).run(),
   insertChecklist: (editor: Editor, checked = false): boolean => editor.chain().focus().insertContent({
     type: 'checklist',
     content: [{ type: 'checklistItem', attrs: { checked }, content: [paragraph()] }],
   }).run(),
   insertMathBlock: (editor: Editor, latex: string, numbered = false, label?: string): boolean =>
-    editor.chain().focus().insertContent({ type: 'mathBlock', attrs: { latex, numbered, label: label ?? null } }).run(),
+    editor.chain().focus().insertContent({
+      type: 'blockMath',
+      attrs: { latex, ...(numbered ? { numbered: true } : {}), ...(label ? { label } : {}) },
+    }).run(),
   insertTable: (editor: Editor, options: InsertTableOptions = {}): boolean => {
     const rows = Math.max(1, options.rows ?? 3)
     const columns = Math.max(1, options.columns ?? 3)
