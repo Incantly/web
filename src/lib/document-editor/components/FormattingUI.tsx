@@ -406,6 +406,12 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
         event.stopPropagation()
         const item = filtered[activeIndex]
         if (!item) return
+        // Grid items open their size picker on Enter instead of inserting;
+        // a second Enter confirms the highlighted size.
+        if (item.grid) {
+          setGridSel({ rows: item.grid.defaultRows, cols: item.grid.defaultCols })
+          return
+        }
         editor.chain().focus().deleteRange({ from: match.from, to: match.to }).run()
         item.command(editor)
       } else if (event.key === 'Escape') {
@@ -419,8 +425,14 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
     return () => element.removeEventListener('keydown', handleKeyDown, true)
   }, [activeIndex, editor, filtered, gridSel, match, open])
   if (!editor || !match || !filtered.length) return null
-  const choose = (item: SlashMenuItem) => (event: MouseEvent<HTMLButtonElement>) => {
+  const choose = (item: SlashMenuItem, index: number) => (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
+    // Grid rows open their picker on click, mirroring Enter; sizing is
+    // preserved when re-entering the already-open row.
+    if (item.grid) {
+      openGrid(item, index)()
+      return
+    }
     editor.chain().focus().deleteRange({ from: match.from, to: match.to }).run()
     item.command(editor)
   }
@@ -434,9 +446,13 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
     setGridSel(null)
   }
   const openGrid = (item: SlashMenuItem, index: number) => () => {
+    const alreadyOpen = gridSel !== null && filtered[activeIndex]?.id === item.id
     setActiveIndex(index)
-    if (item.grid) setGridSel({ rows: item.grid.defaultRows, cols: item.grid.defaultCols })
-    else setGridSel(null)
+    if (!item.grid) {
+      setGridSel(null)
+      return
+    }
+    if (!alreadyOpen) setGridSel({ rows: item.grid.defaultRows, cols: item.grid.defaultCols })
   }
   return (
     <div {...props} ref={menuRef} id={menuId} style={{ ...props.style, ...position }}
@@ -446,7 +462,7 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
         <span key={item.id}>
           <button type="button" role="menuitem" aria-current={index === activeIndex ? 'true' : undefined}
             ref={(element) => { itemRefs.current[index] = element }}
-            onMouseEnter={openGrid(item, index)} onMouseDown={choose(item)}>
+            onMouseEnter={openGrid(item, index)} onMouseDown={choose(item, index)}>
             {renderItem ? renderItem(item) : <><strong>{item.label}</strong>{item.description ? <span>{item.description}</span> : null}</>}
           </button>
           {grid && grid.item.id === item.id ? (

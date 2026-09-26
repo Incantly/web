@@ -43,6 +43,10 @@ test.describe('table structure', () => {
       await page.waitForTimeout(800)
       await expect(page.locator('.incantly-document-slash-menu [role="menuitem"] strong').first()).toHaveText('Table')
       await page.keyboard.press('Enter')
+      await page.waitForTimeout(400)
+      // Enter opens the size grid; a second Enter confirms the 3x3 default.
+      expect(await page.locator('.incantly-slash-grid-cell').count()).toBe(36)
+      await page.keyboard.press('Enter')
       await page.waitForTimeout(500)
       expect(await rows(page)).toBe(3)
       expect(await cols(page)).toBe(3)

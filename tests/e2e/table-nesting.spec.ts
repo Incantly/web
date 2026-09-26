@@ -27,6 +27,9 @@ test.describe('table nesting guard', () => {
       await page.waitForTimeout(800)
       await expect(page.locator('.incantly-document-slash-menu [role="menuitem"] strong').first()).toHaveText('Table')
       await page.keyboard.press('Enter')
+      await page.waitForTimeout(400)
+      expect(await page.locator('.incantly-slash-grid-cell').count()).toBe(36)
+      await page.keyboard.press('Enter')
       await page.waitForTimeout(500)
       expect(await tables(page)).toBe(1)
 

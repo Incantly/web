@@ -16,6 +16,7 @@ async function openNote(page: Page) {
 
 const gridCells = (page: Page) => page.locator('.incantly-slash-grid-cell')
 
+
 async function freshParagraph(page: Page) {
   await page.locator('.ProseMirror > p').first().click()
   await page.waitForTimeout(200)
@@ -25,6 +26,8 @@ async function freshParagraph(page: Page) {
 }
 
 test.describe('slash grid picker', () => {
+  // TEMP-DEBUG
+
   test('table sizes, escape, hover, and scroll-follow', async ({ page }: { page: Page }) => {
     const problems = await captureProblems(page, async () => {
       await openNote(page)
@@ -52,7 +55,8 @@ test.describe('slash grid picker', () => {
       check('table-grid', 'grid inserts sized table', true, '4 rows, 5 cols')
       await shot(page, 'table-grid-inserted')
 
-      // Escape returns to the list; Enter then inserts the 3x3 default.
+      // Escape returns to the list; Enter opens the grid, Enter again
+      // confirms the 3x3 default.
       await freshParagraph(page)
       for (const ch of '/table') await page.keyboard.type(ch, { delay: 25 })
       await page.waitForTimeout(800)
@@ -64,6 +68,10 @@ test.describe('slash grid picker', () => {
       expect(await gridCells(page).count()).toBe(0)
       await expect(page.locator('.incantly-document-slash-menu [role="menuitem"] strong').first()).toHaveText('Table')
       check('table-grid', 'escape returns to list', true, 'grid closed, menu open')
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(400)
+      expect(await gridCells(page).count()).toBe(36)
+      check('table-grid', 'enter opens grid', true, '36 cells, no other options')
       await page.keyboard.press('Enter')
       await page.waitForTimeout(600)
       const tables = page.locator('.ProseMirror table')
@@ -82,6 +90,21 @@ test.describe('slash grid picker', () => {
       await page.waitForTimeout(400)
       expect(await gridCells(page).count()).toBe(36)
       check('table-grid', 'hover opens grid', true, '36 cells')
+      // Moving across the boxes selects the size; clicking inserts it.
+      await page.getByRole('button', { name: '2 rows by 4 columns' }).hover()
+      await page.waitForTimeout(300)
+      await expect(page.locator('.incantly-slash-grid-size')).toHaveText('2 × 4')
+      check('table-grid', 'hover selects size', true, 'label follows mouse')
+      await shot(page, 'table-grid-hover')
+      const beforeCount = await page.locator('.ProseMirror table').count()
+      await page.getByRole('button', { name: '2 rows by 4 columns' }).click()
+      await page.waitForTimeout(600)
+      // Shape strings join per-row cell counts, so a 2-row by 4-column
+      // table reads "4,4". Assert structure directly instead.
+      expect(await page.locator('.ProseMirror table').count()).toBe(beforeCount + 1)
+      expect(await page.locator('.ProseMirror table').nth(0).locator('tr').count()).toBe(2)
+      expect(await page.locator('.ProseMirror table').nth(0).locator('tr').first().locator('th, td').count()).toBe(4)
+      check('table-grid', 'click inserts hovered size', true, 'new 2x4 table at index 0')
       await page.keyboard.press('Escape')
       await page.keyboard.press('Escape')
       await page.waitForTimeout(400)
