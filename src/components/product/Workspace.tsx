@@ -1,169 +1,224 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
-import Link from 'next/link'
-import { createDocument, DocumentSlashMenu, useDocumentEditor, type IncantlyDocument } from '@incantly/canvas-react/document'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createDocument, type IncantlyDocument } from '@incantly/core/document'
+import { DocumentSlashMenu } from '../../lib/document-editor'
+import { incantlySlashMenuItems, renderSlashItem } from './slashMenuItems'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
+import { WorkspaceLibrary } from './WorkspaceLibrary'
 
-/**
- * Slash menu anchored next to the `/` being typed. The package renders its
- * menu in flow (bottom of the document) by default; this wrapper pins it to
- * the cursor with viewport coordinates so it opens beside the caret.
- */
-function AnchoredSlashMenu() {
-  const editor = useDocumentEditor()
-  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null)
+type NoteKind = 'note' | 'paper' | 'journal'
+type WorkspaceView = 'home' | 'search' | 'inbox' | 'library' | 'notes' | 'papers' | 'journals' | 'settings' | `note:${string}`
+type NoteRecord = { id: string; title: string; excerpt: string; kind: NoteKind; updatedAt: number; document: IncantlyDocument }
+type InboxItem = { id: string; title: string; detail: string; when: string }
 
-  useEffect(() => {
-    if (!editor) return
-    const update = () => {
-      const { selection } = editor.state
-      if (selection.empty && editor.isEditable) {
-        try {
-          const coords = editor.view.coordsAtPos(selection.$from.pos)
-          const left = Math.max(8, Math.min(coords.left, window.innerWidth - 344))
-          const below = coords.bottom + 8
-          const top = below > window.innerHeight - 360 ? Math.max(8, coords.top - 368) : below
-          setAnchor({ top, left })
-        } catch {
-          setAnchor(null)
-        }
-      } else {
-        setAnchor(null)
-      }
-    }
-    update()
-    editor.on('selectionUpdate', update)
-    editor.on('update', update)
-    return () => {
-      editor.off('selectionUpdate', update)
-      editor.off('update', update)
-    }
-  }, [editor])
-
-  if (!editor || !anchor) return null
-  return (
-    <div className="fixed z-50" style={{ top: anchor.top, left: anchor.left }}>
-      <DocumentSlashMenu />
-    </div>
-  )
-}
+const STORAGE_KEY = 'incantly-workspace-notes-v1'
+const initialNotes: NoteRecord[] = [
+  { id: 'cities-at-night', title: 'Why cities stay warm at night', excerpt: 'Concrete, trees, moving air, and the shape of a neighborhood.', kind: 'note', updatedAt: 3, document: createDocument({ id: 'cities-at-night', title: 'Why cities stay warm at night' }) },
+  { id: 'attention-garden', title: 'Attention as a garden', excerpt: 'What changes when focus is treated as something we tend?', kind: 'note', updatedAt: 2, document: createDocument({ id: 'attention-garden', title: 'Attention as a garden' }) },
+  { id: 'questions-worth-keeping', title: 'Questions worth keeping', excerpt: 'A growing list of ideas that should stay open a little longer.', kind: 'note', updatedAt: 1, document: createDocument({ id: 'questions-worth-keeping', title: 'Questions worth keeping' }) },
+  { id: 'my-first-journal', title: 'My First Journal', excerpt: 'A place to notice what changes over time.', kind: 'journal', updatedAt: 0, document: createDocument({ id: 'my-first-journal', title: 'My First Journal' }) },
+]
+const initialInbox: InboxItem[] = [
+  { id: 'inbox-1', title: 'A question for later', detail: 'Why do some ideas stay with us long after a conversation?', when: 'Today' },
+  { id: 'inbox-2', title: 'Something to read', detail: 'Return to the article you saved for your research.', when: 'Yesterday' },
+  { id: 'inbox-3', title: 'A new connection', detail: 'Your city notes might connect to the observation in your journal.', when: 'Sep 21' },
+]
 
 const DocumentEditor = dynamic(
-  () => import('@incantly/canvas-react/document').then((module) => module.DocumentEditor),
-  { ssr: false, loading: () => <div className="mx-auto mt-24 h-36 w-full max-w-[45rem] animate-pulse rounded-2xl bg-surface" /> },
+  () => import('../../lib/document-editor').then((module) => module.DocumentEditor),
+  { ssr: false, loading: () => <div className="mx-auto mt-20 h-28 w-full max-w-[46rem] animate-pulse rounded-2xl bg-surface" /> },
 )
 
-type WorkspaceView = 'home' | 'search' | 'inbox' | 'papers' | 'journals' | 'settings' | `note:${string}`
-type NoteRecord = { id: string; title: string; excerpt: string; updated: string; document: IncantlyDocument }
+const railButton = 'flex min-h-11 w-full min-w-0 items-center gap-3 rounded-lg px-3 text-left text-sm transition hover:bg-raised hover:text-foreground focus-visible:bg-raised'
 
-const initialNotes: NoteRecord[] = [
-  { id: 'cities-at-night', title: 'Why cities stay warm at night', excerpt: 'Concrete, trees, moving air, and the shape of a neighborhood.', updated: '12 min ago', document: createDocument({ id: 'cities-at-night', title: 'Why cities stay warm at night' }) },
-  { id: 'attention-garden', title: 'Attention as a garden', excerpt: 'What changes when focus is treated as something we tend?', updated: 'Yesterday', document: createDocument({ id: 'attention-garden', title: 'Attention as a garden' }) },
-  { id: 'questions-worth-keeping', title: 'Questions worth keeping', excerpt: 'A growing list of ideas that should stay open a little longer.', updated: 'Sep 21', document: createDocument({ id: 'questions-worth-keeping', title: 'Questions worth keeping' }) },
-]
+function RailItem({ children, active, onClick }: { children: ReactNode; active: boolean; onClick: () => void }) {
+  return <button type="button" onClick={onClick} className={`${railButton} ${active ? 'bg-raised font-medium text-foreground' : 'text-muted'}`}>{children}</button>
+}
 
-const navigation: ReadonlyArray<{ id: 'search' | 'home' | 'inbox'; label: string; icon: 'search' | 'home' | 'inbox'; badge?: string }> = [
-  { id: 'search', label: 'Search', icon: 'search' },
-  { id: 'home', label: 'Home', icon: 'home' },
-  { id: 'inbox', label: 'Inbox', icon: 'inbox', badge: '3' },
-]
+function Sidebar({ view, notes, inboxCount, navigate, create, onClose }: { view: WorkspaceView; notes: NoteRecord[]; inboxCount: number; navigate: (view: WorkspaceView) => void; create: (kind: NoteKind) => void; onClose?: () => void }) {
+  const items = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt)
+  return <aside className="flex h-full min-h-0 flex-col bg-surface px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3" aria-label="Workspace navigation">
+    <div className="flex min-h-11 items-center justify-between gap-2 px-1">
+      <p className="min-w-0 truncate text-[0.98rem] font-semibold text-foreground">Hi, Iteoluwakisi</p>
+      {onClose ? <button type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-lg text-foreground hover:bg-raised" aria-label="Close sidebar"><AppIcon name="panel" className="size-5" /></button> : null}
+    </div>
+    <nav className="mt-4 grid gap-0.5" aria-label="Main navigation">
+      <RailItem active={view === 'search'} onClick={() => navigate('search')}><AppIcon name="search" className="size-[1.125rem] shrink-0" />Search <span className="ml-auto hidden rounded bg-canvas px-1.5 py-0.5 text-[0.65rem] text-subtle sm:block">⌘ K</span></RailItem>
+      <RailItem active={view === 'home'} onClick={() => navigate('home')}><AppIcon name="home" className="size-[1.125rem] shrink-0" />Home</RailItem>
+      <RailItem active={view === 'inbox'} onClick={() => navigate('inbox')}><AppIcon name="inbox" className="size-[1.125rem] shrink-0" />Inbox {inboxCount ? <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-button px-1 text-[0.65rem] text-inverse">{inboxCount}</span> : null}</RailItem>
+    </nav>
 
-const navButton = 'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition hover:bg-raised hover:text-foreground focus-visible:bg-raised'
+    <div className="mt-7 flex items-center justify-between px-3"><button type="button" onClick={() => navigate('library')} className="min-h-11 text-left text-xs font-bold uppercase tracking-[0.1em] text-foreground hover:text-button">Library</button><button type="button" onClick={() => navigate('library')} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-raised" aria-label="Open library"><AppIcon name="chevron" className="size-4" /></button></div>
+    <RailItem active={view === 'library'} onClick={() => navigate('library')}><AppIcon name="archive" className="size-[1.125rem] shrink-0" />All files and folders</RailItem>
 
-function WorkspaceSidebar({ activeView, notes, onNavigate, onNewNote, onClose }: { activeView: WorkspaceView; notes: NoteRecord[]; onNavigate: (view: WorkspaceView) => void; onNewNote: () => void; onClose?: () => void }) {
-  const navigate = (view: WorkspaceView) => { onNavigate(view); onClose?.() }
-  return (
-    <aside className="flex h-full w-full flex-col bg-surface px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4" aria-label="Workspace navigation">
-      <div className="flex items-center justify-between gap-3 px-2">
-        <Link href="/" className="flex items-center gap-2 font-display text-[1.35rem] tracking-[-0.05em] text-foreground no-underline"><Image src="/incantly-logo.svg" alt="" width={19} height={26} className="h-6 w-auto" /> incantly</Link>
-        {onClose ? <button type="button" onClick={onClose} className="grid size-11 place-items-center rounded-xl text-muted hover:bg-raised" aria-label="Close navigation"><AppIcon name="close" className="size-5" /></button> : null}
-      </div>
-      <button type="button" onClick={onNewNote} className="mt-5 flex min-h-11 items-center justify-between rounded-xl bg-button px-4 text-sm font-semibold text-inverse hover:bg-button-hover"><span>New note</span><AppIcon name="plus" className="size-5" /></button>
-      <nav className="mt-5 grid gap-1">
-        {navigation.map((item) => <button key={item.id} type="button" onClick={() => navigate(item.id)} className={`${navButton} ${activeView === item.id ? 'bg-raised text-foreground' : 'text-muted'}`}><AppIcon name={item.icon} className="size-[1.125rem] shrink-0" /><span className="flex-1">{item.label}</span>{item.badge ? <span className="grid min-w-6 place-items-center rounded-full bg-button px-1.5 py-0.5 text-xs text-inverse">{item.badge}</span> : null}</button>)}
+    {([
+      ['papers', 'Your Papers', 'paper', 'paper'],
+      ['journals', 'Your Journals', 'journal', 'journal'],
+      ['notes', 'My Notes', 'document', 'note'],
+    ] as const).map(([destination, title, icon, kind]) => <div key={destination} className="mt-4">
+      <div className="flex items-center justify-between px-3"><button type="button" onClick={() => navigate(destination)} className="min-h-11 truncate text-left text-xs font-bold uppercase tracking-[0.1em] text-foreground hover:text-button">{title}</button><button type="button" onClick={() => create(kind)} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-raised hover:text-button" aria-label={`Create ${kind}`}><AppIcon name="plus" className="size-4" /></button></div>
+      <nav className="max-h-[9rem] overflow-y-auto" aria-label={title}>
+        {items.filter((item) => item.kind === kind).slice(0, 5).map((item) => <RailItem key={item.id} active={view === `note:${item.id}`} onClick={() => navigate(`note:${item.id}`)}><AppIcon name={icon} className="size-4 shrink-0" /><span className="min-w-0 truncate">{item.title}</span></RailItem>)}
+        {items.every((item) => item.kind !== kind) ? <button type="button" onClick={() => create(kind)} className="min-h-11 px-3 text-left text-xs text-muted hover:text-button">+ Create {kind}</button> : null}
       </nav>
+    </div>)}
 
-      <div className="mt-7 px-3 text-[0.68rem] font-bold uppercase tracking-[0.13em] text-subtle">Library</div>
-      <nav className="mt-2 grid gap-1">
-        <button type="button" onClick={() => navigate('papers')} className={`${navButton} ${activeView === 'papers' ? 'bg-raised text-foreground' : 'text-muted'}`}><AppIcon name="paper" className="size-[1.125rem]" />Your Papers</button>
-        <button type="button" onClick={() => navigate('journals')} className={`${navButton} ${activeView === 'journals' ? 'bg-raised text-foreground' : 'text-muted'}`}><AppIcon name="journal" className="size-[1.125rem]" />Your Journals</button>
-      </nav>
-
-      <div className="mt-7 flex items-center justify-between px-3"><span className="text-[0.68rem] font-bold uppercase tracking-[0.13em] text-subtle">My Notes</span><button type="button" onClick={onNewNote} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-raised hover:text-button" aria-label="Create note"><AppIcon name="plus" className="size-4" /></button></div>
-      <nav className="mt-1 grid gap-1 overflow-y-auto">
-        {notes.map((note) => <button key={note.id} type="button" onClick={() => navigate(`note:${note.id}`)} className={`${navButton} min-w-0 ${activeView === `note:${note.id}` ? 'bg-raised text-foreground' : 'text-muted'}`}><AppIcon name="document" className="size-4 shrink-0" /><span className="truncate">{note.title}</span></button>)}
-      </nav>
-
-      <div className="mt-auto grid gap-1 border-t border-default pt-3">
-        <button type="button" onClick={() => navigate('settings')} className={`${navButton} ${activeView === 'settings' ? 'bg-raised text-foreground' : 'text-muted'}`}><AppIcon name="settings" className="size-[1.125rem]" />Settings</button>
-        <div className="flex min-h-12 items-center gap-3 rounded-xl px-3"><span className="grid size-8 place-items-center rounded-full bg-button font-display text-sm text-inverse">I</span><span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">Iteoluwakisi</span><AppIcon name="chevron" className="size-4 text-subtle" /></div>
-      </div>
-    </aside>
-  )
+    <div className="mt-auto border-t border-default pt-2">
+      <RailItem active={view === 'settings'} onClick={() => navigate('settings')}><AppIcon name="settings" className="size-[1.125rem] shrink-0" />Settings</RailItem>
+      <div className="mt-1 flex min-h-11 items-center gap-2 px-3"><span className="grid size-7 place-items-center rounded-full bg-button text-xs font-semibold text-inverse">I</span><span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">Iteoluwakisi</span></div>
+    </div>
+  </aside>
 }
 
-function PageHeader({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
-  return <header className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-[0.68rem] font-bold uppercase tracking-[0.13em] text-button">{eyebrow}</p><h1 className="mt-2 font-display text-[clamp(2.5rem,6vw,4.6rem)] font-normal leading-[0.95] tracking-[-0.06em] text-foreground">{title}</h1><p className="mt-4 max-w-[42rem] leading-7 text-muted">{description}</p></div>{action}</header>
+function PageFrame({ children }: { children: ReactNode }) {
+  return <div className="mx-auto w-full max-w-[70rem] px-5 py-7 sm:px-8 lg:px-12 lg:py-10">{children}</div>
 }
 
-function HomeView({ notes, onOpen, onNewNote }: { notes: NoteRecord[]; onOpen: (id: string) => void; onNewNote: () => void }) {
-  return <div className="mx-auto w-full max-w-[76rem] px-5 py-8 sm:px-8 lg:px-12 lg:py-12"><PageHeader eyebrow="Your workspace" title="Good morning, Iteoluwakisi." description="Pick up a thought, open a journal, or begin with a question that has been following you." action={<button type="button" onClick={onNewNote} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-button px-5 font-semibold text-inverse hover:bg-button-hover"><AppIcon name="plus" className="size-5" />New note</button>} />
-    <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="Workspace overview">
-      {[['My Notes', String(notes.length), 'Ideas you are still shaping.'], ['Your Papers', '4', 'Long-form work and research.'], ['Your Journals', '2', 'Questions, reflections, and change.']].map(([label, count, copy], index) => <article key={label} className={`min-h-[13rem] rounded-2xl border p-6 ${index === 0 ? 'border-button bg-button text-inverse' : 'border-default bg-raised text-foreground'}`}><span className="font-display text-5xl">{count}</span><h2 className="mt-7 font-display text-2xl font-normal">{label}</h2><p className={`mt-2 text-sm leading-6 ${index === 0 ? 'text-inverse/80' : 'text-muted'}`}>{copy}</p></article>)}
-    </section>
-    <section className="mt-12"><div className="flex items-center justify-between gap-4"><h2 className="font-display text-3xl font-normal tracking-[-0.04em] text-foreground">Continue exploring</h2><button type="button" className="min-h-11 text-sm font-semibold text-button">View all notes</button></div><div className="mt-5 grid gap-3">{notes.map((note) => <button key={note.id} type="button" onClick={() => onOpen(note.id)} className="group grid min-h-[6.5rem] gap-2 rounded-2xl border border-default bg-raised p-5 text-left transition hover:border-button sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><span><span className="block font-display text-xl text-foreground group-hover:text-button">{note.title}</span><span className="mt-2 block text-sm leading-6 text-muted">{note.excerpt}</span></span><span className="text-xs text-subtle">{note.updated}</span></button>)}</div></section>
-  </div>
+function PageHeading({ eyebrow, title, subtitle, action }: { eyebrow?: string; title: string; subtitle?: string; action?: ReactNode }) {
+  return <header className="flex flex-wrap items-end justify-between gap-5">{<div className="min-w-0">{eyebrow ? <p className="text-[0.7rem] font-bold uppercase tracking-[0.13em] text-button">{eyebrow}</p> : null}<h1 className="mt-2 font-display text-[clamp(2.4rem,5vw,3.9rem)] font-normal leading-[1.05] tracking-[-0.055em] text-foreground">{title}</h1>{subtitle ? <p className="mt-3 max-w-[40rem] text-sm leading-6 text-muted">{subtitle}</p> : null}</div>}{action}</header>
 }
 
-function SearchView({ notes, onOpen }: { notes: NoteRecord[]; onOpen: (id: string) => void }) {
-  const [query, setQuery] = useState('')
-  const results = useMemo(() => notes.filter((note) => `${note.title} ${note.excerpt}`.toLowerCase().includes(query.toLowerCase())), [notes, query])
-  return <div className="mx-auto w-full max-w-[64rem] px-5 py-8 sm:px-8 lg:py-12"><PageHeader eyebrow="Find anything" title="Search your thinking." description="Look across notes, papers, journals, sources, and the questions you saved for later." /><label className="mt-10 flex min-h-14 items-center gap-3 rounded-2xl border border-default bg-raised px-5 focus-within:border-button"><AppIcon name="search" className="size-5 text-button" /><input value={query} onChange={(event) => setQuery(event.target.value)} autoFocus className="min-w-0 flex-1 bg-transparent text-lg text-foreground outline-none placeholder:text-subtle" placeholder="Search notes, ideas, or sources" /></label><div className="mt-6 grid gap-3">{results.map((note) => <button type="button" key={note.id} onClick={() => onOpen(note.id)} className="rounded-2xl border border-default bg-raised p-5 text-left hover:border-button"><span className="font-display text-xl text-foreground">{note.title}</span><span className="mt-2 block text-sm leading-6 text-muted">{note.excerpt}</span></button>)}{results.length === 0 ? <div className="rounded-2xl border border-dashed border-default p-10 text-center text-muted">No connected thoughts found yet.</div> : null}</div></div>
+function HomeView({ notes, open, navigate }: { notes: NoteRecord[]; open: (id: string) => void; navigate: (view: WorkspaceView) => void }) {
+  const counts = {
+    note: notes.filter((item) => item.kind === 'note').length,
+    paper: notes.filter((item) => item.kind === 'paper').length,
+    journal: notes.filter((item) => item.kind === 'journal').length,
+  }
+  const recent = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5)
+  return <PageFrame><PageHeading title="Good morning, Iteoluwakisi." /><section className="mt-10 grid gap-3 sm:grid-cols-3" aria-label="Your work at a glance">{([
+    ['My Notes', counts.note, 'notes'],
+    ['Your Papers', counts.paper, 'papers'],
+    ['Your Journals', counts.journal, 'journals'],
+  ] as const).map(([label, count, destination]) => <button type="button" key={label} onClick={() => navigate(destination)} className="flex min-h-[8rem] flex-col justify-between rounded-[1.1rem] border border-default bg-raised p-5 text-left transition hover:border-button"><span className="font-display text-[2.5rem] leading-none text-foreground">{count}</span><span className="text-sm font-medium text-muted">{label}</span></button>)}</section>
+    <section className="mt-11" aria-labelledby="recent-heading"><div className="flex items-center justify-between gap-4"><h2 id="recent-heading" className="font-display text-[1.75rem] font-normal tracking-[-0.04em] text-foreground">Recent</h2><button type="button" onClick={() => navigate('notes')} className="min-h-11 text-sm font-medium text-button hover:underline">See all notes</button></div><div className="mt-2 divide-y divide-default border-y border-default">{recent.map((item) => <button key={item.id} type="button" onClick={() => open(item.id)} className="flex min-h-[5.4rem] w-full min-w-0 items-center gap-4 py-3 text-left hover:text-button"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface text-button"><AppIcon name={item.kind === 'note' ? 'document' : item.kind === 'paper' ? 'paper' : 'journal'} className="size-5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{item.title}</span><span className="mt-1 block truncate text-xs text-muted">{item.excerpt}</span></span><AppIcon name="chevron" className="size-4 shrink-0 text-subtle" /></button>)}</div></section>
+  </PageFrame>
 }
 
-function CollectionView({ type }: { type: 'inbox' | 'papers' | 'journals' | 'settings' }) {
-  const content = { inbox: ['Inbox', 'Ideas waiting for you.', 'Three captured thoughts are ready to be sorted into notes, papers, or journals.'], papers: ['Your Papers', 'Long-form work, still connected.', 'Build arguments and research without separating them from the notes that shaped them.'], journals: ['Your Journals', 'Notice what is changing.', 'Keep daily observations, questions, and lessons in a place that can grow with you.'], settings: ['Settings', 'Make the workspace yours.', 'Manage your profile, writing preferences, connected accounts, and notification choices.'] }[type]
-  return <div className="mx-auto w-full max-w-[70rem] px-5 py-8 sm:px-8 lg:py-12"><PageHeader eyebrow={content[0]} title={content[1]} description={content[2]} /><div className="mt-12 grid gap-4 sm:grid-cols-2">{['A place to begin', 'Recently changed', 'Pinned for later', 'Shared with you'].map((title, index) => <article key={title} className="min-h-[12rem] rounded-2xl border border-default bg-raised p-6"><span className="grid size-10 place-items-center rounded-xl bg-surface text-button"><AppIcon name={index % 2 === 0 ? 'sparkles' : 'document'} className="size-5" /></span><h2 className="mt-6 font-display text-2xl font-normal text-foreground">{title}</h2><p className="mt-2 text-sm leading-6 text-muted">This area is ready for the first piece of your work.</p></article>)}</div></div>
+function SearchView({ notes, query, setQuery, open }: { notes: NoteRecord[]; query: string; setQuery: (value: string) => void; open: (id: string) => void }) {
+  const matches = useMemo(() => notes.filter((note) => `${note.title} ${note.excerpt}`.toLowerCase().includes(query.toLowerCase())), [notes, query])
+  return <PageFrame><PageHeading title="Search your workspace." subtitle="Find a note, paper, journal, or idea you want to revisit." /><label className="mt-8 flex min-h-14 items-center gap-3 rounded-xl border border-default bg-raised px-4 focus-within:border-button"><AppIcon name="search" className="size-5 text-button" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by title or thought" className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle" /></label><div className="mt-6 divide-y divide-default">{matches.map((note) => <button type="button" key={note.id} onClick={() => open(note.id)} className="flex min-h-[5rem] w-full items-center gap-4 text-left hover:text-button"><AppIcon name="document" className="size-5 shrink-0 text-button" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{note.title}</span><span className="mt-1 block truncate text-xs text-muted">{note.excerpt}</span></span><AppIcon name="chevron" className="size-4 shrink-0" /></button>)}{matches.length === 0 ? <p className="py-10 text-center text-sm text-muted">No matching work yet.</p> : null}</div></PageFrame>
 }
 
-function NoteView({ note, onChange, onRename }: { note: NoteRecord; onChange: (document: IncantlyDocument) => void; onRename: (title: string) => void }) {
-  return <div className="flex min-h-full flex-col bg-raised"><header className="flex min-h-[4.5rem] items-center gap-3 border-b border-default px-4 sm:px-6"><AppIcon name="document" className="size-5 shrink-0 text-button" /><input value={note.title} onChange={(event) => onRename(event.target.value)} aria-label="Note title" className="min-w-0 flex-1 bg-transparent font-display text-lg text-foreground outline-none" /><div className="hidden min-w-0 max-w-[32rem] flex-1 items-center gap-2 rounded-xl bg-surface px-4 text-sm text-muted lg:flex"><AppIcon name="plus" className="size-4 text-button" />Ask a question about your notes</div><button type="button" className="grid size-11 place-items-center rounded-xl text-muted hover:bg-surface" aria-label="Share note"><AppIcon name="share" className="size-5" /></button><button type="button" className="min-h-11 rounded-xl bg-button px-4 text-sm font-semibold text-inverse hover:bg-button-hover">Share</button></header><div className="min-h-0 flex-1 overflow-y-auto"><DocumentEditor key={note.id} document={note.document} onChange={onChange} ui="none" aria-label={`Edit ${note.title}`} placeholder={'Start writing, or type “/” to explore commands…'} className="min-h-full"><AnchoredSlashMenu /></DocumentEditor></div><footer className="flex min-h-11 items-center justify-end border-t border-default px-5 text-xs text-subtle">Saved just now</footer></div>
+function InboxView({ items, createFrom, dismiss }: { items: InboxItem[]; createFrom: (item: InboxItem) => void; dismiss: (id: string) => void }) {
+  return <PageFrame><PageHeading title="Inbox" subtitle="Quick thoughts and things to return to live here until you give them a home." /><div className="mt-8 divide-y divide-default border-y border-default">{items.map((item) => <article key={item.id} className="grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><p className="text-xs font-medium text-button">{item.when}</p><h2 className="mt-1 font-display text-xl text-foreground">{item.title}</h2><p className="mt-1 text-sm leading-6 text-muted">{item.detail}</p></div><div className="flex gap-2"><button type="button" onClick={() => createFrom(item)} className="min-h-11 rounded-lg bg-button px-3 text-xs font-semibold text-inverse">Make a note</button><button type="button" onClick={() => dismiss(item.id)} className="min-h-11 rounded-lg border border-default px-3 text-xs text-muted hover:border-button">Done</button></div></article>)}{items.length === 0 ? <p className="py-16 text-center font-display text-xl text-muted">All caught up. Your inbox is clear.</p> : null}</div></PageFrame>
+}
+
+function CollectionView({ kind, notes, create, open }: { kind: NoteKind; notes: NoteRecord[]; create: () => void; open: (id: string) => void }) {
+  const label = kind === 'note' ? 'My Notes' : kind === 'paper' ? 'Your Papers' : 'Your Journals'
+  const singular = kind === 'note' ? 'note' : kind === 'paper' ? 'paper' : 'journal'
+  const items = notes.filter((item) => item.kind === kind).slice().sort((a, b) => b.updatedAt - a.updatedAt)
+  return <PageFrame><PageHeading title={label} subtitle={kind === 'note' ? 'Every thought has somewhere to grow.' : kind === 'paper' ? 'Longer work that stays connected to your research.' : 'A place to return to what you noticed and learned.'} action={<button type="button" onClick={create} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-button px-4 text-sm font-semibold text-inverse"><AppIcon name="plus" className="size-4" /> New {singular}</button>} /><div className="mt-9 divide-y divide-default border-y border-default">{items.map((item) => <button type="button" key={item.id} onClick={() => open(item.id)} className="flex min-h-[5.5rem] w-full items-center gap-3 py-3 text-left"><AppIcon name={kind === 'note' ? 'document' : kind === 'paper' ? 'paper' : 'journal'} className="size-5 shrink-0 text-button" /><span className="min-w-0 flex-1"><span className="block truncate font-display text-lg text-foreground">{item.title}</span><span className="mt-1 block truncate text-xs text-muted">{item.excerpt}</span></span><AppIcon name="chevron" className="size-4 shrink-0 text-subtle" /></button>)}{items.length === 0 ? <div className="py-16 text-center"><p className="font-display text-xl text-foreground">Your first {singular} can begin here.</p><button type="button" onClick={create} className="mt-5 min-h-11 rounded-lg bg-button px-4 text-sm font-semibold text-inverse">Create {singular}</button></div> : null}</div></PageFrame>
+}
+
+function SettingsView() {
+  return <PageFrame><PageHeading title="Settings" subtitle="Your workspace preferences." /><div className="mt-8 divide-y divide-default border-y border-default"><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Profile</h2><p className="mt-1 text-sm text-muted">Iteoluwakisi</p></div><span className="text-sm text-subtle">Incantly workspace</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Writing</h2><p className="mt-1 text-sm text-muted">Your notes open in the Incantly document editor.</p></div><span className="text-sm text-subtle">Ready to write</span></div></div></PageFrame>
+}
+
+function NoteView({ note, save, status }: { note: NoteRecord; save: (document: IncantlyDocument) => void; status: string }) {
+  return <div className="flex min-h-full flex-col"><div className="min-h-0 flex-1"><DocumentEditor key={note.id} document={note.document} onChange={save} ui="none" aria-label={`Edit ${note.title}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"><DocumentSlashMenu items={incantlySlashMenuItems} renderItem={renderSlashItem} /></DocumentEditor></div><span role="status" className="sr-only">{status}</span></div>
+}
+
+function readSavedNotes(): NoteRecord[] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const value: unknown = JSON.parse(raw)
+    if (!Array.isArray(value) || !value.every((item) => item && typeof item.id === 'string' && typeof item.title === 'string' && ['note', 'paper', 'journal'].includes(item.kind) && item.document?.schemaVersion)) return null
+    return value as NoteRecord[]
+  } catch { return null }
 }
 
 export function Workspace() {
-  const [activeView, setActiveView] = useState<WorkspaceView>('home')
+  const [view, setView] = useState<WorkspaceView>('home')
   const [notes, setNotes] = useState<NoteRecord[]>(initialNotes)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const activeNoteId = activeView.startsWith('note:') ? activeView.slice(5) : null
-  const activeNote = activeNoteId ? notes.find((note) => note.id === activeNoteId) : null
+  const [inbox, setInbox] = useState<InboxItem[]>(initialInbox)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [railCollapsed, setRailCollapsed] = useState(false)
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('Saved on this device')
+  const [hydrated, setHydrated] = useState(false)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const activeId = view.startsWith('note:') ? view.slice(5) : null
+  const activeNote = notes.find((note) => note.id === activeId)
 
-  const createNote = () => {
-    const id = `note-${Date.now()}`
-    const newNote: NoteRecord = { id, title: 'Untitled note', excerpt: 'A new thought begins here.', updated: 'Just now', document: createDocument({ id, title: 'Untitled note' }) }
-    setNotes((current) => [newNote, ...current])
-    setActiveView(`note:${id}`)
-    setSidebarOpen(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const saved = readSavedNotes()
+      if (saved) setNotes(saved)
+      setHydrated(true)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [])
+  useEffect(() => {
+    if (!hydrated) return
+    const timer = window.setTimeout(() => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); setStatus('Saved on this device') }
+      catch { setStatus('Device storage is full. Recent edits may not be saved.') }
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [notes, hydrated])
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false)
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setView('search')
+        window.setTimeout(() => searchInput.current?.focus(), 0)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1024px)')
+    const closeMobileSidebar = () => { if (desktop.matches) setMobileOpen(false) }
+    desktop.addEventListener('change', closeMobileSidebar)
+    return () => desktop.removeEventListener('change', closeMobileSidebar)
+  }, [])
+
+  function navigate(destination: WorkspaceView) { setView(destination); setMobileOpen(false) }
+  function create(kind: NoteKind, title?: string) {
+    const id = crypto.randomUUID()
+    const name = title ?? (kind === 'note' ? 'Untitled note' : kind === 'paper' ? 'Untitled paper' : 'Untitled journal')
+    const item: NoteRecord = { id, title: name, excerpt: 'A new thought begins here.', kind, updatedAt: Date.now(), document: createDocument({ id, title: name }) }
+    setNotes((current) => [item, ...current])
+    navigate(`note:${id}`)
+  }
+  function changeActive(changes: Partial<Pick<NoteRecord, 'title' | 'document'>>) {
+    if (!activeId) return
+    setNotes((current) => current.map((item) => item.id === activeId ? { ...item, ...changes, updatedAt: Date.now() } : item))
+  }
+  function shareNote() {
+    if (!activeNote) return
+    const text = `${activeNote.title}\n\n${activeNote.excerpt}`
+    if (navigator.share) void navigator.share({ title: activeNote.title, text }).catch(() => {})
+    else void navigator.clipboard.writeText(text).then(() => setStatus('Note summary copied')).catch(() => setStatus('Sharing is unavailable in this browser'))
   }
 
-  const updateActiveNote = (changes: Partial<Pick<NoteRecord, 'title' | 'document'>>) => {
-    if (!activeNoteId) return
-    setNotes((current) => current.map((note) => note.id === activeNoteId ? { ...note, ...changes, updated: 'Just now' } : note))
-  }
-
-  return <main className={`min-h-svh bg-canvas lg:grid ${sidebarCollapsed ? 'lg:grid-cols-[minmax(0,1fr)]' : 'lg:grid-cols-[17rem_minmax(0,1fr)]'}`}>
-    {sidebarCollapsed ? null : <div className="hidden h-svh border-r border-default lg:block"><WorkspaceSidebar activeView={activeView} notes={notes} onNavigate={setActiveView} onNewNote={createNote} onClose={() => setSidebarCollapsed(true)} /></div>}
-    <header className="sticky top-0 z-30 flex min-h-[4.25rem] items-center justify-between border-b border-default bg-canvas/95 px-4 backdrop-blur lg:hidden"><button type="button" onClick={() => setSidebarOpen(true)} className="grid size-11 place-items-center rounded-xl text-foreground" aria-label="Open navigation"><AppIcon name="menu" className="size-5" /></button><Link href="/" className="font-display text-xl text-foreground no-underline">incantly</Link><button type="button" onClick={createNote} className="grid size-11 place-items-center rounded-xl bg-button text-inverse" aria-label="New note"><AppIcon name="plus" className="size-5" /></button></header>
-    {sidebarOpen ? <div className="fixed inset-0 z-50 bg-foreground/20 lg:hidden" onClick={() => setSidebarOpen(false)}><div className="h-full w-[min(19rem,88vw)] border-r border-default" onClick={(event) => event.stopPropagation()}><WorkspaceSidebar activeView={activeView} notes={notes} onNavigate={setActiveView} onNewNote={createNote} onClose={() => setSidebarOpen(false)} /></div></div> : null}
-    <section className="relative min-h-[calc(100svh-4.25rem)] min-w-0 lg:h-svh lg:min-h-0 lg:overflow-y-auto">
-      {sidebarCollapsed ? <button type="button" onClick={() => setSidebarCollapsed(false)} className="absolute left-4 top-4 z-20 hidden size-11 place-items-center rounded-xl border border-default bg-raised text-foreground lg:grid" aria-label="Open navigation"><AppIcon name="menu" className="size-5" /></button> : null}
-      {activeView === 'home' ? <HomeView notes={notes} onOpen={(id) => setActiveView(`note:${id}`)} onNewNote={createNote} /> : null}
-      {activeView === 'search' ? <SearchView notes={notes} onOpen={(id) => setActiveView(`note:${id}`)} /> : null}
-      {activeView === 'inbox' || activeView === 'papers' || activeView === 'journals' || activeView === 'settings' ? <CollectionView type={activeView} /> : null}
-      {activeNote ? <NoteView note={activeNote} onChange={(document) => updateActiveNote({ document })} onRename={(title) => updateActiveNote({ title })} /> : null}
-    </section>
+  return <main className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
+    {!railCollapsed ? <div className="hidden h-svh w-[17.5rem] shrink-0 lg:block"><Sidebar view={view} notes={notes} inboxCount={inbox.length} navigate={navigate} create={create} /></div> : null}
+    <div className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? 'pointer-events-auto' : 'pointer-events-none'}`} aria-hidden={!mobileOpen} inert={!mobileOpen}>
+      <button type="button" onClick={() => setMobileOpen(false)} aria-label="Close sidebar" className={`absolute inset-0 size-full bg-foreground/30 transition-opacity duration-200 motion-reduce:transition-none ${mobileOpen ? 'opacity-100' : 'opacity-0'}`} />
+      <div id="workspace-mobile-sidebar" className={`absolute inset-y-0 left-0 w-[min(17.5rem,82vw)] shadow-lg transition-transform duration-200 motion-reduce:transition-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}><Sidebar view={view} notes={notes} inboxCount={inbox.length} navigate={navigate} create={create} onClose={() => setMobileOpen(false)} /></div>
+    </div>
+    <div className="min-w-0 flex-1 p-2 lg:pl-0">
+      <section className="relative min-h-[calc(100svh-1rem)] overflow-hidden rounded-[1.15rem] border border-default bg-raised lg:h-[calc(100svh-1rem)] lg:min-h-0 lg:overflow-y-auto" aria-label="Workspace content">
+        <div className="flex min-h-12 items-center gap-2 px-3 pt-1 sm:px-5">
+          <button type="button" onClick={() => setMobileOpen(true)} className="grid size-11 shrink-0 place-items-center rounded-lg text-foreground hover:bg-surface lg:hidden" aria-label="Open sidebar" aria-controls="workspace-mobile-sidebar" aria-expanded={mobileOpen}><AppIcon name="panel" className="size-5" /></button>
+          <button type="button" onClick={() => setRailCollapsed(!railCollapsed)} className="hidden size-11 place-items-center rounded-lg text-foreground hover:bg-surface lg:grid" aria-label={railCollapsed ? 'Open sidebar' : 'Collapse sidebar'} aria-expanded={!railCollapsed}><AppIcon name="panel" className="size-5" /></button>
+          {activeNote ? <input value={activeNote.title} onChange={(event) => changeActive({ title: event.target.value })} aria-label="Document title" className="min-w-0 flex-1 bg-transparent font-display text-base text-foreground outline-none" /> : view !== 'home' && view !== 'search' ? <span className="truncate text-xs text-muted">{view === 'library' ? 'Library' : view === 'inbox' ? 'Inbox' : view === 'notes' ? 'My Notes' : view === 'papers' ? 'Your Papers' : view === 'journals' ? 'Your Journals' : 'Settings'}</span> : null}
+          <div className="ml-auto flex items-center gap-2">{activeNote ? <button type="button" onClick={shareNote} className="min-h-11 rounded-lg bg-button px-4 text-sm font-medium text-inverse hover:bg-button-hover">Share</button> : <><button type="button" onClick={() => navigate('search')} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-surface hover:text-button" aria-label="Search workspace"><AppIcon name="search" className="size-4" /></button><span className="hidden text-xs text-subtle sm:block">Your space for thinking</span></>}</div>
+        </div>
+        {view === 'home' ? <HomeView notes={notes} open={(id) => navigate(`note:${id}`)} navigate={navigate} /> : null}
+        {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} query={query} setQuery={setQuery} open={(id) => navigate(`note:${id}`)} /></div> : null}
+        {view === 'inbox' ? <InboxView items={inbox} createFrom={(item) => { create('note', item.title); setInbox((current) => current.filter((candidate) => candidate.id !== item.id)) }} dismiss={(id) => setInbox((current) => current.filter((item) => item.id !== id))} /> : null}
+        {view === 'library' ? <WorkspaceLibrary /> : null}
+        {view === 'notes' || view === 'papers' || view === 'journals' ? <CollectionView kind={view === 'notes' ? 'note' : view === 'papers' ? 'paper' : 'journal'} notes={notes} create={() => create(view === 'notes' ? 'note' : view === 'papers' ? 'paper' : 'journal')} open={(id) => navigate(`note:${id}`)} /> : null}
+        {view === 'settings' ? <SettingsView /> : null}
+        {activeNote ? <NoteView note={activeNote} save={(document) => changeActive({ document })} status={status} /> : null}
+      </section>
+    </div>
   </main>
 }

@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@incantly/canvas-react/document.css';
+@import '../lib/document-editor/document.css';
 
 /*
  * Color system — the only place raw colors live.
@@ -200,3 +200,7 @@ code {
     animation: 320ms ease-out 90ms both audience-fade-up;
   }
 }
+
+/* Compact slash menu to match app density (third-party internals). */
+.incantly-document-slash-menu { padding: 0.25rem; font-size: 0.8125rem; }
+.incantly-document-slash-menu button { padding: 0.4rem 0.5rem; }
