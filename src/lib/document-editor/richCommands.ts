@@ -1,4 +1,6 @@
 import type { Editor, JSONContent } from '@tiptap/core'
+import type { ResolvedPos } from '@tiptap/pm/model'
+import { TextSelection } from '@tiptap/pm/state'
 import { addColumnAfter, addRowAfter, deleteColumn, deleteRow } from '@tiptap/pm/tables'
 
 export interface InsertTableOptions {
@@ -15,8 +17,36 @@ export interface AssetCardOptions {
 
 const paragraph = (): JSONContent => ({ type: 'paragraph' })
 
-const runTableCommand = (editor: Editor, command: typeof addRowAfter): boolean =>
-  command(editor.state, (transaction) => editor.view.dispatch(transaction))
+const inTable = ($pos: ResolvedPos): boolean => {
+  for (let depth = $pos.depth; depth > 0; depth--) {
+    if ($pos.node(depth).type.name === 'table') return true
+  }
+  return false
+}
+
+/**
+ * pm table commands read the head end of the selection, but a drag or
+ * Shift+Home can start on a block boundary outside the table while the
+ * bubble is still open. Collapse to valid text inside the table first so
+ * the buttons work for any selection touching a table.
+ */
+const focusTableSelection = (editor: Editor): boolean => {
+  const { state } = editor
+  for (const $pos of [state.selection.$head, state.selection.$anchor]) {
+    if (!inTable($pos)) continue
+    const near = TextSelection.findFrom($pos, 1) ?? TextSelection.findFrom($pos, -1)
+    if (near && inTable(near.$from)) {
+      editor.view.dispatch(state.tr.setSelection(near))
+      return true
+    }
+  }
+  return false
+}
+
+const runTableCommand = (editor: Editor, command: typeof addRowAfter): boolean => {
+  if (!focusTableSelection(editor)) return false
+  return command(editor.state, (transaction) => editor.view.dispatch(transaction))
+}
 
 /**
  * Canonical-schema commands for the initial rich-writing surface. They deliberately
@@ -43,6 +73,12 @@ export const documentRichCommands = {
       attrs: { latex, ...(numbered ? { numbered: true } : {}), ...(label ? { label } : {}) },
     }).run(),
   insertTable: (editor: Editor, options: InsertTableOptions = {}): boolean => {
+    const { $from } = editor.state.selection
+    for (let depth = $from.depth; depth > 0; depth--) {
+      // Tables nest visually outward without bound; the slash menu hides
+      // this item inside tables and the command refuses as backstop.
+      if ($from.node(depth).type.name === 'table') return false
+    }
     const rows = Math.max(1, options.rows ?? 3)
     const columns = Math.max(1, options.columns ?? 3)
     const content: JSONContent[] = Array.from({ length: rows }, (_, rowIndex) => ({

@@ -4,6 +4,7 @@ import { useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
+import { documentRichCommands } from '../richCommands'
 
 type Command = (editor: Editor) => boolean
 
@@ -93,6 +94,14 @@ function useFormattingState(editor: Editor | null) {
       inlineMath: current.isActive('inlineMath'),
       inlineMathLatex: (current.getAttributes('inlineMath').latex as string | undefined) ?? '',
       dollarMath: findDollarMathCandidate(current.state),
+      // Ancestor walk, not isActive: a selection starting on a block
+      // boundary resolves outside the table and would read inactive.
+      inTable: [current.state.selection.$from, current.state.selection.$to].some((pos) => {
+        for (let depth = pos.depth; depth > 0; depth--) {
+          if (pos.node(depth).type.name === 'table') return true
+        }
+        return false
+      }),
       codeLanguage: (current.getAttributes('codeBlock').language as string | undefined) ?? '',
       canUndo: current.can().chain().focus().undo().run(),
       canRedo: current.can().chain().focus().redo().run(),
@@ -201,6 +210,14 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
             <FormatButton editor={editor} label="Inline code" shortcut="Mod-E" active={state.code} command={toggleMark('code')}>&lt;/&gt;</FormatButton>
           </>
         )}
+        {state.inTable && !convertOnly && !mathEditing && !state.inCodeBlock ? (
+          <span className="incantly-format-table-controls" role="group" aria-label="Table structure">
+            <FormatButton editor={editor} label="Add row below" command={documentRichCommands.addTableRow}>+Row</FormatButton>
+            <FormatButton editor={editor} label="Add column to the right" command={documentRichCommands.addTableColumn}>+Col</FormatButton>
+            <FormatButton editor={editor} label="Delete current row" command={documentRichCommands.deleteTableRow}>−Row</FormatButton>
+            <FormatButton editor={editor} label="Delete current column" command={documentRichCommands.deleteTableColumn}>−Col</FormatButton>
+          </span>
+        ) : null}
         {state.inCodeBlock ? (
           <label className="incantly-format-language">
             <span className="sr-only">Code language</span>
@@ -230,6 +247,26 @@ export interface SlashMenuItem {
   description?: string
   keywords?: readonly string[]
   command: Command
+  /**
+   * Contextual availability. The menu hides items that return false instead
+   * of showing an action that would do nothing (or harm, like nesting a
+   * table inside a table cell and blowing out the page width).
+   */
+  isAvailable?: (editor: Editor) => boolean
+  /**
+   * Optional size picker. Enter (or clicking the row) runs `command` for the
+   * default size; ArrowRight (or hovering the row) opens the grid, where
+   * arrows size, Enter confirms, and Escape returns to the list.
+   */
+  grid?: SlashMenuGrid
+}
+
+export interface SlashMenuGrid {
+  maxRows: number
+  maxCols: number
+  defaultRows: number
+  defaultCols: number
+  command: (editor: Editor, rows: number, columns: number) => boolean
 }
 
 export const defaultSlashMenuItems: readonly SlashMenuItem[] = [
@@ -257,6 +294,8 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
   const menuId = useId()
   const menuRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [gridSel, setGridSel] = useState<{ rows: number; cols: number } | null>(null)
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
   const [position, setPosition] = useState<CSSProperties | null>(null)
   const match = useEditorState({
     editor,
@@ -270,13 +309,19 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
       return { query: found[1].toLowerCase().trim(), from: $from.pos - found[0].trimStart().length, to: $from.pos }
     },
   })
-  const filtered = match ? items.filter((item) => {
+  const filtered = match && editor ? items.filter((item) => {
+    if (item.isAvailable && !item.isAvailable(editor)) return false
     const haystack = [item.label, ...(item.keywords ?? [])].join(' ').toLowerCase()
     return haystack.includes(match.query)
   }) : []
   const open = Boolean(match && filtered.length)
   useEffect(() => { onOpenChange?.(open) }, [onOpenChange, open])
-  useEffect(() => { setActiveIndex(0) }, [match?.query])
+  useEffect(() => { setActiveIndex(0); setGridSel(null) }, [match?.query, items])
+  // Arrow-key navigation follows the highlight: the menu list scrolls so the
+  // active item stays visible instead of running past the edge.
+  useEffect(() => {
+    if (open) itemRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, open])
   useEffect(() => {
     if (!editor || !open || !match) { setPosition(null); return }
     const updatePosition = () => {
@@ -307,7 +352,39 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
     // Capture phase: this must run before ProseMirror's own Enter/Arrow
     // handling on the same element, otherwise the paragraph splits (or the
     // cursor moves) before the menu can commit the chosen block.
+    const activeItem = filtered[activeIndex]
+    const grid: { item: SlashMenuItem; grid: SlashMenuGrid; sel: { rows: number; cols: number } } | null = gridSel && activeItem?.grid ? { item: activeItem, grid: activeItem.grid, sel: gridSel } : null
+    const commitGrid = (rows: number, cols: number): void => {
+      if (!grid) return
+      editor.chain().focus().deleteRange({ from: match.from, to: match.to }).run()
+      grid.grid.command(editor, rows, cols)
+      setGridSel(null)
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (grid) {
+        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault()
+          event.stopPropagation()
+          setGridSel((sel) => {
+            if (!sel) return sel
+            const dCols = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+            const dRows = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0
+            return {
+              rows: Math.min(grid.grid.maxRows, Math.max(1, sel.rows + dRows)),
+              cols: Math.min(grid.grid.maxCols, Math.max(1, sel.cols + dCols)),
+            }
+          })
+        } else if (event.key === 'Enter') {
+          event.preventDefault()
+          event.stopPropagation()
+          commitGrid(grid.sel.rows, grid.sel.cols)
+        } else if (event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          setGridSel(null)
+        }
+        return
+      }
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault()
         event.stopPropagation()
@@ -315,6 +392,11 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
           const direction = event.key === 'ArrowDown' ? 1 : -1
           return (index + direction + filtered.length) % filtered.length
         })
+      } else if (event.key === 'ArrowRight') {
+        if (!activeItem?.grid) return
+        event.preventDefault()
+        event.stopPropagation()
+        setGridSel({ rows: activeItem.grid.defaultRows, cols: activeItem.grid.defaultCols })
       } else if (event.key === 'Enter') {
         event.preventDefault()
         // Stop ProseMirror's own Enter (splitBlock / splitListItem) from
@@ -335,22 +417,58 @@ export function DocumentSlashMenu({ editor: suppliedEditor, items = defaultSlash
     const element = editor.view.dom
     element.addEventListener('keydown', handleKeyDown, true)
     return () => element.removeEventListener('keydown', handleKeyDown, true)
-  }, [activeIndex, editor, filtered, match, open])
+  }, [activeIndex, editor, filtered, gridSel, match, open])
   if (!editor || !match || !filtered.length) return null
   const choose = (item: SlashMenuItem) => (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
     editor.chain().focus().deleteRange({ from: match.from, to: match.to }).run()
     item.command(editor)
   }
+  const activeGridItem = gridSel ? filtered[activeIndex] : undefined
+  const grid: { item: SlashMenuItem; grid: SlashMenuGrid; sel: { rows: number; cols: number } } | null = activeGridItem?.grid && gridSel ? { item: activeGridItem, grid: activeGridItem.grid, sel: gridSel } : null
+  const confirmGrid = (rows: number, cols: number) => (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (!grid) return
+    editor.chain().focus().deleteRange({ from: match.from, to: match.to }).run()
+    grid.grid.command(editor, rows, cols)
+    setGridSel(null)
+  }
+  const openGrid = (item: SlashMenuItem, index: number) => () => {
+    setActiveIndex(index)
+    if (item.grid) setGridSel({ rows: item.grid.defaultRows, cols: item.grid.defaultCols })
+    else setGridSel(null)
+  }
   return (
     <div {...props} ref={menuRef} id={menuId} style={{ ...props.style, ...position }}
       className={['incantly-document-slash-menu', className].filter(Boolean).join(' ')}
       role="menu" aria-label={props['aria-label'] ?? 'Insert block'}>
       {filtered.map((item, index) => (
-        <button key={item.id} type="button" role="menuitem" aria-current={index === activeIndex ? 'true' : undefined}
-          onMouseEnter={() => setActiveIndex(index)} onMouseDown={choose(item)}>
-          {renderItem ? renderItem(item) : <><strong>{item.label}</strong>{item.description ? <span>{item.description}</span> : null}</>}
-        </button>
+        <span key={item.id}>
+          <button type="button" role="menuitem" aria-current={index === activeIndex ? 'true' : undefined}
+            ref={(element) => { itemRefs.current[index] = element }}
+            onMouseEnter={openGrid(item, index)} onMouseDown={choose(item)}>
+            {renderItem ? renderItem(item) : <><strong>{item.label}</strong>{item.description ? <span>{item.description}</span> : null}</>}
+          </button>
+          {grid && grid.item.id === item.id ? (
+            <span className="incantly-slash-grid" role="group" aria-label={`${item.label} size`}>
+              <span className="incantly-slash-grid-size" role="status">{grid.sel.rows} × {grid.sel.cols}</span>
+              <span className="incantly-slash-grid-cells" style={{ gridTemplateColumns: `repeat(${grid.grid.maxCols}, 2.75rem)` }}>
+                {Array.from({ length: grid.grid.maxRows }, (_, row) => Array.from({ length: grid.grid.maxCols }, (_, col) => {
+                  const rows = row + 1
+                  const cols = col + 1
+                  const highlighted = rows <= grid.sel.rows && cols <= grid.sel.cols
+                  return (
+                    <button key={`${rows}x${cols}`} type="button" className="incantly-slash-grid-cell"
+                      data-active={highlighted ? 'true' : undefined}
+                      aria-label={`${rows} rows by ${cols} columns`}
+                      onMouseEnter={() => setGridSel({ rows, cols })} onMouseDown={confirmGrid(rows, cols)} />
+                  )
+                }))}
+              </span>
+              <span className="incantly-slash-grid-hint">Arrows to size · Enter to insert · Esc for list</span>
+            </span>
+          ) : null}
+        </span>
       ))}
     </div>
   )

@@ -1,5 +1,7 @@
 import { Extension, type Extensions } from '@tiptap/core'
 import { splitListItem } from '@tiptap/pm/schema-list'
+import { TextSelection } from '@tiptap/pm/state'
+import { addRowAfter, selectedRect } from '@tiptap/pm/tables'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -44,6 +46,39 @@ const FormattingShortcuts = Extension.create({
         const listItem = this.editor.state.schema.nodes.listItem
         if (!listItem) return false
         return splitListItem(listItem)(this.editor.state, (transaction) => this.editor.view.dispatch(transaction))
+      },
+      Tab: () => {
+        // Spreadsheet behavior: Tab in the last cell of the last row appends
+        // a row and lands in its first cell. Anywhere else Tab keeps its
+        // default (focus moves on), so keyboard users are never trapped.
+        const { state } = this.editor
+        const { $from } = state.selection
+        let inTable = false
+        for (let depth = $from.depth; depth > 0; depth--) {
+          if ($from.node(depth).type.name === 'table') { inTable = true; break }
+        }
+        if (!inTable) return false
+        let rect: ReturnType<typeof selectedRect>
+        try {
+          rect = selectedRect(state)
+        } catch {
+          return false
+        }
+        if (rect.bottom - 1 !== rect.map.height - 1 || rect.right - 1 !== rect.map.width - 1) return false
+        const tablePos = rect.tableStart
+        const newRowIndex = rect.map.height
+        addRowAfter(state, (transaction) => this.editor.view.dispatch(transaction))
+        // tableStart is the table *content* start (before the first row),
+        // so the table node itself starts one position earlier.
+        const table = this.editor.state.doc.nodeAt(tablePos - 1)
+        if (!table || table.type.name !== 'table') return true
+        let caret = tablePos + 1
+        for (let index = 0; index < newRowIndex; index++) caret += table.child(index).nodeSize
+        caret += 3
+        const $caret = this.editor.state.doc.resolve(Math.min(caret, this.editor.state.doc.content.size))
+        const selection = TextSelection.findFrom($caret, 1) ?? TextSelection.findFrom($caret, -1)
+        if (selection) this.editor.view.dispatch(this.editor.state.tr.setSelection(selection).scrollIntoView())
+        return true
       },
     }
   },

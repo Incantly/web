@@ -212,6 +212,55 @@
   padding-block-start: 0.5rem;
 }
 
+/* Table structure controls (bubble toolbar). Buttons meet the 44px
+   touch target; the group itself adds no box so the row stays compact. */
+.incantly-format-table-controls {
+  display: contents;
+}
+
+.incantly-document-bubble-toolbar .incantly-format-table-controls .incantly-format-button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+/* Slash menu size grid (e.g. table rows by columns). Cells meet the
+   44px touch target; the live size label announces for screen readers. */
+.incantly-slash-grid {
+  display: block;
+  padding: 0.5rem 0.65rem 0.65rem;
+}
+.incantly-slash-grid-size {
+  display: block;
+  margin-block-end: 0.4rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.incantly-slash-grid-cells {
+  display: grid;
+  gap: 0.25rem;
+  justify-content: start;
+}
+.incantly-slash-grid-cell {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: pointer;
+}
+.incantly-slash-grid-cell[data-active='true'] {
+  border-color: var(--incantly-document-focus);
+  background: var(--incantly-document-selection);
+}
+.incantly-slash-grid-hint {
+  display: block;
+  margin-block-start: 0.4rem;
+  color: var(--incantly-document-muted);
+  font-size: 0.75rem;
+}
+
 /* Code-block language picker (bubble toolbar). */
 .incantly-format-language select {
   min-height: 2.75rem;
@@ -302,9 +351,19 @@
   border-collapse: collapse;
 }
 
+/*
+ * Fitted layout. Columns share the content width instead of sizing by
+ * content, so a table can never grow past the page or export margins —
+ * including tables nested inside a cell, which simply fit their cell.
+ */
+.incantly-document-editor .ProseMirror table {
+  table-layout: fixed;
+}
+
+
 .incantly-document-editor .ProseMirror th,
 .incantly-document-editor .ProseMirror td {
-  min-width: 6rem;
+  min-width: 0;
   padding: 0.45rem 0.65rem;
   border: 1px solid var(--incantly-document-border);
   vertical-align: top;

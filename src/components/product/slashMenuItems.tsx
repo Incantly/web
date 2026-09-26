@@ -16,6 +16,14 @@ const insertDetails: Command = (editor) => editor.chain().focus().setDetails().r
 const setQuestionHeading: Command = (editor) =>
   editor.chain().focus().setNode('heading', { level: 2 }).insertContent('What do you want to find out?').run()
 
+const inTable = (editor: Editor): boolean => {
+  const { $from } = editor.state.selection
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).type.name === 'table') return true
+  }
+  return false
+}
+
 /**
  * Product-flavored slash actions first, then the structural blocks. Every
  * item maps to an existing schema node through canonical-backed commands —
@@ -30,7 +38,7 @@ export const incantlySlashMenuItems: readonly SlashMenuItem[] = [
   { id: 'question', label: 'Question', description: 'Start from what you want to find out', keywords: ['ask', 'research', 'question', 'questions'], command: setQuestionHeading },
   { id: 'checklist', label: 'Checklist', description: 'Track small steps toward an answer', keywords: ['todo', 'todos', 'tasks', 'checklist', 'checklists', 'check list', 'plan'], command: (editor) => documentRichCommands.insertChecklist(editor) },
   { id: 'math', label: 'Math block', description: 'Write a formula or equation', keywords: ['math', 'maths', 'formula', 'formulas', 'equation', 'equations', 'latex'], command: (editor) => documentRichCommands.insertMathBlock(editor, '') },
-  { id: 'table', label: 'Table', description: 'Organize observations in rows and columns', keywords: ['table', 'tables', 'grid', 'columns'], command: (editor) => documentRichCommands.insertTable(editor, { rows: 3, columns: 3 }) },
+  { id: 'table', label: 'Table', description: 'Organize observations in rows and columns', keywords: ['table', 'tables', 'grid', 'columns'], command: (editor) => documentRichCommands.insertTable(editor, { rows: 3, columns: 3 }), isAvailable: (editor) => !inTable(editor), grid: { maxRows: 6, maxCols: 6, defaultRows: 3, defaultCols: 3, command: (editor, rows, columns) => documentRichCommands.insertTable(editor, { rows, columns }) } },
   { id: 'paragraph', label: 'Paragraph', description: 'Plain text', keywords: ['text', 'para', 'paragraph', 'plain text'], command: setParagraph },
   { id: 'heading-1', label: 'Heading 1', description: 'Big title', keywords: ['title', 'h1', 'heading', 'headings', 'header'], command: setHeading(1) },
   { id: 'heading-2', label: 'Heading 2', description: 'Section subtitle', keywords: ['subtitle', 'h2', 'heading', 'headings', 'subheading', 'header'], command: setHeading(2) },

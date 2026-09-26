@@ -36,6 +36,18 @@ export async function shot(page: Page, name: string): Promise<string> {
   return file
 }
 
+/**
+ * Press a bubble-toolbar button the way the product handles it: our toolbar
+ * acts on mousedown (so the editor selection survives), and a successful
+ * command collapses the selection which unmounts the bubble mid-click.
+ * A full Playwright click then hangs waiting for a detached node.
+ */
+export async function pressToolbarButton(page: Page, name: string | RegExp): Promise<void> {
+  const button = page.getByRole('button', { name })
+  await button.waitFor({ state: 'visible' })
+  await button.dispatchEvent('mousedown', { button: 'left', bubbles: true, cancelable: true })
+}
+
 /** Console errors and failed requests observed while `fn` runs. */
 export async function captureProblems(page: Page, fn: () => Promise<void>): Promise<string[]> {
   const problems: string[] = []
