@@ -28,7 +28,7 @@ test.describe('slash blocks insert and look distinct', () => {
       // H1: inserts, caret stays inside, and renders bigger than body text.
       await insertViaSlash(page, '/h1')
       await expect(page.locator('.incantly-document-slash-menu [role="menuitem"] strong').first()).toHaveText('Heading 1')
-      if ((await page.locator('.incantly-document-slash-menu').count()) > 0) await shot(page, 'slash-menu-h1-open')
+      if ((await page.locator('.incantly-document-slash-menu').count()) > 0) await shot(page, 'slash-blocks/menu-h1-open')
       await page.keyboard.press('Enter')
       await page.waitForTimeout(500)
       await page.keyboard.type('Big Title', { delay: 15 })
@@ -54,7 +54,7 @@ test.describe('slash blocks insert and look distinct', () => {
       })
       check('slash-blocks', 'caret stays in h1 after Enter', caretInH1 === 'H1', caretInH1)
       expect(caretInH1).toBe('H1')
-      await shot(page, 'slash-block-h1')
+      await shot(page, 'slash-blocks/h1')
 
       // H2: inserts and renders bigger than body text.
       await insertViaSlash(page, '/heading 2')
@@ -68,7 +68,7 @@ test.describe('slash blocks insert and look distinct', () => {
       const h2Size = await page.locator('.ProseMirror h2').first().evaluate((el) => getComputedStyle(el).fontSize)
       check('slash-blocks', 'h2 renders bigger than paragraph', parseFloat(h2Size) > parseFloat(sizes.p), `h2=${h2Size} p=${sizes.p}`)
       expect(parseFloat(h2Size)).toBeGreaterThan(parseFloat(sizes.p))
-      await shot(page, 'slash-block-h2')
+      await shot(page, 'slash-blocks/h2')
 
       // Bullet list: inserts with visible disc markers.
       await insertViaSlash(page, '/bullet')
@@ -85,7 +85,7 @@ test.describe('slash blocks insert and look distinct', () => {
       })
       check('slash-blocks', 'bullet list shows markers', ulStyle.startsWith('disc') && !ulStyle.endsWith('|0px'), ulStyle)
       expect(ulStyle.startsWith('disc')).toBe(true)
-      await shot(page, 'slash-block-bullet')
+      await shot(page, 'slash-blocks/bullet')
 
       // Numbered list: inserts with decimal markers.
       await page.keyboard.press('Enter')
@@ -104,7 +104,7 @@ test.describe('slash blocks insert and look distinct', () => {
       })
       check('slash-blocks', 'numbered list shows markers', olStyle.startsWith('decimal'), olStyle)
       expect(olStyle.startsWith('decimal')).toBe(true)
-      await shot(page, 'slash-block-numbered')
+      await shot(page, 'slash-blocks/numbered')
 
       // Blockquote + code block + divider + paragraph: structural inserts.
       await page.keyboard.press('Enter')
@@ -142,7 +142,7 @@ test.describe('slash blocks insert and look distinct', () => {
       const slashGone = !(await editor.innerText()).includes('/paragraph')
       check('slash-blocks', 'slash query clears after paragraph insert', slashGone, slashGone ? 'cleared' : 'leftover slash text')
       expect(slashGone).toBe(true)
-      await shot(page, 'slash-blocks-final')
+      await shot(page, 'slash-blocks/final')
     })
 
     check('slash-blocks', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

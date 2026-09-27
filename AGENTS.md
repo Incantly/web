@@ -36,10 +36,27 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Agent skills
 
 Skills in `.claude/skills/` are mandatory for the tasks they describe — read the matching skill before starting, not after failing:
-
 - `document-schema`, `document-validation`, `document-storage`, `document-export` — any document content, load/save, persistence, sync, export, or print work.
 - `tiptap-adapter` — any editor schema, conversion, toolbar, slash menu, or pagination UI work.
 - `playwright` — any user-visible verification or E2E test work. Real browser, `npm run test:e2e`, proof in `e2e-artifacts/` (`results.json` + screenshots), zero console/page/http errors.
+- `playwright-cli` — interactive browser verification via the `playwright-cli` command (open/goto/click/fill/snapshot/eval/console) instead of writing spec files. Use for quick user-visible checks, debugging a live page, and capturing snapshots/screenshots on demand. Read `.claude/skills/playwright-cli/SKILL.md` before starting.
 - `poteto-mode` (global, `~/.agents/skills/poteto-mode/`) — house agent style for multi-step work: verify against the real artifact, reproduce bugs before fixing, keep diffs minimal.
 
 Async document jobs follow `docs/inngest.md` (contract; Inngest is not installed yet).
+
+## Screenshots & recordings
+
+- Every implementation task owns one artifact folder. Screenshots go in
+  `e2e-artifacts/screenshots/<task-slug>/`, recordings in
+  `e2e-artifacts/videos/<task-slug>/`. Never drop files flat into
+  `screenshots/`. Both paths are gitignored and stay local; the durable proof
+  is a passing `results.json` entry per check.
+- `<task-slug>` is the kebab-case feature name (`text-color`, `table-grid`).
+  Name files after the state they prove (`applied.png`, `persisted.png`,
+  `mobile-390.png`), never `screenshot-1.png`.
+- Specs: call `shot(page, '<task-slug>/<state>')` — `tests/e2e/artifacts.ts`
+  creates subfolders automatically. CLI: pass an explicit namespaced path,
+  e.g. `screenshot --filename=e2e-artifacts/screenshots/<task-slug>/<state>.png`
+  (same pattern for `video-start` under `videos/`).
+- A task is not done until its folder holds the decisive states and
+  `results.json` has a passing entry per check.

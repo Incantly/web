@@ -40,7 +40,7 @@ test.describe('slash grid picker', () => {
       await page.waitForTimeout(400)
       expect(await gridCells(page).count()).toBe(36)
       await expect(page.locator('.incantly-slash-grid-size')).toHaveText('3 × 3')
-      await shot(page, 'table-grid-open')
+      await shot(page, 'table-grid/open')
 
       // Size to 4 rows by 5 columns with arrows, confirm with Enter.
       await page.keyboard.press('ArrowRight')
@@ -53,7 +53,7 @@ test.describe('slash grid picker', () => {
       expect(await page.locator('.ProseMirror table tr').count()).toBe(4)
       expect(await page.locator('.ProseMirror table tr').first().locator('th, td').count()).toBe(5)
       check('table-grid', 'grid inserts sized table', true, '4 rows, 5 cols')
-      await shot(page, 'table-grid-inserted')
+      await shot(page, 'table-grid/inserted')
 
       // Escape returns to the list; Enter opens the grid, Enter again
       // confirms the 3x3 default.
@@ -95,7 +95,7 @@ test.describe('slash grid picker', () => {
       await page.waitForTimeout(300)
       await expect(page.locator('.incantly-slash-grid-size')).toHaveText('2 × 4')
       check('table-grid', 'hover selects size', true, 'label follows mouse')
-      await shot(page, 'table-grid-hover')
+      await shot(page, 'table-grid/hover')
       const beforeCount = await page.locator('.ProseMirror table').count()
       await page.getByRole('button', { name: '2 rows by 4 columns' }).click()
       await page.waitForTimeout(600)
@@ -133,7 +133,7 @@ test.describe('slash grid picker', () => {
       check('table-grid', 'arrow navigation scrolls the list', follows.scrolled && follows.inside, JSON.stringify(follows))
       expect(follows.scrolled).toBe(true)
       expect(follows.inside).toBe(true)
-      await shot(page, 'table-scroll-follow')
+      await shot(page, 'table-grid/scroll-follow')
     })
 
     check('table-grid', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

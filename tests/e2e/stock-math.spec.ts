@@ -43,7 +43,7 @@ test.describe('stock math block', () => {
       expect(latexAttr).toBe('x^2 + y^2 = z^2')
       expect(katexText.replace(/\s+/g, '').length).toBeGreaterThan(10)
       await page.keyboard.press('Escape')
-      await shot(page, 'stock-math')
+      await shot(page, 'stock-math/inserted')
 
       await page.waitForTimeout(1200)
       await page.reload({ waitUntil: 'networkidle' })
@@ -52,7 +52,7 @@ test.describe('stock math block', () => {
       check('stock-math', 'math persists after reload', latexAfter === 'x^2 + y^2 = z^2', String(latexAfter))
       expect(latexAfter).toBe('x^2 + y^2 = z^2')
       expect(await page.locator('.ProseMirror [data-type="block-math"] .katex').count()).toBeGreaterThanOrEqual(1)
-      await shot(page, 'stock-math-persisted')
+      await shot(page, 'stock-math/persisted')
     })
 
     check('stock-math', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

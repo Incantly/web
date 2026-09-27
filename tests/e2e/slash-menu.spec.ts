@@ -39,7 +39,7 @@ test.describe('slash menu custom queries', () => {
         const labels = await page
           .locator('.incantly-document-slash-menu [role="menuitem"] strong')
           .allInnerTexts()
-        if (index === 0) await shot(page, 'slash-menu-open')
+        if (index === 0) await shot(page, 'slash-menu/open')
         const matched = labels.length > 0 && labels[0] === c.want
         check('slash-menu', `menu matches ${c.query}`, matched, JSON.stringify(labels.slice(0, 2)))
         expect(labels[0], `menu match for ${c.query}`).toBe(c.want)
@@ -54,7 +54,7 @@ test.describe('slash menu custom queries', () => {
           await page.waitForTimeout(300)
         }
       }
-      await shot(page, 'slash-menu-inserts')
+      await shot(page, 'slash-menu/inserts')
     })
 
     check('slash-menu', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

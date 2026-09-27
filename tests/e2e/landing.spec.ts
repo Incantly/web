@@ -15,7 +15,7 @@ test.describe('landing', () => {
     const footer = page.locator('footer')
     check('landing', 'footer renders', (await footer.count()) >= 1)
 
-    await shot(page, 'landing')
+    await shot(page, 'landing/loaded')
     check('landing', 'screenshot captured', true, 'e2e-artifacts/screenshots/landing.png')
 
     check('landing', 'no console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

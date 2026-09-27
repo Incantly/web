@@ -58,10 +58,10 @@ test.describe('table structure', () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
       check('table-structure', 'no horizontal scroll at 375px', overflow <= 1, `overflow=${overflow}px`)
       expect(overflow).toBeLessThanOrEqual(1)
-      await shot(page, 'table-mobile')
+      await shot(page, 'table-structure/mobile')
       await page.setViewportSize({ width: 1280, height: 800 })
       await page.waitForTimeout(400)
-      await shot(page, 'table-inserted')
+      await shot(page, 'table-structure/inserted')
 
       // Bubble controls appear inside a cell with a selection.
       await selectCellText(page, 0, 0, 'Name')
@@ -69,14 +69,14 @@ test.describe('table structure', () => {
         await expect(page.getByRole('button', { name }).first()).toBeVisible()
       }
       check('table-structure', 'bubble table controls appear', true, '+Row +Col −Row −Col visible')
-      await shot(page, 'table-controls')
+      await shot(page, 'table-structure/controls')
 
       // Add a row below.
       await pressToolbarButton(page, 'Add row below')
       await page.waitForTimeout(500)
       expect(await rows(page)).toBe(4)
       check('table-structure', 'row added', true, 'rows=4')
-      await shot(page, 'table-row-added')
+      await shot(page, 'table-structure/row-added')
 
       // Add a column to the right.
       await selectCellText(page, 0, 1, 'Age')
@@ -84,7 +84,7 @@ test.describe('table structure', () => {
       await page.waitForTimeout(500)
       expect(await cols(page)).toBe(4)
       check('table-structure', 'column added', true, 'cols=4')
-      await shot(page, 'table-col-added')
+      await shot(page, 'table-structure/col-added')
 
       // Tab in the last cell appends a row and lands in it.
       await page.locator('.ProseMirror table tr').last().locator('th, td').last().locator('p').click()
@@ -103,7 +103,7 @@ test.describe('table structure', () => {
       })
       check('table-structure', 'tab extends table with caret in new row', caretInNewRow, `caretInNewRow=${caretInNewRow}`)
       expect(caretInNewRow).toBe(true)
-      await shot(page, 'table-tab-extended')
+      await shot(page, 'table-structure/tab-extended')
 
       // Keep text in the last row, then delete the first row and last column.
       await typeCellText(page, 4, 0, 'Keepme')
@@ -118,7 +118,7 @@ test.describe('table structure', () => {
       expect(await cols(page)).toBe(3)
       check('table-structure', 'row and column delete', true, 'back to 4x3')
       expect(await page.locator('.ProseMirror').innerText()).toContain('Keepme')
-      await shot(page, 'table-shrunk')
+      await shot(page, 'table-structure/shrunk')
 
       // Reload: structure and surviving text persist through the round trip.
       await page.waitForTimeout(1200)
@@ -128,7 +128,7 @@ test.describe('table structure', () => {
       expect(await cols(page)).toBe(3)
       check('table-structure', 'table persists after reload', true, '4 rows, 3 cols')
       expect(await page.locator('.ProseMirror').innerText()).toContain('Keepme')
-      await shot(page, 'table-persisted')
+      await shot(page, 'table-structure/persisted')
     })
 
     check('table-structure', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

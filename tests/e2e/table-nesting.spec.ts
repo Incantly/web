@@ -46,7 +46,7 @@ test.describe('table nesting guard', () => {
       await page.waitForTimeout(400)
       expect(await tables(page)).toBe(1)
       check('table-nesting', 'no nested table created', true, 'still 1 table')
-      await shot(page, 'table-no-nest')
+      await shot(page, 'table-nesting/no-nest')
 
       // Grow to 6 columns: the table must scroll inside, not break the page.
       await page.locator('.ProseMirror table tr').first().locator('th, td').first().locator('p').click()
@@ -68,7 +68,7 @@ test.describe('table nesting guard', () => {
       const overflowDesktop = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
       check('table-nesting', 'wide table contained on desktop', overflowDesktop <= 1, `overflow=${overflowDesktop}px`)
       expect(overflowDesktop).toBeLessThanOrEqual(1)
-      await shot(page, 'table-wide-contained')
+      await shot(page, 'table-nesting/contained')
 
       await page.setViewportSize({ width: 375, height: 667 })
       await page.waitForTimeout(500)
@@ -78,7 +78,7 @@ test.describe('table nesting guard', () => {
       const innerScroll = await page.locator('.ProseMirror table').first().evaluate((el) => el.scrollWidth - el.clientWidth)
       check('table-nesting', 'wide table fits without inner scroll', innerScroll <= 1, `inner=${innerScroll}px`)
       expect(innerScroll).toBeLessThanOrEqual(1)
-      await shot(page, 'table-wide-mobile')
+      await shot(page, 'table-nesting/mobile')
       await page.setViewportSize({ width: 1280, height: 800 })
       await page.waitForTimeout(400)
 
@@ -88,7 +88,7 @@ test.describe('table nesting guard', () => {
       expect(await tables(page)).toBe(1)
       expect(await page.locator('.ProseMirror table tr').first().locator('th, td').count()).toBe(6)
       check('table-nesting', 'wide table persists after reload', true, '1 table, 6 cols')
-      await shot(page, 'table-wide-persisted')
+      await shot(page, 'table-nesting/persisted')
     })
 
     check('table-nesting', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

@@ -30,7 +30,7 @@ test.describe('inline math', () => {
       check('inline-math', 'bubble shows only the convert button', bubbleCount === 1, `buttons=${bubbleCount}`)
       expect(bubbleCount).toBe(1)
       await expect(page.getByRole('button', { name: 'Bold' })).toHaveCount(0)
-      await shot(page, 'inline-math-convert-offer')
+      await shot(page, 'inline-math/convert-offer')
       await convert.click()
       // Instant: the node must exist on the very next frame, no waiting.
       await expect(page.locator('.ProseMirror [data-type="inline-math"]')).toHaveCount(1, { timeout: 2000 })
@@ -46,7 +46,7 @@ test.describe('inline math', () => {
       await page.waitForTimeout(300)
       const leftover = await page.locator('.ProseMirror').innerText()
       check('inline-math', 'sentence flows around the formula', leftover.includes('Energy is') && leftover.includes('here'), leftover.slice(0, 60))
-      await shot(page, 'inline-math-rendered')
+      await shot(page, 'inline-math/rendered')
 
       // Edit the formula through the bubble LaTeX input.
       await page.locator('.ProseMirror [data-type="inline-math"]').click()
@@ -72,7 +72,7 @@ test.describe('inline math', () => {
       })
       check('inline-math', 'formula box has no focus outline', focusedOutline === 'none', `outline=${focusedOutline}`)
       expect(focusedOutline).toBe('none')
-      await shot(page, 'inline-math-box-no-border')
+      await shot(page, 'inline-math/box-no-border')
       // Leave the box before continuing: subsequent typing must land in the
       // document, not in the LaTeX input.
       await latexInput.evaluate((el) => (el as HTMLElement).blur())
@@ -96,7 +96,7 @@ test.describe('inline math', () => {
       check('inline-math', 'inline math persists after reload', latexAfter === 'a^2', String(latexAfter))
       expect(latexAfter).toBe('a^2')
       expect(await page.locator('.ProseMirror [data-type="inline-math"] .katex').count()).toBeGreaterThanOrEqual(1)
-      await shot(page, 'inline-math-persisted')
+      await shot(page, 'inline-math/persisted')
     })
 
     check('inline-math', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))

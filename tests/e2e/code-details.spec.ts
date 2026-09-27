@@ -48,7 +48,7 @@ test.describe('code highlight and details', () => {
       check('code-details', 'keyword token color differs from body', tokenColor !== bodyColor, `${tokenColor} vs ${bodyColor}`)
       expect(tokenColor).not.toBe(bodyColor)
       await page.keyboard.press('Escape')
-      await shot(page, 'code-highlight')
+      await shot(page, 'code-details/highlight')
 
       // --- Details section ---
       await page.locator('.ProseMirror p').first().click()
@@ -77,7 +77,7 @@ test.describe('code highlight and details', () => {
       const bodyVisible = await page.locator('.ProseMirror [data-type="detailsContent"]').first().evaluate((el) => getComputedStyle(el).display)
       check('code-details', 'details body visible when open', bodyVisible !== 'none', `display=${bodyVisible}`)
       expect(bodyVisible).not.toBe('none')
-      await shot(page, 'details-open')
+      await shot(page, 'code-details/details-open')
 
       // --- Reload: both survive the canonical round trip ---
       await page.waitForTimeout(1200)
@@ -94,7 +94,7 @@ test.describe('code highlight and details', () => {
       expect(docText).toContain('Hidden answer lives here')
       check('code-details', 'details open state persists after reload', await page.locator('.ProseMirror [data-type="details"].is-open').count() === 1, 'is-open present')
       expect(await page.locator('.ProseMirror [data-type="details"].is-open').count()).toBe(1)
-      await shot(page, 'code-details-persisted')
+      await shot(page, 'code-details/persisted')
     })
 
     check('code-details', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))
