@@ -44,8 +44,8 @@ Legend: `[x]` implemented · `[ ]` to implement · `custom` means our own canoni
 - [x] Strike — Tiptap default
 - [ ] Subscript
 - [ ] Superscript
-- [ ] TextStyle — base mark for style attributes
-- [ ] Color — text color via TextStyle (partially covered by custom `textColor` mark)
+- [x] TextStyle — implemented: stock `textStyle` mark from `@tiptap/extension-text-style` (replaces the custom mark slot; canonical `textColor` maps to it in conversion.ts)
+- [x] Color — implemented: stock `Color` extension (`setColor`/`unsetColor` via `documentRichCommands.setTextColor/unsetTextColor`) + bubble-toolbar color picker; persists as canonical `textColor` (verified live: set → reload → persists, unset prunes)
 - [ ] FontFamily — font switching via TextStyle
 - [x] TextAlign — partially: `alignment` attrs already exist on custom paragraph/heading/cells, but the Tiptap TextAlign extension itself is not installed
 

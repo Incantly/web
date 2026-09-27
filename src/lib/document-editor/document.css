@@ -418,6 +418,39 @@
   outline: none;
 }
 
+/* Text-color picker (stock Color extension). The native swatch keeps its
+   own preview; the wrapper only guarantees the 44px touch target. */
+.incantly-format-color {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.incantly-format-color input[type="color"] {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.3rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.incantly-format-color input[type="color"]:hover,
+.incantly-format-color input[type="color"]:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-format-color input[type="color"]:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+
 .incantly-document-editor .ProseMirror [data-incantly-node='image']::before,
 .incantly-document-editor .ProseMirror [data-incantly-node='fileAttachment']::before,
 .incantly-document-editor .ProseMirror [data-incantly-node='audio']::before,

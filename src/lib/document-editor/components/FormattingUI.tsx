@@ -92,6 +92,7 @@ function useFormattingState(editor: Editor | null) {
       mathBlock: current.isActive('blockMath'),
       mathLatex: (current.getAttributes('blockMath').latex as string | undefined) ?? '',
       inlineMath: current.isActive('inlineMath'),
+      textColor: (current.getAttributes('textStyle').color as string | undefined) ?? null,
       inlineMathLatex: (current.getAttributes('inlineMath').latex as string | undefined) ?? '',
       dollarMath: findDollarMathCandidate(current.state),
       // Ancestor walk, not isActive: a selection starting on a block
@@ -208,6 +209,22 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
             <FormatButton editor={editor} label="Italic" shortcut="Mod-I" active={state.italic} command={toggleMark('italic')}><em>I</em></FormatButton>
             <FormatButton editor={editor} label="Underline" shortcut="Mod-U" active={state.underline} command={toggleMark('underline')}><u>U</u></FormatButton>
             <FormatButton editor={editor} label="Inline code" shortcut="Mod-E" active={state.code} command={toggleMark('code')}>&lt;/&gt;</FormatButton>
+            {!state.inCodeBlock ? (
+              <span className="incantly-format-color" role="group" aria-label="Text color">
+                <label title="Text color">
+                  <span className="sr-only">Text color</span>
+                  <input
+                    type="color"
+                    aria-label="Text color"
+                    value={/^#[0-9a-f]{6}$/i.test(state.textColor ?? '') ? (state.textColor as string) : '#000000'}
+                    onChange={(event) => { documentRichCommands.setTextColor(editor, event.target.value) }}
+                  />
+                </label>
+                {state.textColor ? (
+                  <FormatButton editor={editor} label="Remove text color" command={(current) => documentRichCommands.unsetTextColor(current)}>✕</FormatButton>
+                ) : null}
+              </span>
+            ) : null}
           </>
         )}
         {state.inTable && !convertOnly && !mathEditing && !state.inCodeBlock ? (

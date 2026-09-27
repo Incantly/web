@@ -123,7 +123,11 @@ function proseMirrorMark(mark: { type: { name: string }; attrs: Record<string, u
     case 'link': return typeof mark.attrs.href === 'string'
       ? { type: 'link', href: mark.attrs.href, ...(typeof mark.attrs.title === 'string' ? { title: mark.attrs.title } : {}) }
       : null
-    case 'textColor': case 'highlight': return typeof mark.attrs.color === 'string'
+    // Stock textStyle mark (Color extension) carries canonical textColor.
+    case 'textStyle': return typeof mark.attrs.color === 'string' && mark.attrs.color.trim()
+      ? { type: 'textColor', color: mark.attrs.color.trim() }
+      : null
+    case 'highlight': return typeof mark.attrs.color === 'string'
       ? { type: mark.type.name, color: mark.attrs.color }
       : null
     case 'citation': return typeof mark.attrs.citationId === 'string'

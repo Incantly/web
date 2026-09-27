@@ -1,11 +1,5 @@
 import { Mark, mergeAttributes, type Extensions } from '@tiptap/core'
-
-const TextColor = Mark.create({
-  name: 'textColor',
-  addAttributes: () => ({ color: { default: null } }),
-  parseHTML: () => [{ tag: 'span[data-incantly-text-color]', getAttrs: (element) => ({ color: (element as HTMLElement).dataset.incantlyTextColor }) }],
-  renderHTML: ({ HTMLAttributes }) => ['span', mergeAttributes(HTMLAttributes, { 'data-incantly-text-color': HTMLAttributes.color, style: `color: ${HTMLAttributes.color}` }), 0],
-})
+import { Color, TextStyle } from '@tiptap/extension-text-style'
 
 const Highlight = Mark.create({
   name: 'highlight',
@@ -34,5 +28,10 @@ const InlineMathMark = Mark.create({
   renderHTML: ({ HTMLAttributes }) => ['span', mergeAttributes(HTMLAttributes, { 'data-inline-math': HTMLAttributes.latex }), 0],
 })
 
-/** Marks not supplied by the deliberately restricted StarterKit configuration. */
-export const incantlyDocumentMarks: Extensions = [TextColor, Highlight, Citation, InlineMathMark]
+/**
+ * Stock TextStyle + Color replace the former custom `textColor` mark (same
+ * pattern as the stock block nodes: no behavioral fork). Canonical
+ * `textColor` marks map to the stock `textStyle` mark in conversion.ts; the
+ * persisted format is unchanged.
+ */
+export const incantlyDocumentMarks: Extensions = [TextStyle, Color, Highlight, Citation, InlineMathMark]

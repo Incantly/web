@@ -60,7 +60,9 @@ export const documentRichCommands = {
   setHighlight: (editor: Editor, color = '#fef08a'): boolean =>
     editor.chain().focus().setMark('highlight', { color }).run(),
   setTextColor: (editor: Editor, color: string): boolean =>
-    editor.chain().focus().setMark('textColor', { color }).run(),
+    editor.chain().focus().setColor(color).run(),
+  unsetTextColor: (editor: Editor): boolean =>
+    editor.chain().focus().unsetColor().run(),
   setInlineMath: (editor: Editor, latex: string): boolean =>
     editor.chain().focus().setMark('inlineMathMark', { latex }).run(),
   insertChecklist: (editor: Editor, checked = false): boolean => editor.chain().focus().insertContent({

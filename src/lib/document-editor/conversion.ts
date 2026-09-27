@@ -64,7 +64,10 @@ function markToProseMirror(mark: TextMark): ProseMirrorMark {
   switch (mark.type) {
     case 'bold': case 'italic': case 'underline': case 'strike': case 'code': return { type: mark.type }
     case 'link': return { type: 'link', attrs: compact({ href: mark.href, title: mark.title }) }
-    case 'textColor': case 'highlight': return { type: mark.type, attrs: { color: mark.color } }
+    // Canonical textColor is edited through the stock textStyle mark (Color
+    // extension); the persisted format is unchanged.
+    case 'textColor': return { type: 'textStyle', attrs: compact({ color: mark.color }) }
+    case 'highlight': return { type: mark.type, attrs: { color: mark.color } }
     case 'citation': return { type: 'citation', attrs: { citationId: mark.citationId } }
     case 'inlineMath': return { type: 'inlineMathMark', attrs: { latex: mark.latex } }
   }
@@ -168,7 +171,19 @@ function markFromProseMirror(mark: JSONContent, path: string, issues: DocumentAd
   switch (mark.type) {
     case 'bold': case 'italic': case 'underline': case 'strike': case 'code': return { type: mark.type }
     case 'link': return compact({ type: 'link', href: value.href, title: value.title })
-    case 'textColor': case 'highlight': return { type: mark.type, color: value.color }
+    case 'textStyle': {
+      const color = typeof value.color === 'string' ? value.color.trim() : ''
+      // A color-less textStyle is an empty styling span (stock prunes these
+      // via removeEmptyTextStyle); omit it without an adapter issue.
+      return color ? { type: 'textColor', color } : null
+    }
+    // Legacy editor mark name; anything still carrying it loads as canonical
+    // textColor exactly like the stock mark above.
+    case 'textColor': {
+      const color = typeof value.color === 'string' ? value.color.trim() : ''
+      return color ? { type: 'textColor', color } : null
+    }
+    case 'highlight': return { type: mark.type, color: value.color }
     case 'citation': return { type: 'citation', citationId: value.citationId }
     case 'inlineMathMark': return { type: 'inlineMath', latex: value.latex }
     default:
