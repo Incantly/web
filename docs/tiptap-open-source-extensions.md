@@ -48,6 +48,7 @@ Legend: `[x]` implemented · `[ ]` to implement · `custom` means our own canoni
 - [x] Color — implemented: stock `Color` extension (`setColor`/`unsetColor` via `documentRichCommands.setTextColor/unsetTextColor`) + bubble-toolbar color picker; persists as canonical `textColor` (verified live: set → reload → persists, unset prunes)
 - [ ] FontFamily — font switching via TextStyle
 - [x] TextAlign — implemented: stock extension (`left`/`center`/`right` only, no justify) owns the global `textAlign` attr on paragraph/heading (dead local twins removed); canonical `alignment` unchanged; bubble icon+name buttons with toggle-off
+- [x] LineHeight — intentionally not installed: the stock mark is per-word (`textStyle`), conflicting with the canonical paragraph `lineHeight` (0.5–10, Word-style). Covered by the paragraph render rule + bubble spacing picker (Default/Single/1.15/1.5/Double)
 
 ## Functionality
 

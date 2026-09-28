@@ -262,6 +262,41 @@
 }
 
 /* Code-block language picker (bubble toolbar). */
+/* Word-style paragraph spacing picker. Layout mirrors the code-language
+   picker; the glyph inherits the surrounding control color. */
+.incantly-format-spacing {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.25rem;
+}
+
+.incantly-format-spacing svg {
+  display: block;
+  flex: none;
+  color: inherit;
+}
+
+.incantly-format-spacing select {
+  min-height: 2.75rem;
+  max-width: 8rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-format-spacing select:hover,
+.incantly-format-spacing select:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
 .incantly-format-language select {
   min-height: 2.75rem;
   max-width: 11rem;

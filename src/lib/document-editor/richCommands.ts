@@ -67,6 +67,13 @@ export const documentRichCommands = {
     editor.chain().focus().toggleTextAlign(alignment).run(),
   unsetTextAlignment: (editor: Editor): boolean =>
     editor.chain().focus().unsetTextAlign().run(),
+  /** Word-style paragraph spacing. Canonical gate is 0.5–10; out-of-range is refused, never clamped silently. */
+  setParagraphLineHeight: (editor: Editor, lineHeight: number): boolean =>
+    Number.isFinite(lineHeight) && lineHeight >= 0.5 && lineHeight <= 10
+      ? editor.chain().focus().updateAttributes('paragraph', { lineHeight }).run()
+      : false,
+  unsetParagraphLineHeight: (editor: Editor): boolean =>
+    editor.chain().focus().resetAttributes('paragraph', 'lineHeight').run(),
   setInlineMath: (editor: Editor, latex: string): boolean =>
     editor.chain().focus().setMark('inlineMathMark', { latex }).run(),
   insertChecklist: (editor: Editor, checked = false): boolean => editor.chain().focus().insertContent({

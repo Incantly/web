@@ -79,6 +79,21 @@ function AlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
   )
 }
 
+/** Line-spacing glyph: text lines with a vertical double arrow. */
+function SpacingIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="2" y1="4" x2="11" y2="4" />
+      <line x1="2" y1="8.5" x2="11" y2="8.5" />
+      <line x1="2" y1="13" x2="13" y2="13" />
+      <line x1="15" y1="2.5" x2="15" y2="15.5" />
+      <polyline points="13,4.5 15,2.5 17,4.5" />
+      <polyline points="13,13.5 15,15.5 17,13.5" />
+    </svg>
+  )
+}
+
 function FormatButton({ label, shortcut, active = false, disabled = false, command, editor, children }: FormatButtonProps) {
   const run = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -111,6 +126,8 @@ function useFormattingState(editor: Editor | null) {
       mathLatex: (current.getAttributes('blockMath').latex as string | undefined) ?? '',
       inlineMath: current.isActive('inlineMath'),
       textColor: (current.getAttributes('textStyle').color as string | undefined) ?? null,
+      // Word-style paragraph spacing; headings never carry it (canonical). 
+      lineHeight: (current.getAttributes('paragraph').lineHeight as number | undefined) ?? null,
       // textAlign lives on the block (paragraph or heading); either may hold it.
       textAlign: ((current.getAttributes('paragraph').textAlign ?? current.getAttributes('heading').textAlign) as string | undefined) ?? null,
       inlineMathLatex: (current.getAttributes('inlineMath').latex as string | undefined) ?? '',
@@ -129,6 +146,13 @@ function useFormattingState(editor: Editor | null) {
     }) : null,
   })
 }
+
+const LINE_SPACING_PRESETS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 1, label: 'Single' },
+  { value: 1.15, label: '1.15' },
+  { value: 1.5, label: '1.5' },
+  { value: 2, label: 'Double' },
+]
 
 const toggleMark = (name: string): Command => (editor) => editor.chain().focus().toggleMark(name).run()
 const setParagraph: Command = (editor) => editor.chain().focus().setNode('paragraph').run()
@@ -260,6 +284,33 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
                   </FormatButton>
                 ))}
               </span>
+            ) : null}
+            {state.paragraph && !state.inCodeBlock ? (
+              <label className="incantly-format-spacing" title="Line spacing">
+                <SpacingIcon />
+                <span className="sr-only">Line spacing</span>
+                <select
+                  aria-label="Line spacing"
+                  value={state.lineHeight === null ? '' : String(state.lineHeight)}
+                  onChange={(event) => {
+                    const raw = event.target.value
+                    if (!raw) {
+                      documentRichCommands.unsetParagraphLineHeight(editor)
+                    } else {
+                      documentRichCommands.setParagraphLineHeight(editor, Number(raw))
+                    }
+                  }}
+                >
+                  <option value="">Default</option>
+                  {LINE_SPACING_PRESETS.map((preset) => (
+                    <option key={preset.value} value={String(preset.value)}>{preset.label}</option>
+                  ))}
+                  {state.lineHeight !== null
+                    && !LINE_SPACING_PRESETS.some((preset) => preset.value === state.lineHeight) ? (
+                    <option value={String(state.lineHeight)}>{String(state.lineHeight)}</option>
+                  ) : null}
+                </select>
+              </label>
             ) : null}
           </>
         )}

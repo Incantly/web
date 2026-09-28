@@ -48,9 +48,22 @@ const Paragraph = Node.create({
   name: 'paragraph', group: 'block', content: 'inline*',
   // Alignment comes from the stock TextAlign extension's global `textAlign`
   // attribute (same pattern as the stock marks): no local twin.
+  // lineHeight stays a local paragraph attribute per the canonical model
+  // (Word-style block spacing, 0.5–10) and renders as an inline style.
+  // Pasted `style` never reaches here — the clipboard sanitizer strips style
+  // attributes first — so no parse rule is needed.
   addAttributes: () => ({ ...nodeIdAttribute, lineHeight: { default: null } }),
   parseHTML: () => [{ tag: 'p' }],
-  renderHTML: ({ HTMLAttributes }) => ['p', HTMLAttributes, 0],
+  renderHTML: ({ node, HTMLAttributes }) => {
+    const rest = { ...(HTMLAttributes as Record<string, unknown>) }
+    // Never leak the raw attribute into HTML; it only ever renders as style.
+    delete rest.lineHeight
+    const lineHeight = node.attrs.lineHeight as unknown
+    const style = typeof lineHeight === 'number' && Number.isFinite(lineHeight) && lineHeight >= 0.5 && lineHeight <= 10
+      ? { style: `line-height: ${lineHeight}` }
+      : {}
+    return ['p', mergeAttributes(rest, style), 0]
+  },
 })
 
 const Heading = Node.create({
