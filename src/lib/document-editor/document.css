@@ -678,3 +678,88 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 12rem;
 }
+
+/* Table row/column handles and action menus. Handles float in the table
+   gutter and dock inside the table edge when no gutter space exists, so
+   narrow screens never gain horizontal overflow. */
+.incantly-table-handles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.incantly-table-handles .incantly-table-handle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.incantly-table-handles .incantly-table-handle:hover,
+.incantly-table-handles .incantly-table-handle:focus-visible,
+.incantly-table-handles .incantly-table-handle[aria-expanded=true] {
+  border-color: var(--incantly-document-focus);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-table-menu {
+  position: absolute;
+  z-index: 4;
+  width: 15rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.4rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+  pointer-events: auto;
+}
+
+.incantly-table-menu .incantly-table-menu-row {
+  display: block;
+}
+
+.incantly-table-menu .incantly-table-menu-separator {
+  display: block;
+  height: 1px;
+  margin: 0.3rem 0.4rem;
+  background: var(--incantly-document-border);
+}
+
+.incantly-table-menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.incantly-table-menu button:hover,
+.incantly-table-menu button:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}

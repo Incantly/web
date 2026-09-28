@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { createDocument, type IncantlyDocument } from '@incantly/core/document'
-import { DocumentBubbleToolbar, DocumentSlashMenu } from '../../lib/document-editor'
+import { DocumentBubbleToolbar, DocumentSlashMenu, TableHandles } from '../../lib/document-editor'
 import { incantlySlashMenuItems, renderSlashItem } from './slashMenuItems'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
@@ -117,7 +117,7 @@ function SettingsView() {
 }
 
 function NoteView({ note, save, status }: { note: NoteRecord; save: (document: IncantlyDocument) => void; status: string }) {
-  return <div className="flex min-h-full flex-col"><div className="min-h-0 flex-1"><DocumentEditor key={note.id} document={note.document} onChange={save} ui="none" aria-label={`Edit ${note.title}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"><DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} renderItem={renderSlashItem} /></DocumentEditor></div><span role="status" className="sr-only">{status}</span></div>
+  return <div className="flex min-h-full flex-col"><div className="min-h-0 flex-1"><DocumentEditor key={note.id} document={note.document} onChange={save} ui="none" aria-label={`Edit ${note.title}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"><DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} renderItem={renderSlashItem} /><TableHandles /></DocumentEditor></div><span role="status" className="sr-only">{status}</span></div>
 }
 
 function readSavedNotes(): NoteRecord[] | null {
