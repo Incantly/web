@@ -5,6 +5,7 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
 import { documentRichCommands } from '../richCommands'
+import { DOCUMENT_FONT_FAMILIES, matchFontFamilyKey } from '../schema/fonts'
 
 type Command = (editor: Editor) => boolean
 
@@ -126,6 +127,7 @@ function useFormattingState(editor: Editor | null) {
       mathLatex: (current.getAttributes('blockMath').latex as string | undefined) ?? '',
       inlineMath: current.isActive('inlineMath'),
       textColor: (current.getAttributes('textStyle').color as string | undefined) ?? null,
+      fontFamily: matchFontFamilyKey((current.getAttributes('textStyle').fontFamily as string | undefined) ?? ''),
       // Word-style paragraph spacing; headings never carry it (canonical). 
       lineHeight: (current.getAttributes('paragraph').lineHeight as number | undefined) ?? null,
       // textAlign lives on the block (paragraph or heading); either may hold it.
@@ -309,6 +311,29 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
                     && !LINE_SPACING_PRESETS.some((preset) => preset.value === state.lineHeight) ? (
                     <option value={String(state.lineHeight)}>{String(state.lineHeight)}</option>
                   ) : null}
+                </select>
+              </label>
+            ) : null}
+            {!state.inCodeBlock ? (
+              <label className="incantly-format-font" title="Font">
+                <span aria-hidden="true" className="incantly-format-font-glyph">Aa</span>
+                <span className="sr-only">Font</span>
+                <select
+                  aria-label="Font"
+                  value={state.fontFamily ?? ''}
+                  onChange={(event) => {
+                    const family = event.target.value
+                    if (!family) {
+                      documentRichCommands.unsetFontFamily(editor)
+                    } else {
+                      documentRichCommands.setFontFamily(editor, family)
+                    }
+                  }}
+                >
+                  <option value="">Default</option>
+                  {DOCUMENT_FONT_FAMILIES.map((family) => (
+                    <option key={family.key} value={family.key} style={{ fontFamily: family.stack }}>{family.label}</option>
+                  ))}
                 </select>
               </label>
             ) : null}

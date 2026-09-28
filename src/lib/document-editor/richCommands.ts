@@ -1,4 +1,6 @@
+import { isFontFamilyKey } from '@incantly/core/document'
 import type { Editor, JSONContent } from '@tiptap/core'
+import { fontStackForKey } from './schema/fonts'
 import type { ResolvedPos } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 import { addColumnAfter, addRowAfter, deleteColumn, deleteRow } from '@tiptap/pm/tables'
@@ -61,6 +63,10 @@ export const documentRichCommands = {
     editor.chain().focus().setMark('highlight', { color }).run(),
   setTextColor: (editor: Editor, color: string): boolean =>
     editor.chain().focus().setColor(color).run(),
+  setFontFamily: (editor: Editor, family: string): boolean =>
+    isFontFamilyKey(family) ? editor.chain().focus().setFontFamily(fontStackForKey(family)).run() : false,
+  unsetFontFamily: (editor: Editor): boolean =>
+    editor.chain().focus().unsetFontFamily().run(),
   unsetTextColor: (editor: Editor): boolean =>
     editor.chain().focus().unsetColor().run(),
   toggleTextAlignment: (editor: Editor, alignment: 'left' | 'center' | 'right'): boolean =>

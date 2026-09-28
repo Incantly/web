@@ -1,4 +1,5 @@
 import type { JSONContent } from '@tiptap/core'
+import { fontStackForKey, matchFontFamilyKey } from './schema/fonts'
 import {
   createDocument,
   createDocumentNodeId,
@@ -67,6 +68,7 @@ function markToProseMirror(mark: TextMark): ProseMirrorMark {
     // Canonical textColor is edited through the stock textStyle mark (Color
     // extension); the persisted format is unchanged.
     case 'textColor': return { type: 'textStyle', attrs: compact({ color: mark.color }) }
+    case 'fontFamily': return { type: 'textStyle', attrs: compact({ fontFamily: fontStackForKey(mark.family) }) }
     case 'highlight': return { type: mark.type, attrs: { color: mark.color } }
     case 'citation': return { type: 'citation', attrs: { citationId: mark.citationId } }
     case 'inlineMath': return { type: 'inlineMathMark', attrs: { latex: mark.latex } }
@@ -76,10 +78,20 @@ function markToProseMirror(mark: TextMark): ProseMirrorMark {
 function inlineToProseMirror(node: InlineNode): JSONContent {
   if (node.type === 'hardBreak') return { type: 'hardBreak' }
   if (node.type === 'inlineMath') return { type: 'inlineMath', attrs: { latex: node.latex } }
+  const mapped = (node.marks ?? []).map(markToProseMirror)
+  // One textStyle mark can carry both color and family: merge duplicates so
+  // the editor holds a single mark per run.
+  const merged: ProseMirrorMark[] = []
+  const styleAttrs: Record<string, unknown> = {}
+  for (const mark of mapped) {
+    if (mark.type === 'textStyle') Object.assign(styleAttrs, mark.attrs)
+    else merged.push(mark)
+  }
+  if (Object.keys(styleAttrs).length) merged.push({ type: 'textStyle', attrs: styleAttrs })
   return {
     type: 'text',
     text: node.text,
-    ...(node.marks?.length ? { marks: node.marks.map(markToProseMirror) } : {}),
+    ...(merged.length ? { marks: merged } : {}),
   }
 }
 
@@ -168,29 +180,35 @@ export function incantlyDocumentToProseMirror(document: IncantlyDocument): Docum
   }
 }
 
-function markFromProseMirror(mark: JSONContent, path: string, issues: DocumentAdapterIssue[]): unknown {
+function markFromProseMirror(mark: JSONContent, path: string, issues: DocumentAdapterIssue[]): unknown[] {
   const value = attrs(mark)
   switch (mark.type) {
-    case 'bold': case 'italic': case 'underline': case 'strike': case 'code': return { type: mark.type }
-    case 'link': return compact({ type: 'link', href: value.href, title: value.title })
+    case 'bold': case 'italic': case 'underline': case 'strike': case 'code': return [{ type: mark.type }]
+    case 'link': return [compact({ type: 'link', href: value.href, title: value.title })]
     case 'textStyle': {
+      const marks: unknown[] = []
       const color = typeof value.color === 'string' ? value.color.trim() : ''
-      // A color-less textStyle is an empty styling span (stock prunes these
-      // via removeEmptyTextStyle); omit it without an adapter issue.
-      return color ? { type: 'textColor', color } : null
+      if (color) marks.push({ type: 'textColor', color })
+      // ProseMirror holds full CSS stacks; storage holds short keys.
+      // Unknown families are omitted (same silent rule as bare textStyle).
+      const family = typeof value.fontFamily === 'string' ? matchFontFamilyKey(value.fontFamily) : null
+      if (family) marks.push({ type: 'fontFamily', family })
+      // A bare textStyle is an empty styling span (stock prunes these via
+      // removeEmptyTextStyle); omit it without an adapter issue.
+      return marks
     }
     // Legacy editor mark name; anything still carrying it loads as canonical
     // textColor exactly like the stock mark above.
     case 'textColor': {
       const color = typeof value.color === 'string' ? value.color.trim() : ''
-      return color ? { type: 'textColor', color } : null
+      return color ? [{ type: 'textColor', color }] : []
     }
-    case 'highlight': return { type: mark.type, color: value.color }
-    case 'citation': return { type: 'citation', citationId: value.citationId }
-    case 'inlineMathMark': return { type: 'inlineMath', latex: value.latex }
+    case 'highlight': return [{ type: mark.type, color: value.color }]
+    case 'citation': return [{ type: 'citation', citationId: value.citationId }]
+    case 'inlineMathMark': return [{ type: 'inlineMath', latex: value.latex }]
     default:
       issues.push({ code: 'unsupported_mark', path, message: `Unsupported ProseMirror mark "${String(mark.type)}"`, action: 'omitted' })
-      return null
+      return []
   }
 }
 
@@ -205,10 +223,7 @@ function inlineFromProseMirror(node: JSONContent, path: string, issues: Document
     issues.push({ code: 'unsupported_node', path, message: `Unsupported inline node "${String(node.type)}"`, action: 'omitted' })
     return null
   }
-  const marks = (node.marks ?? []).flatMap((mark, index) => {
-    const converted = markFromProseMirror(mark, `${path}.marks[${index}]`, issues)
-    return converted ? [converted] : []
-  })
+  const marks = (node.marks ?? []).flatMap((mark, index) => markFromProseMirror(mark, `${path}.marks[${index}]`, issues))
   return { type: 'text', text: node.text, ...(marks.length ? { marks } : {}) }
 }
 

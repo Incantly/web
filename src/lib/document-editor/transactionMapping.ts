@@ -1,4 +1,5 @@
 import type { JSONContent } from '@tiptap/core'
+import { matchFontFamilyKey } from './schema/fonts'
 import type { Node as ProseMirrorNode, Slice } from '@tiptap/pm/model'
 import type { Transaction } from '@tiptap/pm/state'
 import { ReplaceStep } from '@tiptap/pm/transform'
@@ -117,24 +118,37 @@ export function getIncantlyTransactionMeta(transaction: Transaction): IncantlyEd
   }
 }
 
-function proseMirrorMark(mark: { type: { name: string }; attrs: Record<string, unknown> }): TextMark | null {
+/**
+ * Map one ProseMirror mark to zero or more canonical marks. A stock
+ * textStyle mark can carry color and family together, so the result is a
+ * list. `null` means unmapped: the incremental fast path bails out to a
+ * full checkpoint instead of persisting something partial.
+ */
+function proseMirrorMarks(mark: { type: { name: string }; attrs: Record<string, unknown> }): TextMark[] | null {
   switch (mark.type.name) {
-    case 'bold': case 'italic': case 'underline': case 'strike': case 'code': return { type: mark.type.name }
+    case 'bold': case 'italic': case 'underline': case 'strike': case 'code': return [{ type: mark.type.name }]
     case 'link': return typeof mark.attrs.href === 'string'
-      ? { type: 'link', href: mark.attrs.href, ...(typeof mark.attrs.title === 'string' ? { title: mark.attrs.title } : {}) }
+      ? [{ type: 'link', href: mark.attrs.href, ...(typeof mark.attrs.title === 'string' ? { title: mark.attrs.title } : {}) }]
       : null
-    // Stock textStyle mark (Color extension) carries canonical textColor.
-    case 'textStyle': return typeof mark.attrs.color === 'string' && mark.attrs.color.trim()
-      ? { type: 'textColor', color: mark.attrs.color.trim() }
-      : null
+    // Stock textStyle mark carries canonical textColor and/or fontFamily.
+    case 'textStyle': {
+      const out: TextMark[] = []
+      const color = typeof mark.attrs.color === 'string' ? mark.attrs.color.trim() : ''
+      if (color) out.push({ type: 'textColor', color })
+      const family = typeof mark.attrs.fontFamily === 'string' ? matchFontFamilyKey(mark.attrs.fontFamily) : null
+      // Unknown families are dropped (paste styles are sanitized away, so
+      // nothing live can produce one); normalizeTextMarks is the backstop.
+      if (family) out.push({ type: 'fontFamily', family })
+      return out
+    }
     case 'highlight': return typeof mark.attrs.color === 'string'
-      ? { type: mark.type.name, color: mark.attrs.color }
+      ? [{ type: mark.type.name, color: mark.attrs.color }]
       : null
     case 'citation': return typeof mark.attrs.citationId === 'string'
-      ? { type: 'citation', citationId: citationId(mark.attrs.citationId) }
+      ? [{ type: 'citation', citationId: citationId(mark.attrs.citationId) }]
       : null
     case 'inlineMathMark': return typeof mark.attrs.latex === 'string'
-      ? { type: 'inlineMath', latex: mark.attrs.latex }
+      ? [{ type: 'inlineMath', latex: mark.attrs.latex }]
       : null
     default: return null
   }
@@ -147,11 +161,16 @@ function insertedText(slice: Slice): { text: string; marks?: TextMark[] } | null
   let valid = true
   slice.content.forEach((node) => {
     if (node.isText) {
-      const marks = node.marks.map(proseMirrorMark)
-      if (marks.some((mark) => !mark)) { valid = false; return }
-      const typedMarks = marks as TextMark[]
-      if (commonMarks === undefined) commonMarks = typedMarks
-      else if (JSON.stringify(commonMarks) !== JSON.stringify(typedMarks)) { valid = false; return }
+      const converted: TextMark[] = []
+      for (const mark of node.marks) {
+        const mapped = proseMirrorMarks(mark)
+        // Unmapped marks bail to the checkpoint path; a bare textStyle
+        // (no attrs) skips silently, matching the adapter.
+        if (mapped === null) { valid = false; return }
+        converted.push(...mapped)
+      }
+      if (commonMarks === undefined) commonMarks = converted
+      else if (JSON.stringify(commonMarks) !== JSON.stringify(converted)) { valid = false; return }
       text += node.text ?? ''
     } else if (node.type.name === 'hardBreak') text += '\n'
     else valid = false
