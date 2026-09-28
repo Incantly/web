@@ -7,15 +7,23 @@ import {
   addTableColumnRight,
   addTableRowAbove,
   addTableRowBelow,
+  canSortTableColumn,
   clearTableColumns,
   clearTableRows,
   deleteTableColumns,
   deleteTableRows,
   duplicateTableColumns,
   duplicateTableRows,
+  extendTableColumns,
+  extendTableRows,
   getTableSelectionContext,
+  moveTableColumnLeft,
+  moveTableColumnRight,
+  moveTableRowDown,
+  moveTableRowUp,
   selectTableColumn,
   selectTableRow,
+  sortTableColumn,
   tableRowStart,
   toggleTableHeaderColumn,
   toggleTableHeaderRow,
@@ -26,11 +34,16 @@ type MenuOrientation = 'row' | 'col'
 interface HandleGeometry {
   row: number
   col: number
+  rows: number
+  cols: number
+  canSort: boolean
   tableKey: number
   /** All coordinates below are relative to the editor wrapper. */
   rowTop: number
   tableTop: number
   tableLeft: number
+  tableBottom: number
+  tableRight: number
   colLeft: number
   hostWidth: number
 }
@@ -47,13 +60,20 @@ function readGeometry(editor: Editor): HandleGeometry | null {
     const tableCoords = editor.view.coordsAtPos(context.tableStart - 1)
     const colCell = context.tableStart + context.map.positionAt(0, context.col, context.table)
     const colCoords = editor.view.coordsAtPos(colCell)
+    const tableElement = editor.view.domAtPos(context.tableStart)?.node as HTMLElement | null
+    const tableBox = tableElement?.closest?.('table')?.getBoundingClientRect() ?? null
     return {
       row: context.row,
       col: context.col,
+      rows: context.rows,
+      cols: context.cols,
+      canSort: canSortTableColumn(editor),
       tableKey: context.tableStart,
       rowTop: rowCoords.top - hostRect.top,
       tableTop: tableCoords.top - hostRect.top,
       tableLeft: tableCoords.left - hostRect.left,
+      tableBottom: (tableBox ? tableBox.bottom : tableCoords.bottom) - hostRect.top,
+      tableRight: (tableBox ? tableBox.right : tableCoords.right) - hostRect.left,
       colLeft: colCoords.left - hostRect.left,
       hostWidth: hostRect.width,
     }
@@ -67,29 +87,44 @@ interface MenuItem {
   id: string
   label: string
   separatorBefore?: boolean
+  disabled?: boolean
   command: (editor: Editor) => boolean
 }
 
-function rowMenuItems(isFirstRow: boolean): MenuItem[] {
+interface MenuContext {
+  row: number
+  col: number
+  rows: number
+  cols: number
+  canSort: boolean
+}
+
+function rowMenuItems(context: MenuContext): MenuItem[] {
   const items: MenuItem[] = [
     { id: 'add-above', label: 'Add row above', command: addTableRowAbove },
     { id: 'add-below', label: 'Add row below', command: addTableRowBelow },
-    { id: 'duplicate', label: 'Duplicate row', command: duplicateTableRows },
+    { id: 'move-up', label: 'Move row up', separatorBefore: true, disabled: context.row === 0, command: moveTableRowUp },
+    { id: 'move-down', label: 'Move row down', disabled: context.row >= context.rows - 1, command: moveTableRowDown },
+    { id: 'duplicate', label: 'Duplicate row', separatorBefore: true, command: duplicateTableRows },
     { id: 'clear', label: 'Clear row contents', command: clearTableRows },
   ]
-  if (isFirstRow) items.push({ id: 'header', label: 'Toggle header row', command: toggleTableHeaderRow })
+  if (context.row === 0) items.push({ id: 'header', label: 'Toggle header row', command: toggleTableHeaderRow })
   items.push({ id: 'delete', label: 'Delete row', separatorBefore: true, command: deleteTableRows })
   return items
 }
 
-function columnMenuItems(isFirstColumn: boolean): MenuItem[] {
+function columnMenuItems(context: MenuContext): MenuItem[] {
   const items: MenuItem[] = [
     { id: 'add-left', label: 'Add column left', command: addTableColumnLeft },
     { id: 'add-right', label: 'Add column right', command: addTableColumnRight },
-    { id: 'duplicate', label: 'Duplicate column', command: duplicateTableColumns },
+    { id: 'move-left', label: 'Move column left', separatorBefore: true, disabled: context.col === 0, command: moveTableColumnLeft },
+    { id: 'move-right', label: 'Move column right', disabled: context.col >= context.cols - 1, command: moveTableColumnRight },
+    { id: 'sort-asc', label: 'Sort column A–Z', separatorBefore: true, disabled: !context.canSort, command: (editor) => sortTableColumn(editor, 'asc') },
+    { id: 'sort-desc', label: 'Sort column Z–A', disabled: !context.canSort, command: (editor) => sortTableColumn(editor, 'desc') },
+    { id: 'duplicate', label: 'Duplicate column', separatorBefore: true, command: duplicateTableColumns },
     { id: 'clear', label: 'Clear column contents', command: clearTableColumns },
   ]
-  if (isFirstColumn) items.push({ id: 'header', label: 'Toggle header column', command: toggleTableHeaderColumn })
+  if (context.col === 0) items.push({ id: 'header', label: 'Toggle header column', command: toggleTableHeaderColumn })
   items.push({ id: 'delete', label: 'Delete column', separatorBefore: true, command: deleteTableColumns })
   return items
 }
@@ -98,14 +133,14 @@ interface TableMenuProps {
   editor: Editor
   id: string
   orientation: MenuOrientation
-  isFirst: boolean
+  context: MenuContext
   top: number
   left: number
   onClose: () => void
 }
 
-function TableMenu({ editor, id, orientation, isFirst, top, left, onClose }: TableMenuProps) {
-  const items = orientation === 'row' ? rowMenuItems(isFirst) : columnMenuItems(isFirst)
+function TableMenu({ editor, id, orientation, context, top, left, onClose }: TableMenuProps) {
+  const items = orientation === 'row' ? rowMenuItems(context) : columnMenuItems(context)
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   useEffect(() => {
@@ -122,28 +157,34 @@ function TableMenu({ editor, id, orientation, isFirst, top, left, onClose }: Tab
     return () => document.removeEventListener('pointerdown', onPointerDown, true)
   }, [onClose])
 
-  const focusItem = (index: number): void => {
-    itemRefs.current[(index + items.length) % items.length]?.focus()
+  const enabledIndexes = items
+    .map((item, itemIndex) => (item.disabled ? -1 : itemIndex))
+    .filter((itemIndex) => itemIndex >= 0)
+
+  const focusEnabled = (enabledPosition: number): void => {
+    if (!enabledIndexes.length) return
+    const wrapped = (enabledPosition + enabledIndexes.length) % enabledIndexes.length
+    itemRefs.current[enabledIndexes[wrapped]]?.focus()
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const index = itemRefs.current.findIndex((element) => element === document.activeElement)
+    const current = enabledIndexes.indexOf(itemRefs.current.findIndex((element) => element === document.activeElement))
     if (event.key === 'Escape') {
       event.preventDefault()
       onClose()
       editor.commands.focus()
     } else if (event.key === 'ArrowDown') {
       event.preventDefault()
-      focusItem(index + 1)
+      focusEnabled(current + 1)
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      focusItem(index - 1)
+      focusEnabled(current - 1)
     } else if (event.key === 'Home') {
       event.preventDefault()
-      focusItem(0)
+      focusEnabled(0)
     } else if (event.key === 'End') {
       event.preventDefault()
-      focusItem(items.length - 1)
+      focusEnabled(enabledIndexes.length - 1)
     }
   }
 
@@ -163,6 +204,7 @@ function TableMenu({ editor, id, orientation, isFirst, top, left, onClose }: Tab
           <button
             type="button"
             role="menuitem"
+            disabled={item.disabled}
             ref={(element) => { itemRefs.current[index] = element }}
             onClick={() => { item.command(editor) }}
           >
@@ -223,6 +265,25 @@ export function TableHandles({ editor: suppliedEditor, className }: TableHandles
   const menuTop = (openMenu === 'row' ? rowTop : colTop) + 48
   const menuAnchorLeft = openMenu === 'row' ? rowLeft : colLeft
 
+  // Extend bars: full-width "+" below the table appends a row, full-height
+  // "+" right of the table appends a column. The column bar docks inside
+  // when the table reaches the wrapper edge (same rule as the handles).
+  const extendRowsTop = geometry.tableBottom + 6
+  const extendRowsWidth = Math.max(44, geometry.tableRight - geometry.tableLeft)
+  const extendColsLeft = geometry.tableRight + gutter + 44 <= geometry.hostWidth
+    ? geometry.tableRight + 6
+    : geometry.tableRight - 44 - 6
+  const extendColsHeight = Math.max(44, geometry.tableBottom - geometry.tableTop)
+
+  // The outside-pointerdown closer dismisses any open menu before the
+  // click lands, so no explicit close is needed here.
+  const extendRows = (): void => {
+    extendTableRows(editor)
+  }
+  const extendColumns = (): void => {
+    extendTableColumns(editor)
+  }
+
   return (
     <div className={['incantly-table-handles', className].filter(Boolean).join(' ')}>
       <button
@@ -253,13 +314,39 @@ export function TableHandles({ editor: suppliedEditor, className }: TableHandles
       >
         <span aria-hidden="true">⋮</span>
       </button>
+      <button
+        type="button"
+        data-table-extend="rows"
+        aria-label="Add row at end"
+        className="incantly-table-extend"
+        style={{ top: extendRowsTop, left: geometry.tableLeft, width: extendRowsWidth } as CSSProperties}
+        onClick={extendRows}
+      >
+        <span aria-hidden="true">+</span>
+      </button>
+      <button
+        type="button"
+        data-table-extend="columns"
+        aria-label="Add column at end"
+        className="incantly-table-extend"
+        style={{ top: geometry.tableTop, left: extendColsLeft, height: extendColsHeight } as CSSProperties}
+        onClick={extendColumns}
+      >
+        <span aria-hidden="true">+</span>
+      </button>
       {openMenu ? (
         <TableMenu
           key={`${openMenu}-${menuId}`}
           id={menuId}
           editor={editor}
           orientation={openMenu}
-          isFirst={openMenu === 'row' ? geometry.row === 0 : geometry.col === 0}
+          context={{
+            row: geometry.row,
+            col: geometry.col,
+            rows: geometry.rows,
+            cols: geometry.cols,
+            canSort: geometry.canSort,
+          }}
           top={menuTop}
           left={menuLeft(menuAnchorLeft)}
           onClose={closeMenu}

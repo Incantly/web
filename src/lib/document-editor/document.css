@@ -763,3 +763,41 @@
   background: var(--incantly-document-selection);
   outline: none;
 }
+
+.incantly-table-menu button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.incantly-table-extend {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-muted);
+  background: var(--incantly-document-surface);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.incantly-table-extend[data-table-extend=rows] {
+  height: 2.75rem;
+}
+
+.incantly-table-extend[data-table-extend=columns] {
+  width: 2.75rem;
+}
+
+.incantly-table-extend:hover,
+.incantly-table-extend:focus-visible {
+  border-color: var(--incantly-document-focus);
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
