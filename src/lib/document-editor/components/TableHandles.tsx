@@ -235,11 +235,45 @@ export function TableHandles({ editor: suppliedEditor, className }: TableHandles
     selector: ({ editor: current }) => (current ? readGeometry(current) : null),
   })
   const [openMenu, setOpenMenu] = useState<MenuOrientation | null>(null)
+  // Extend bars stay hidden until the pointer lingers at the table's bottom
+  // or right edge. Touch and keyboard users get the same bars through
+  // editor focus instead (see the :focus-within rule in document.css).
+  const [edge, setEdge] = useState({ rows: false, cols: false })
+  const geometryRef = useRef(geometry)
+  geometryRef.current = geometry
 
   const tableActive = geometry ? geometry.tableKey : null
   useEffect(() => {
     if (tableActive === null) setOpenMenu(null)
   }, [tableActive])
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    const host = editor.view.dom.closest<HTMLElement>('[data-incantly-document-editor]')
+    if (!host) return
+    const zone = 64
+    const onMove = (event: MouseEvent): void => {
+      const current = geometryRef.current
+      if (!current) return
+      const hostRect = host.getBoundingClientRect()
+      const x = event.clientX - hostRect.left
+      const y = event.clientY - hostRect.top
+      const rows = x >= current.tableLeft - 16 && x <= current.tableRight + 16
+        && y >= current.tableBottom - 24 && y <= current.tableBottom + zone
+      const cols = y >= current.tableTop - 16 && y <= current.tableBottom + 16
+        && x >= current.tableRight - 24 && x <= current.tableRight + zone
+      setEdge((previous) => (previous.rows === rows && previous.cols === cols ? previous : { rows, cols }))
+    }
+    const onLeave = (): void => {
+      setEdge((previous) => (!previous.rows && !previous.cols ? previous : { rows: false, cols: false }))
+    }
+    host.addEventListener('mousemove', onMove)
+    host.addEventListener('mouseleave', onLeave)
+    return () => {
+      host.removeEventListener('mousemove', onMove)
+      host.removeEventListener('mouseleave', onLeave)
+    }
+  }, [editor, tableActive])
 
   if (!editor || !geometry) return null
 
@@ -317,22 +351,24 @@ export function TableHandles({ editor: suppliedEditor, className }: TableHandles
       <button
         type="button"
         data-table-extend="rows"
+        data-edge={edge.rows ? 'true' : 'false'}
         aria-label="Add row at end"
         className="incantly-table-extend"
         style={{ top: extendRowsTop, left: geometry.tableLeft, width: extendRowsWidth } as CSSProperties}
         onClick={extendRows}
       >
-        <span aria-hidden="true">+</span>
+        <span aria-hidden="true" className="incantly-table-extend-pill">+</span>
       </button>
       <button
         type="button"
         data-table-extend="columns"
+        data-edge={edge.cols ? 'true' : 'false'}
         aria-label="Add column at end"
         className="incantly-table-extend"
         style={{ top: geometry.tableTop, left: extendColsLeft, height: extendColsHeight } as CSSProperties}
         onClick={extendColumns}
       >
-        <span aria-hidden="true">+</span>
+        <span aria-hidden="true" className="incantly-table-extend-pill">+</span>
       </button>
       {openMenu ? (
         <TableMenu

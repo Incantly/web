@@ -769,35 +769,59 @@
   opacity: 0.45;
 }
 
+/* Extend bars: slim pills in generous transparent hit zones, revealed only
+   at the table edges (see data-edge) or whenever the editor has focus
+   (touch tap / keyboard tab), so touch and keyboard keep full parity. */
 .incantly-table-extend {
   position: absolute;
   display: grid;
   place-items: center;
   min-width: 2.75rem;
-  min-height: 2.75rem;
-  border: 1px solid var(--incantly-document-border);
-  border-radius: 0.5rem;
-  color: var(--incantly-document-muted);
-  background: var(--incantly-document-surface);
-  font-size: 1.25rem;
-  font-weight: 400;
-  line-height: 1;
+  min-height: 3rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
   cursor: pointer;
   pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 0s linear 160ms;
 }
 
-.incantly-table-extend[data-table-extend=rows] {
-  height: 2.75rem;
+.incantly-table-extend[data-edge=true],
+.incantly-document-editor:focus-within .incantly-table-extend {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 160ms ease;
 }
 
-.incantly-table-extend[data-table-extend=columns] {
-  width: 2.75rem;
+.incantly-table-extend .incantly-table-extend-pill {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 1.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 999px;
+  color: var(--incantly-document-muted);
+  background: var(--incantly-document-surface);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
-.incantly-table-extend:hover,
-.incantly-table-extend:focus-visible {
+.incantly-table-extend[data-table-extend=columns] .incantly-table-extend-pill {
+  width: 1.75rem;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.incantly-table-extend:hover .incantly-table-extend-pill,
+.incantly-table-extend:focus-visible .incantly-table-extend-pill {
   border-color: var(--incantly-document-focus);
   color: var(--incantly-document-text);
   background: var(--incantly-document-selection);
+}
+
+.incantly-table-extend:focus-visible {
   outline: none;
 }
