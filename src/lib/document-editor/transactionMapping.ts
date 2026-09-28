@@ -1,5 +1,5 @@
 import type { JSONContent } from '@tiptap/core'
-import { matchFontFamilyKey } from './schema/fonts'
+import { matchFontFamilyKey, parseFontSizeToPt } from './schema/fonts'
 import type { Node as ProseMirrorNode, Slice } from '@tiptap/pm/model'
 import type { Transaction } from '@tiptap/pm/state'
 import { ReplaceStep } from '@tiptap/pm/transform'
@@ -139,6 +139,8 @@ function proseMirrorMarks(mark: { type: { name: string }; attrs: Record<string, 
       // Unknown families are dropped (paste styles are sanitized away, so
       // nothing live can produce one); normalizeTextMarks is the backstop.
       if (family) out.push({ type: 'fontFamily', family })
+      const size = typeof mark.attrs.fontSize === 'string' ? parseFontSizeToPt(mark.attrs.fontSize) : null
+      if (size !== null) out.push({ type: 'fontSize', size })
       return out
     }
     case 'highlight': return typeof mark.attrs.color === 'string'

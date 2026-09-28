@@ -1,5 +1,5 @@
 import type { JSONContent } from '@tiptap/core'
-import { fontStackForKey, matchFontFamilyKey } from './schema/fonts'
+import { fontSizeToCss, fontStackForKey, matchFontFamilyKey, parseFontSizeToPt } from './schema/fonts'
 import {
   createDocument,
   createDocumentNodeId,
@@ -69,6 +69,7 @@ function markToProseMirror(mark: TextMark): ProseMirrorMark {
     // extension); the persisted format is unchanged.
     case 'textColor': return { type: 'textStyle', attrs: compact({ color: mark.color }) }
     case 'fontFamily': return { type: 'textStyle', attrs: compact({ fontFamily: fontStackForKey(mark.family) }) }
+    case 'fontSize': return { type: 'textStyle', attrs: compact({ fontSize: fontSizeToCss(mark.size) }) }
     case 'highlight': return { type: mark.type, attrs: { color: mark.color } }
     case 'citation': return { type: 'citation', attrs: { citationId: mark.citationId } }
     case 'inlineMath': return { type: 'inlineMathMark', attrs: { latex: mark.latex } }
@@ -193,6 +194,8 @@ function markFromProseMirror(mark: JSONContent, path: string, issues: DocumentAd
       // Unknown families are omitted (same silent rule as bare textStyle).
       const family = typeof value.fontFamily === 'string' ? matchFontFamilyKey(value.fontFamily) : null
       if (family) marks.push({ type: 'fontFamily', family })
+      const size = typeof value.fontSize === 'string' ? parseFontSizeToPt(value.fontSize) : null
+      if (size !== null) marks.push({ type: 'fontSize', size })
       // A bare textStyle is an empty styling span (stock prunes these via
       // removeEmptyTextStyle); omit it without an adapter issue.
       return marks

@@ -5,7 +5,7 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
 import { documentRichCommands } from '../richCommands'
-import { DOCUMENT_FONT_FAMILIES, matchFontFamilyKey } from '../schema/fonts'
+import { DOCUMENT_FONT_FAMILIES, FONT_SIZE_PRESETS, matchFontFamilyKey, parseFontSizeToPt } from '../schema/fonts'
 
 type Command = (editor: Editor) => boolean
 
@@ -80,6 +80,19 @@ function AlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
   )
 }
 
+/** Font-size glyph: a capital A with a growing arrow. */
+function FontSizeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <text x="1.5" y="14.5" fontSize="12" fontWeight="700" fill="currentColor" stroke="none"
+        fontFamily="Georgia, 'Times New Roman', serif">A</text>
+      <line x1="14.5" y1="5" x2="14.5" y2="15" />
+      <polyline points="12.5,7 14.5,5 16.5,7" />
+    </svg>
+  )
+}
+
 /** Line-spacing glyph: text lines with a vertical double arrow. */
 function SpacingIcon() {
   return (
@@ -128,6 +141,7 @@ function useFormattingState(editor: Editor | null) {
       inlineMath: current.isActive('inlineMath'),
       textColor: (current.getAttributes('textStyle').color as string | undefined) ?? null,
       fontFamily: matchFontFamilyKey((current.getAttributes('textStyle').fontFamily as string | undefined) ?? ''),
+      fontSize: parseFontSizeToPt((current.getAttributes('textStyle').fontSize as string | undefined) ?? ''),
       // Word-style paragraph spacing; headings never carry it (canonical). 
       lineHeight: (current.getAttributes('paragraph').lineHeight as number | undefined) ?? null,
       // textAlign lives on the block (paragraph or heading); either may hold it.
@@ -334,6 +348,32 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
                   {DOCUMENT_FONT_FAMILIES.map((family) => (
                     <option key={family.key} value={family.key} style={{ fontFamily: family.stack }}>{family.label}</option>
                   ))}
+                </select>
+              </label>
+            ) : null}
+            {!state.inCodeBlock ? (
+              <label className="incantly-format-font-size" title="Font size">
+                <FontSizeIcon />
+                <span className="sr-only">Font size</span>
+                <select
+                  aria-label="Font size"
+                  value={state.fontSize === null ? '' : String(state.fontSize)}
+                  onChange={(event) => {
+                    const raw = event.target.value
+                    if (!raw) {
+                      documentRichCommands.unsetFontSize(editor)
+                    } else {
+                      documentRichCommands.setFontSize(editor, Number(raw))
+                    }
+                  }}
+                >
+                  <option value="">Default</option>
+                  {FONT_SIZE_PRESETS.map((size) => (
+                    <option key={size} value={String(size)}>{String(size)}</option>
+                  ))}
+                  {state.fontSize !== null && !FONT_SIZE_PRESETS.includes(state.fontSize) ? (
+                    <option value={String(state.fontSize)}>{String(state.fontSize)}</option>
+                  ) : null}
                 </select>
               </label>
             ) : null}

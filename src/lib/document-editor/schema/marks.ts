@@ -1,5 +1,5 @@
 import { Mark, mergeAttributes, type Extensions } from '@tiptap/core'
-import { Color, FontFamily, TextStyle } from '@tiptap/extension-text-style'
+import { Color, FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style'
 
 const Highlight = Mark.create({
   name: 'highlight',
@@ -34,4 +34,4 @@ const InlineMathMark = Mark.create({
  * `textColor` marks map to the stock `textStyle` mark in conversion.ts; the
  * persisted format is unchanged.
  */
-export const incantlyDocumentMarks: Extensions = [TextStyle, Color, FontFamily, Highlight, Citation, InlineMathMark]
+export const incantlyDocumentMarks: Extensions = [TextStyle, Color, FontFamily, FontSize, Highlight, Citation, InlineMathMark]
