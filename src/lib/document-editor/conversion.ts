@@ -87,9 +87,11 @@ function nodeToProseMirror(node: DocumentNode, path: string, issues: DocumentAda
   const base = { type: node.type, attrs: { id: node.id } } satisfies JSONContent
   switch (node.type) {
     case 'paragraph':
-      return { ...base, attrs: compact({ id: node.id, alignment: node.attrs?.alignment, lineHeight: node.attrs?.lineHeight }), content: node.content.map(inlineToProseMirror) }
+      // Canonical `alignment` is edited through stock TextAlign's global
+      // `textAlign` attribute; the persisted format is unchanged.
+      return { ...base, attrs: compact({ id: node.id, textAlign: node.attrs?.alignment, lineHeight: node.attrs?.lineHeight }), content: node.content.map(inlineToProseMirror) }
     case 'heading':
-      return { ...base, attrs: compact({ id: node.id, ...node.attrs }), content: node.content.map(inlineToProseMirror) }
+      return { ...base, attrs: compact({ id: node.id, level: node.attrs.level, textAlign: node.attrs.alignment }), content: node.content.map(inlineToProseMirror) }
     case 'blockquote': {
       const content = nodesToProseMirror(node.content, `${path}.content`, issues)
       return { ...base, content }
@@ -222,8 +224,10 @@ function nodeFromProseMirror(node: JSONContent, path: string, issues: DocumentAd
     return converted ? [converted] : []
   })
   switch (node.type) {
-    case 'paragraph': return { id, type: 'paragraph', ...optionalAttrs(compact({ alignment: value.alignment, lineHeight: value.lineHeight })), content: inlineContent() }
-    case 'heading': return { id, type: 'heading', attrs: compact({ level: value.level, alignment: value.alignment }), content: inlineContent() }
+    // Stock TextAlign stores `textAlign`; the legacy `alignment` key is still
+    // accepted so older in-flight content loads instead of dropping alignment.
+    case 'paragraph': return { id, type: 'paragraph', ...optionalAttrs(compact({ alignment: value.textAlign ?? value.alignment, lineHeight: value.lineHeight })), content: inlineContent() }
+    case 'heading': return { id, type: 'heading', attrs: compact({ level: value.level, alignment: value.textAlign ?? value.alignment }), content: inlineContent() }
     case 'blockquote': case 'listItem': return { id, type: node.type, content: blockContent() }
     case 'bulletList': case 'checklist': case 'tableRow': return { id, type: node.type, content: blockContent() }
     case 'table': return { id, type: 'table', ...optionalAttrs(compact({ caption: value.caption })), content: blockContent() }

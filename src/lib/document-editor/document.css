@@ -420,6 +420,18 @@
 
 /* Text-color picker (stock Color extension). The native swatch keeps its
    own preview; the wrapper only guarantees the 44px touch target. */
+/* Word-style alignment buttons (stock TextAlign extension). Icons inherit
+   the button color; layout mirrors the color group. */
+.incantly-format-align {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.incantly-format-align svg {
+  display: block;
+}
+
 .incantly-format-color {
   display: inline-flex;
   gap: 0.25rem;

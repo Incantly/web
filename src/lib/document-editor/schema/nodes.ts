@@ -46,14 +46,16 @@ const Text = Node.create({ name: 'text', group: 'inline' })
 
 const Paragraph = Node.create({
   name: 'paragraph', group: 'block', content: 'inline*',
-  addAttributes: () => ({ ...nodeIdAttribute, alignment: { default: null }, lineHeight: { default: null } }),
+  // Alignment comes from the stock TextAlign extension's global `textAlign`
+  // attribute (same pattern as the stock marks): no local twin.
+  addAttributes: () => ({ ...nodeIdAttribute, lineHeight: { default: null } }),
   parseHTML: () => [{ tag: 'p' }],
   renderHTML: ({ HTMLAttributes }) => ['p', HTMLAttributes, 0],
 })
 
 const Heading = Node.create({
   name: 'heading', group: 'block', content: 'inline*', defining: true,
-  addAttributes: () => ({ ...nodeIdAttribute, level: { default: 1 }, alignment: { default: null } }),
+  addAttributes: () => ({ ...nodeIdAttribute, level: { default: 1 } }),
   parseHTML: () => [1, 2, 3, 4, 5, 6].map((level) => ({ tag: `h${level}`, attrs: { level } })),
   renderHTML: ({ node, HTMLAttributes }) => [`h${Math.min(6, Math.max(1, Number(node.attrs.level)))}`, HTMLAttributes, 0],
 })

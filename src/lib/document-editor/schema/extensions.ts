@@ -5,6 +5,7 @@ import { addRowAfter, selectedRect } from '@tiptap/pm/tables'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
+import TextAlign from '@tiptap/extension-text-align'
 import { incantlyDocumentMarks } from './marks'
 import { IncantlyNodeIds } from './nodeIds'
 import { IncantlyTableSchemaRoles, incantlyDocumentNodes } from './nodes'
@@ -111,6 +112,9 @@ export function createIncantlyDocumentExtensions(
     IncantlyTableSchemaRoles,
     ...incantlyDocumentMarks,
     IncantlyNodeIds,
+    // Word-style text alignment (left/center/right only — justify is
+    // deliberately unconfigured so no command, shortcut, or paste can set it).
+    TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
     FormattingShortcuts,
     ...(options.pagination === false ? [] : [WebPagination.configure(options.pagination ?? {})]),
     ...(options.clipboard === false ? [] : [DocumentClipboard.configure(options.clipboard ?? {})]),

@@ -61,6 +61,24 @@ interface FormatButtonProps {
   children: ReactNode
 }
 
+const ALIGN_ICON_LINES: Record<'left' | 'center' | 'right', Array<[number, number, number, number]>> = {
+  left: [[3, 4, 15, 4], [3, 8, 11, 8], [3, 12, 15, 12], [3, 16, 11, 16]],
+  center: [[5, 4, 13, 4], [3, 8, 15, 8], [5, 12, 13, 12], [3, 16, 15, 16]],
+  right: [[3, 4, 15, 4], [7, 8, 15, 8], [3, 12, 15, 12], [7, 16, 15, 16]],
+}
+
+/** Word-style alignment glyph: icon plus an accessible name via the button label. */
+function AlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      {ALIGN_ICON_LINES[alignment].map(([x1, y1, x2, y2]) => (
+        <line key={`${x1}-${y1}-${x2}-${y2}`} x1={x1} y1={y1} x2={x2} y2={y2} />
+      ))}
+    </svg>
+  )
+}
+
 function FormatButton({ label, shortcut, active = false, disabled = false, command, editor, children }: FormatButtonProps) {
   const run = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -93,6 +111,8 @@ function useFormattingState(editor: Editor | null) {
       mathLatex: (current.getAttributes('blockMath').latex as string | undefined) ?? '',
       inlineMath: current.isActive('inlineMath'),
       textColor: (current.getAttributes('textStyle').color as string | undefined) ?? null,
+      // textAlign lives on the block (paragraph or heading); either may hold it.
+      textAlign: ((current.getAttributes('paragraph').textAlign ?? current.getAttributes('heading').textAlign) as string | undefined) ?? null,
       inlineMathLatex: (current.getAttributes('inlineMath').latex as string | undefined) ?? '',
       dollarMath: findDollarMathCandidate(current.state),
       // Ancestor walk, not isActive: a selection starting on a block
@@ -223,6 +243,22 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
                 {state.textColor ? (
                   <FormatButton editor={editor} label="Remove text color" command={(current) => documentRichCommands.unsetTextColor(current)}>✕</FormatButton>
                 ) : null}
+              </span>
+            ) : null}
+            {!state.inCodeBlock ? (
+              <span className="incantly-format-align" role="group" aria-label="Text alignment">
+                {(['left', 'center', 'right'] as const).map((alignment) => (
+                  <FormatButton
+                    key={alignment}
+                    editor={editor}
+                    label={`Align ${alignment}`}
+                    active={state.textAlign === alignment}
+                    command={(current) => documentRichCommands.toggleTextAlignment(current, alignment)}
+                  >
+                    <AlignIcon alignment={alignment} />
+                    <span className="sr-only">Align {alignment}</span>
+                  </FormatButton>
+                ))}
               </span>
             ) : null}
           </>

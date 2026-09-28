@@ -47,7 +47,7 @@ Legend: `[x]` implemented · `[ ]` to implement · `custom` means our own canoni
 - [x] TextStyle — implemented: stock `textStyle` mark from `@tiptap/extension-text-style` (replaces the custom mark slot; canonical `textColor` maps to it in conversion.ts)
 - [x] Color — implemented: stock `Color` extension (`setColor`/`unsetColor` via `documentRichCommands.setTextColor/unsetTextColor`) + bubble-toolbar color picker; persists as canonical `textColor` (verified live: set → reload → persists, unset prunes)
 - [ ] FontFamily — font switching via TextStyle
-- [x] TextAlign — partially: `alignment` attrs already exist on custom paragraph/heading/cells, but the Tiptap TextAlign extension itself is not installed
+- [x] TextAlign — implemented: stock extension (`left`/`center`/`right` only, no justify) owns the global `textAlign` attr on paragraph/heading (dead local twins removed); canonical `alignment` unchanged; bubble icon+name buttons with toggle-off
 
 ## Functionality
 

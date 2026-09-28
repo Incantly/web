@@ -63,6 +63,10 @@ export const documentRichCommands = {
     editor.chain().focus().setColor(color).run(),
   unsetTextColor: (editor: Editor): boolean =>
     editor.chain().focus().unsetColor().run(),
+  toggleTextAlignment: (editor: Editor, alignment: 'left' | 'center' | 'right'): boolean =>
+    editor.chain().focus().toggleTextAlign(alignment).run(),
+  unsetTextAlignment: (editor: Editor): boolean =>
+    editor.chain().focus().unsetTextAlign().run(),
   setInlineMath: (editor: Editor, latex: string): boolean =>
     editor.chain().focus().setMark('inlineMathMark', { latex }).run(),
   insertChecklist: (editor: Editor, checked = false): boolean => editor.chain().focus().insertContent({
