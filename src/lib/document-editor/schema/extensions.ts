@@ -1,11 +1,14 @@
 import { Extension, type Extensions } from '@tiptap/core'
 import { splitListItem } from '@tiptap/pm/schema-list'
 import { TextSelection } from '@tiptap/pm/state'
+import { search } from 'prosemirror-search'
 import { addRowAfter, selectedRect } from '@tiptap/pm/tables'
 import StarterKit from '@tiptap/starter-kit'
+import FileHandler from '@tiptap/extension-file-handler'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
+import { fileDropHub } from '../fileUploads'
 import { incantlyDocumentMarks } from './marks'
 import { IncantlyNodeIds } from './nodeIds'
 import { IncantlyTableSchemaRoles, incantlyDocumentNodes } from './nodes'
@@ -30,6 +33,17 @@ const restrictedStarterKit = StarterKit.configure({
     autolink: false,
     linkOnPaste: false,
     protocols: ['http', 'https', 'mailto', 'tel'],
+  },
+})
+
+/**
+ * In-document find highlights. The plugin only decorates (transient view
+ * state, never persisted); the find bar drives it through search queries.
+ */
+const IncantlySearch = Extension.create({
+  name: 'incantlySearch',
+  addProseMirrorPlugins() {
+    return [search()]
   },
 })
 
@@ -115,6 +129,10 @@ export function createIncantlyDocumentExtensions(
     // Word-style text alignment (left/center/right only — justify is
     // deliberately unconfigured so no command, shortcut, or paste can set it).
     TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
+    // Dropped/pasted files route to the asset pipeline via the file-drop
+    // hub (inert with no mounted upload component listening).
+    FileHandler.configure(fileDropHub.options),
+    IncantlySearch,
     FormattingShortcuts,
     ...(options.pagination === false ? [] : [WebPagination.configure(options.pagination ?? {})]),
     ...(options.clipboard === false ? [] : [DocumentClipboard.configure(options.clipboard ?? {})]),

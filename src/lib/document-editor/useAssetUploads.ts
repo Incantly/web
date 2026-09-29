@@ -17,6 +17,7 @@ export function useAssetUploads(repository: AssetRepository) {
     const entries = files.map((file) => ({ id: crypto.randomUUID(), file, previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined, status: 'pending' as const }))
     setUploads((items) => [...items, ...entries])
     entries.forEach((entry) => void upload(entry))
+    return entries
   }, [upload])
   const remove = useCallback((id: string) => setUploads((items) => { const item = items.find((value) => value.id === id); if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl); return items.filter((value) => value.id !== id) }), [])
   const retry = useCallback((id: string) => { const entry = live.current.find((item) => item.id === id); if (entry) void upload(entry) }, [upload])

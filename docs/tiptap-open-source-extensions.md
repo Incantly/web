@@ -62,8 +62,8 @@ Legend: `[x]` implemented · `[ ]` to implement · `custom` means our own canoni
 - [x] UniqueId — covered by custom `IncantlyNodeIds` (stable IDs + repair reporting)
 - [ ] CharacterCount — word/character limits and counters
 - [ ] DragHandle — block drag-and-drop handles
-- [ ] FileHandler — paste/drop file handling (partly covered by custom `useAssetUploads`)
-- [ ] FindAndReplace — in-document search and replace
+- [x] FileHandler — implemented: stock extension routes drops/pastes through the file-drop hub into `IndexedDbAssetRepository` (content-addressed, deduped) + `useAssetUploads` states; ready uploads insert image/audio/pdf/file cards with retry/remove UI; binaries never enter document JSON
+- [x] FindAndReplace — implemented: no stock package exists, so the MIT `prosemirror-search` engine drives a `DocumentFindBar` (Mod-F, counts, prev/next, replace/replace-all, match-case, Escape); highlights are transient decorations, replacements flow through the canonical mapping
 - [ ] Focus — focus-mode styling for the active block
 - [ ] InvisibleCharacters — render spaces/line-breaks visibly
 - [ ] NodeRange — range selection helpers

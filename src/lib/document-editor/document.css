@@ -796,6 +796,198 @@
 .incantly-document-page__header { top: var(--incantly-page-header-distance); }
 .incantly-document-page__footer { bottom: var(--incantly-page-footer-distance); }
 
+
+/* File-upload status card. Absolute bottom-right of the editor; only
+   rendered while uploads are in flight or failed. */
+.incantly-upload-status {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 5;
+  display: grid;
+  gap: 0.375rem;
+  width: min(20rem, calc(100% - 1.5rem));
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.75rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+  font-size: 0.85rem;
+}
+
+.incantly-upload-status .incantly-upload-status__item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.incantly-upload-status .incantly-upload-status__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incantly-upload-status .incantly-upload-status__state {
+  flex: none;
+  color: var(--incantly-document-muted);
+}
+
+.incantly-upload-status button {
+  flex: none;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.incantly-upload-status button:hover,
+.incantly-upload-status button:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/* Find toggle + bar. The closed toggle floats top-right; the open panel
+   overlays the same corner instead of shifting document layout. */
+.incantly-find-toggle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-muted);
+  background: var(--incantly-document-surface);
+  cursor: pointer;
+}
+
+.incantly-find-toggle:hover,
+.incantly-find-toggle:focus-visible {
+  border-color: var(--incantly-document-focus);
+  color: var(--incantly-document-text);
+  outline: none;
+}
+
+.incantly-find-bar {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+  display: grid;
+  gap: 0.375rem;
+  width: min(24rem, calc(100% - 1rem));
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.75rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.incantly-find-bar .incantly-find-bar__row {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.incantly-find-bar label {
+  min-width: 0;
+  flex: 1 1 8rem;
+}
+
+.incantly-find-bar input[type=text] {
+  width: 100%;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.incantly-find-bar input[type=text]:focus-visible {
+  border-color: var(--incantly-document-focus);
+  outline: none;
+}
+
+.incantly-find-bar button {
+  flex: none;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.incantly-find-bar button:hover,
+.incantly-find-bar button:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-find-bar .incantly-find-bar__count {
+  flex: none;
+  min-width: 4.5rem;
+  color: var(--incantly-document-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.incantly-find-bar .incantly-find-bar__case {
+  display: inline-flex;
+  flex: none;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-find-bar .incantly-find-bar__case input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--incantly-document-focus);
+}
+
+/* In-document search hits. Selection-colored wash, focus-colored active. */
+.incantly-document-editor .ProseMirror-search-match {
+  border-radius: 0.2rem;
+  background: var(--incantly-document-selection);
+}
+
+.incantly-document-editor .ProseMirror-active-search-match {
+  outline: 2px solid var(--incantly-document-focus);
+  outline-offset: 1px;
+  background: var(--incantly-document-selection);
+}
 .incantly-document-editor .ProseMirror > [data-incantly-node] {
   content-visibility: auto;
   contain-intrinsic-size: auto 12rem;
