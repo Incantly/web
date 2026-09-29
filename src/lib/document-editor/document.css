@@ -988,6 +988,24 @@
   outline-offset: 1px;
   background: var(--incantly-document-selection);
 }
+/* Image-card alignment. Cards cap width so alignment is visible;
+   block-level auto margins keep narrow screens safe (no floats). */
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align] {
+  max-width: min(24rem, 100%);
+}
+
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align=center] {
+  margin-inline: auto;
+}
+
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align=left] {
+  margin-right: auto;
+}
+
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align=right] {
+  margin-left: auto;
+}
+
 .incantly-document-editor .ProseMirror > [data-incantly-node] {
   content-visibility: auto;
   contain-intrinsic-size: auto 12rem;

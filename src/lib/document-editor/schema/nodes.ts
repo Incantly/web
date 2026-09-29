@@ -204,9 +204,43 @@ const cell = (name: 'tableHeaderCell' | 'tableCell', tag: 'th' | 'td') => Node.c
   renderHTML: ({ HTMLAttributes }) => [tag, HTMLAttributes, 0],
 })
 
-const Image = leaf('image', 'figure', {
-  assetId: { default: null }, alt: { default: null }, caption: { default: null },
-  width: { default: null }, height: { default: null }, display: { default: 'block' },
+/**
+ * Image asset card, broken out of the shared leaf helper so it can carry
+ * alignment. The canonical model owns `alignment` (left/center/right);
+ * the editor renders it as `data-align`, following the official
+ * ImageAlignButton convention. Parse accepts our own output only.
+ */
+const Image = Node.create({
+  name: 'image',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  addAttributes: () => ({
+    ...nodeIdAttribute,
+    assetId: { default: null }, alt: { default: null }, caption: { default: null },
+    width: { default: null }, height: { default: null }, display: { default: 'block' },
+    alignment: { default: null },
+  }),
+  parseHTML: () => [{
+    tag: 'figure[data-incantly-node="image"]',
+    getAttrs: (element) => {
+      const alignment = (element as HTMLElement).dataset.align
+      return alignment === 'left' || alignment === 'center' || alignment === 'right' ? { alignment } : {}
+    },
+  }],
+  renderHTML: ({ node, HTMLAttributes }) => {
+    const rest = { ...(HTMLAttributes as Record<string, unknown>) }
+    delete rest.alignment
+    const alignment = node.attrs.alignment as unknown
+    return ['figure', mergeAttributes(rest, {
+      'data-incantly-node': 'image',
+      'data-card-label': 'Image',
+      contenteditable: 'false',
+      ...(alignment === 'left' || alignment === 'center' || alignment === 'right'
+        ? { 'data-align': String(alignment) }
+        : {}),
+    })]
+  },
 })
 const FileAttachment = leaf('fileAttachment', 'aside', {
   assetId: { default: null }, filename: { default: null }, mimeType: { default: null }, display: { default: 'card' },

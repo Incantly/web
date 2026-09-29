@@ -9,6 +9,7 @@ import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import { fileDropHub } from '../fileUploads'
+import { documentRichCommands } from '../richCommands'
 import { incantlyDocumentMarks } from './marks'
 import { IncantlyNodeIds } from './nodeIds'
 import { IncantlyTableSchemaRoles, incantlyDocumentNodes } from './nodes'
@@ -57,6 +58,11 @@ const FormattingShortcuts = Extension.create({
       'Mod-Shift-7': () => this.editor.commands.toggleList('orderedList', 'listItem'),
       'Mod-Shift-8': () => this.editor.commands.toggleList('bulletList', 'listItem'),
       'Mod-Shift-B': () => this.editor.commands.toggleWrap('blockquote'),
+      // Official image-align shortcuts. The commands no-op unless an image
+      // node is selected, so they never steal these keys elsewhere.
+      'Alt-Shift-l': () => documentRichCommands.setImageAlignment(this.editor, 'left'),
+      'Alt-Shift-e': () => documentRichCommands.setImageAlignment(this.editor, 'center'),
+      'Alt-Shift-r': () => documentRichCommands.setImageAlignment(this.editor, 'right'),
       Enter: () => {
         const listItem = this.editor.state.schema.nodes.listItem
         if (!listItem) return false

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent, type ReactNode } from 'react'
 import type { Editor } from '@tiptap/core'
 import { useEditorState } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
@@ -66,6 +67,19 @@ const ALIGN_ICON_LINES: Record<'left' | 'center' | 'right', Array<[number, numbe
   left: [[3, 4, 15, 4], [3, 8, 11, 8], [3, 12, 15, 12], [3, 16, 11, 16]],
   center: [[5, 4, 13, 4], [3, 8, 15, 8], [5, 12, 13, 12], [3, 16, 15, 16]],
   right: [[3, 4, 15, 4], [7, 8, 15, 8], [3, 12, 15, 12], [7, 16, 15, 16]],
+}
+
+/** Image alignment glyphs: a frame positioned left/center/right. */
+function ImageAlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
+  const x = alignment === 'left' ? 2 : alignment === 'center' ? 6 : 10
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <rect x={x} y={4} width={6} height={10} rx={1} />
+      {alignment !== 'left' ? <line x1={2} y1={9} x2={x - 1.5} y2={9} /> : null}
+      {alignment !== 'right' ? <line x1={x + 7.5} y1={9} x2={16} y2={9} /> : null}
+    </svg>
+  )
 }
 
 /** Word-style alignment glyph: icon plus an accessible name via the button label. */
@@ -138,6 +152,14 @@ function useFormattingState(editor: Editor | null) {
         .some((pos) => pos.parent.type.name === 'codeBlock'),
       mathBlock: current.isActive('blockMath'),
       mathLatex: (current.getAttributes('blockMath').latex as string | undefined) ?? '',
+      // Image-card alignment (official ImageAlignButton behavior): only when
+      // an image node itself is selected; marks never apply to the atom.
+      imageSelected: current.state.selection instanceof NodeSelection
+        && current.state.selection.node.type.name === 'image',
+      imageAlignment: current.state.selection instanceof NodeSelection
+        && current.state.selection.node.type.name === 'image'
+        ? ((current.getAttributes('image').alignment as string | undefined) ?? null)
+        : null,
       inlineMath: current.isActive('inlineMath'),
       textColor: (current.getAttributes('textStyle').color as string | undefined) ?? null,
       fontFamily: matchFontFamilyKey((current.getAttributes('textStyle').fontFamily as string | undefined) ?? ''),
@@ -227,6 +249,7 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
   // A selected formula gets only its LaTeX editor for the same reason:
   // text marks cannot apply inside a math atom, so the buttons would lie.
   const mathEditing = !convertOnly && (state.mathBlock || state.inlineMath)
+  const imageEditing = !convertOnly && !mathEditing && state.imageSelected
   const convertCommand: Command = (current) => {
     const candidate = findDollarMathCandidate(current.state) ?? state.dollarMath
     if (!candidate) return false
@@ -263,6 +286,21 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
               }}
             />
           </label>
+        ) : imageEditing ? (
+          <span className="incantly-format-align" role="group" aria-label="Image alignment">
+            {(['left', 'center', 'right'] as const).map((alignment) => (
+              <FormatButton
+                key={alignment}
+                editor={editor}
+                label={`Align image ${alignment}`}
+                active={state.imageAlignment === alignment}
+                command={(current) => documentRichCommands.toggleImageAlignment(current, alignment)}
+              >
+                <ImageAlignIcon alignment={alignment} />
+                <span className="sr-only">Align image {alignment}</span>
+              </FormatButton>
+            ))}
+          </span>
         ) : (
           <>
             <FormatButton editor={editor} label="Bold" shortcut="Mod-B" active={state.bold} command={toggleMark('bold')}><strong>B</strong></FormatButton>

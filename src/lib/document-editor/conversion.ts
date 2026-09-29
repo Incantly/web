@@ -278,7 +278,7 @@ function nodeFromProseMirror(node: JSONContent, path: string, issues: DocumentAd
       type: 'mathBlock',
       attrs: compact({ latex: typeof value.latex === 'string' ? value.latex : '', numbered: value.numbered === true ? true : undefined, label: typeof value.label === 'string' ? value.label : undefined }),
     }
-    case 'image': return { id, type: 'image', attrs: compact({ assetId: value.assetId, alt: value.alt, caption: value.caption, width: value.width, height: value.height, display: value.display }) }
+    case 'image': return { id, type: 'image', attrs: compact({ assetId: value.assetId, alt: value.alt, caption: value.caption, width: value.width, height: value.height, display: value.display, alignment: value.alignment }) }
     case 'fileAttachment': return { id, type: 'fileAttachment', attrs: compact({ assetId: value.assetId, filename: value.filename, mimeType: value.mimeType, display: value.display }) }
     case 'audio': return { id, type: 'audio', attrs: compact({ assetId: value.assetId, title: value.title, caption: value.caption }) }
     case 'videoEmbed': return { id, type: 'videoEmbed', attrs: compact({ provider: value.provider, videoId: value.videoId, title: value.title, caption: value.caption }) }
