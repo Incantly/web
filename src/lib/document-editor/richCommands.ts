@@ -2,7 +2,7 @@ import { isFontFamilyKey } from '@incantly/core/document'
 import type { Editor, JSONContent } from '@tiptap/core'
 import { FONT_SIZE_MAX_PT, FONT_SIZE_MIN_PT, fontSizeToCss, fontStackForKey } from './schema/fonts'
 import type { ResolvedPos } from '@tiptap/pm/model'
-import { NodeSelection, TextSelection } from '@tiptap/pm/state'
+import { TextSelection } from '@tiptap/pm/state'
 import { addColumnAfter, addRowAfter, deleteColumn, deleteRow } from '@tiptap/pm/tables'
 
 export interface InsertTableOptions {
@@ -73,20 +73,7 @@ export const documentRichCommands = {
       : false,
   unsetFontSize: (editor: Editor): boolean =>
     editor.chain().focus().unsetFontSize().run(),
-  /** Image-card alignment (official ImageAlignButton behavior, toggle-off included). No-ops unless an image is selected. */
-  setImageAlignment: (editor: Editor, alignment: 'left' | 'center' | 'right'): boolean => {
-    const setSelection = editor.state.selection
-    if (!(setSelection instanceof NodeSelection) || setSelection.node.type.name !== 'image') return false
-    return editor.chain().focus().updateAttributes('image', { alignment }).run()
-  },
-  toggleImageAlignment: (editor: Editor, alignment: 'left' | 'center' | 'right'): boolean => {
-    const toggleSelection = editor.state.selection
-    if (!(toggleSelection instanceof NodeSelection) || toggleSelection.node.type.name !== 'image') return false
-    const active = (editor.getAttributes('image').alignment as string | undefined) === alignment
-    return active
-      ? editor.chain().focus().resetAttributes('image', 'alignment').run()
-      : editor.chain().focus().updateAttributes('image', { alignment }).run()
-  },
+
   unsetTextColor: (editor: Editor): boolean =>
     editor.chain().focus().unsetColor().run(),
   toggleTextAlignment: (editor: Editor, alignment: 'left' | 'center' | 'right'): boolean =>

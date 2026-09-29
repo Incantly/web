@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type HTMLAttrib
 import type { Editor } from '@tiptap/core'
 import { useEditorState } from '@tiptap/react'
 import { NodeSelection } from '@tiptap/pm/state'
+import { useImageAlign } from '@/components/tiptap-ui/image-align-button'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
@@ -67,19 +68,6 @@ const ALIGN_ICON_LINES: Record<'left' | 'center' | 'right', Array<[number, numbe
   left: [[3, 4, 15, 4], [3, 8, 11, 8], [3, 12, 15, 12], [3, 16, 11, 16]],
   center: [[5, 4, 13, 4], [3, 8, 15, 8], [5, 12, 13, 12], [3, 16, 15, 16]],
   right: [[3, 4, 15, 4], [7, 8, 15, 8], [3, 12, 15, 12], [7, 16, 15, 16]],
-}
-
-/** Image alignment glyphs: a frame positioned left/center/right. */
-function ImageAlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
-  const x = alignment === 'left' ? 2 : alignment === 'center' ? 6 : 10
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <rect x={x} y={4} width={6} height={10} rx={1} />
-      {alignment !== 'left' ? <line x1={2} y1={9} x2={x - 1.5} y2={9} /> : null}
-      {alignment !== 'right' ? <line x1={x + 7.5} y1={9} x2={16} y2={9} /> : null}
-    </svg>
-  )
 }
 
 /** Word-style alignment glyph: icon plus an accessible name via the button label. */
@@ -234,6 +222,42 @@ export function DocumentToolbar({ editor: suppliedEditor, className, ...props }:
   )
 }
 
+/**
+ * Official image-alignment behavior (`useImageAlign` against our `image`
+ * node and `alignment` attribute) rendered with our bubble buttons, so the
+ * controls keep our tokens, touch targets, and mousedown selection handling.
+ */
+function ImageAlignButtons({ editor }: { editor: Editor }) {
+  const left = useImageAlign({ editor, align: 'left', extensionName: 'image', attributeName: 'alignment', hideWhenUnavailable: true })
+  const center = useImageAlign({ editor, align: 'center', extensionName: 'image', attributeName: 'alignment', hideWhenUnavailable: true })
+  const right = useImageAlign({ editor, align: 'right', extensionName: 'image', attributeName: 'alignment', hideWhenUnavailable: true })
+  const items = [
+    { align: 'left', ...left },
+    { align: 'center', ...center },
+    { align: 'right', ...right },
+  ] as const
+  return (
+    <span className="incantly-format-align" role="group" aria-label="Image alignment">
+      {items.map((item) => {
+        const Icon = item.Icon as React.FC<{ width?: number | string; height?: number | string }>
+        return (
+          <FormatButton
+            key={item.align}
+            editor={editor}
+            label={item.label}
+            active={item.isActive}
+            disabled={!item.canAlign}
+            command={() => { item.handleImageAlign(); return true }}
+          >
+            <Icon width={18} height={18} />
+            <span className="sr-only">{item.label}</span>
+          </FormatButton>
+        )
+      })}
+    </span>
+  )
+}
+
 export interface DocumentBubbleToolbarProps extends Omit<DocumentToolbarProps, 'children'> {
   editor?: Editor | null
 }
@@ -287,20 +311,7 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
             />
           </label>
         ) : imageEditing ? (
-          <span className="incantly-format-align" role="group" aria-label="Image alignment">
-            {(['left', 'center', 'right'] as const).map((alignment) => (
-              <FormatButton
-                key={alignment}
-                editor={editor}
-                label={`Align image ${alignment}`}
-                active={state.imageAlignment === alignment}
-                command={(current) => documentRichCommands.toggleImageAlignment(current, alignment)}
-              >
-                <ImageAlignIcon alignment={alignment} />
-                <span className="sr-only">Align image {alignment}</span>
-              </FormatButton>
-            ))}
-          </span>
+          <ImageAlignButtons editor={editor} />
         ) : (
           <>
             <FormatButton editor={editor} label="Bold" shortcut="Mod-B" active={state.bold} command={toggleMark('bold')}><strong>B</strong></FormatButton>

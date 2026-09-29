@@ -19,7 +19,7 @@ Legend: `[x]` implemented · `[ ]` to implement · `custom` means our own canoni
 - [x] HardBreak — Tiptap default via StarterKit
 - [x] Heading — custom node (levels 1–2 in UI, 1–6 parsed on paste)
 - [x] HorizontalRule — custom node, slash-menu "Divider"
-- [x] Image — custom `image` asset-card node; Tiptap package not installed. Image alignment (left/center/right) hand-built following the official ImageAlignButton behavior (attribution-gated Pro component): canonical `alignment` attr in core, `data-align` render, bubble icon+name buttons with toggle-off, Alt+Shift+L/E/R shortcuts
+- [x] Image — custom `image` asset-card node; Tiptap package not installed. Image alignment via the official Pro `useImageAlign` hook (scaffolded source, set semantics) against our `image` node + canonical `alignment` attr; our bubble buttons, tokens, and figure CSS. Unused scaffold pruned (primitives, prebuilt button, theme SCSS)
 - [x] List: ListItem, OrderedList (+ ListKeymap) — stock Tiptap packages (+ id, checklist parse guards; adapter prepends a paragraph when canonical item content is not paragraph-first)
 - [x] Mathematics — stock BlockMath + InlineMath nodes (KaTeX render; block keeps numbered/label attrs). Canonical `InlineNode` learned `inlineMath`; legacy `inlineMath` marks load via the `inlineMathMark` alias. `$...$` typing offers a bubble convert button; auto-convert input rules stay off so currency never converts uninvited
 - [ ] Mention — @-mentions with suggestion UI
