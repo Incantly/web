@@ -22,6 +22,8 @@ import { incantlyDocumentToProseMirror, type DocumentAdapterIssue } from './conv
 import { createIncantlyDocumentExtensions } from './schema/index'
 import { DocumentEditorProvider } from './DocumentEditorContext'
 import { DocumentBubbleToolbar, DocumentSlashMenu, DocumentToolbar } from './components/FormattingUI'
+import '@/components/tiptap-node/table-node/styles/prosemirror-table.scss'
+import '@/components/tiptap-node/table-node/styles/table-node.scss'
 import {
   DocumentCheckpointTracker,
   mapProseMirrorTransaction,
@@ -309,7 +311,7 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
     <DocumentEditorProvider editor={editor}>
       <div {...wrapperProps}>
         {props.ui === 'formatting' ? <DocumentToolbar /> : null}
-        <EditorContent className="incantly-document-editor__content" editor={editor} />
+        <EditorContent className="incantly-document-editor__content tiptap" editor={editor} />
         {props.ui === 'formatting' ? <><DocumentBubbleToolbar /><DocumentSlashMenu /></> : null}
         {props.children}
       </div>

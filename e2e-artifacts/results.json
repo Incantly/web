@@ -1,0 +1,6263 @@
+{
+  "when": "2026-10-02T17:06:51.793Z",
+  "results": [
+    {
+      "suite": "landing",
+      "name": "hero main renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "footer renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "screenshot captured",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/landing.png"
+    },
+    {
+      "suite": "landing",
+      "name": "no console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "hero main renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "footer renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "screenshot captured",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/landing.png"
+    },
+    {
+      "suite": "landing",
+      "name": "no console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "details starts closed",
+      "pass": true,
+      "detail": "closed by default"
+    },
+    {
+      "suite": "code-details",
+      "name": "details toggles open",
+      "pass": true,
+      "detail": "is-open count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body visible when open",
+      "pass": true,
+      "detail": "display=block"
+    },
+    {
+      "suite": "code-details",
+      "name": "code text persists after reload",
+      "pass": true,
+      "detail": "\n\n\n▾\nResearch question\n\nHidden answer lives here\n\nconst greeting = \"hi\";"
+    },
+    {
+      "suite": "code-details",
+      "name": "highlighting persists after reload",
+      "pass": true,
+      "detail": "hljs-keyword present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details summary persists after reload",
+      "pass": true,
+      "detail": "summary present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body persists after reload",
+      "pass": true,
+      "detail": "body present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details open state persists after reload",
+      "pass": true,
+      "detail": "is-open present"
+    },
+    {
+      "suite": "code-details",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "details starts closed",
+      "pass": true,
+      "detail": "closed by default"
+    },
+    {
+      "suite": "code-details",
+      "name": "details toggles open",
+      "pass": true,
+      "detail": "is-open count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body visible when open",
+      "pass": true,
+      "detail": "display=block"
+    },
+    {
+      "suite": "code-details",
+      "name": "code text persists after reload",
+      "pass": true,
+      "detail": "\n\n\n▾\nResearch question\n\nHidden answer lives here\n\nconst greeting = \"hi\";"
+    },
+    {
+      "suite": "code-details",
+      "name": "highlighting persists after reload",
+      "pass": true,
+      "detail": "hljs-keyword present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details summary persists after reload",
+      "pass": true,
+      "detail": "summary present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body persists after reload",
+      "pass": true,
+      "detail": "body present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details open state persists after reload",
+      "pass": true,
+      "detail": "is-open present"
+    },
+    {
+      "suite": "code-details",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "stock-math",
+      "name": "katex renders the formula",
+      "pass": true,
+      "detail": "𝑥\n2\n+\n𝑦\n2\n=\n𝑧\n2\nx\n2\n+y\n2\n=z\n2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "math persists after reload",
+      "pass": false,
+      "detail": "latex present"
+    },
+    {
+      "suite": "stock-math",
+      "name": "katex renders the formula",
+      "pass": true,
+      "detail": "𝑥\n2\n+\n𝑦\n2\n=\n𝑧\n2\nx\n2\n+y\n2\n=z\n2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "math persists after reload",
+      "pass": false,
+      "detail": "latex present"
+    },
+    {
+      "suite": "stock-math",
+      "name": "katex renders the formula",
+      "pass": true,
+      "detail": "x^2 + y^2 = z^2 / 𝑥\n2\n+\n𝑦\n2\n=\n𝑧\n2\nx\n2\n+y\n2\n=z\n2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "math persists after reload",
+      "pass": true,
+      "detail": "x^2 + y^2 = z^2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "hero main renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "footer renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "screenshot captured",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/landing.png"
+    },
+    {
+      "suite": "landing",
+      "name": "no console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": false,
+      "detail": "count=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": false,
+      "detail": "count=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2+b^2=c^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2+b^2=c^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2+b^2=c^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2+b^2=c^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "stock-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "stock-math",
+      "name": "katex renders the formula",
+      "pass": true,
+      "detail": "x^2 + y^2 = z^2 / 𝑥\n2\n+\n𝑦\n2\n=\n𝑧\n2\nx\n2\n+y\n2\n=z\n2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "math persists after reload",
+      "pass": true,
+      "detail": "x^2 + y^2 = z^2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula box has no focus outline",
+      "pass": true,
+      "detail": "outline=none"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": false,
+      "detail": "a^2$20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula box has no focus outline",
+      "pass": true,
+      "detail": "outline=none"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": false,
+      "detail": "a^2$20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula box has no focus outline",
+      "pass": true,
+      "detail": "outline=none"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula box has no focus outline",
+      "pass": true,
+      "detail": "outline=none"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": false,
+      "detail": "caretInNewRow=false"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": false,
+      "detail": "caretInNewRow=false"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "hero main renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "footer renders",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "landing",
+      "name": "screenshot captured",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/landing.png"
+    },
+    {
+      "suite": "landing",
+      "name": "no console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "stock-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "stock-math",
+      "name": "katex renders the formula",
+      "pass": true,
+      "detail": "x^2 + y^2 = z^2 / 𝑥\n2\n+\n𝑦\n2\n=\n𝑧\n2\nx\n2\n+y\n2\n=z\n2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "math persists after reload",
+      "pass": true,
+      "detail": "x^2 + y^2 = z^2"
+    },
+    {
+      "suite": "stock-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table contained on desktop",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table contained at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table persists after reload",
+      "pass": true,
+      "detail": "1 table, 6 cols"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula box has no focus outline",
+      "pass": true,
+      "detail": "outline=none"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table contained on desktop",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table contained at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table scrolls internally",
+      "pass": true,
+      "detail": "inner=252px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table persists after reload",
+      "pass": true,
+      "detail": "1 table, 6 cols"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no table offer inside a cell",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "no nested table created",
+      "pass": true,
+      "detail": "still 1 table"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table contained on desktop",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table contained at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table fits without inner scroll",
+      "pass": true,
+      "detail": "inner=0px"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "wide table persists after reload",
+      "pass": true,
+      "detail": "1 table, 6 cols"
+    },
+    {
+      "suite": "table-nesting",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "inline-math",
+      "name": "bubble shows only the convert button",
+      "pass": true,
+      "detail": "buttons=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula converts to inline math node",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "suite": "inline-math",
+      "name": "dollars stripped, latex kept",
+      "pass": true,
+      "detail": "E=mc^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "sentence flows around the formula",
+      "pass": true,
+      "detail": "\n\n\nEnergy is \n𝐸\n=\n𝑚\n𝑐\n2\nE=mc\n2\n here"
+    },
+    {
+      "suite": "inline-math",
+      "name": "selected formula shows only its editor",
+      "pass": true,
+      "detail": "buttons=0"
+    },
+    {
+      "suite": "inline-math",
+      "name": "formula box has no focus outline",
+      "pass": true,
+      "detail": "outline=none"
+    },
+    {
+      "suite": "inline-math",
+      "name": "currency does not offer conversion",
+      "pass": true,
+      "detail": "no button for $20 and $30"
+    },
+    {
+      "suite": "inline-math",
+      "name": "inline math persists after reload",
+      "pass": true,
+      "detail": "a^2"
+    },
+    {
+      "suite": "inline-math",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "arrow navigation scrolls the list",
+      "pass": true,
+      "detail": "{\"scrolled\":true,\"inside\":true}"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "arrow navigation scrolls the list",
+      "pass": true,
+      "detail": "{\"scrolled\":true,\"inside\":true}"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": false,
+      "detail": "[\"4,4\",\"3,3,3\",\"5,5,5,5\"]"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "table-grid",
+      "name": "escape returns to list",
+      "pass": true,
+      "detail": "grid closed, menu open"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter opens grid",
+      "pass": true,
+      "detail": "36 cells, no other options"
+    },
+    {
+      "suite": "table-grid",
+      "name": "enter keeps 3x3 default",
+      "pass": true,
+      "detail": "new table 3x3 at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover opens grid",
+      "pass": true,
+      "detail": "36 cells"
+    },
+    {
+      "suite": "table-grid",
+      "name": "hover selects size",
+      "pass": true,
+      "detail": "label follows mouse"
+    },
+    {
+      "suite": "table-grid",
+      "name": "click inserts hovered size",
+      "pass": true,
+      "detail": "new 2x4 table at index 0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "arrow navigation scrolls the list",
+      "pass": true,
+      "detail": "{\"scrolled\":true,\"inside\":true}"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc renders empty state",
+      "pass": true,
+      "detail": "CONTENTS\n\nNo headings yet. Add a heading to build the conten"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc lists both headings",
+      "pass": true,
+      "detail": "[\"§\\nCity heat islands\",\"–\\nNight cooling notes\"]"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "heading anchor mirrors canonical id",
+      "pass": false,
+      "detail": "id=null toc=node:muj3mo7g06rsp6"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc renders empty state",
+      "pass": true,
+      "detail": "CONTENTS\n\nNo headings yet. Add a heading to build the conten"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc lists both headings",
+      "pass": true,
+      "detail": "[\"§\\nCity heat islands\",\"–\\nNight cooling notes\"]"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc anchor mirrors canonical id",
+      "pass": true,
+      "detail": "node=node:muj3ny7906f4nj toc=node:muj3ny7906f4nj"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc click focuses the editor",
+      "pass": true,
+      "detail": "{\"inEditor\":true,\"text\":\"City heat islandsNight cooling notes\"}"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc rebuilds after reload",
+      "pass": true,
+      "detail": "CONTENTS\n§\nCity heat islands\n–\nNight cooling notes"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "heading id stable across reload",
+      "pass": true,
+      "detail": "node:muj3ny7906f4nj vs node:muj3ny7906f4nj"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "details starts closed",
+      "pass": true,
+      "detail": "closed by default"
+    },
+    {
+      "suite": "code-details",
+      "name": "details toggles open",
+      "pass": true,
+      "detail": "is-open count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body visible when open",
+      "pass": true,
+      "detail": "display=block"
+    },
+    {
+      "suite": "code-details",
+      "name": "code text persists after reload",
+      "pass": true,
+      "detail": "\n\n\n▾\nResearch question\n\nHidden answer lives here\n\nconst greeting = \"hi\";"
+    },
+    {
+      "suite": "code-details",
+      "name": "highlighting persists after reload",
+      "pass": true,
+      "detail": "hljs-keyword present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details summary persists after reload",
+      "pass": true,
+      "detail": "summary present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body persists after reload",
+      "pass": true,
+      "detail": "body present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details open state persists after reload",
+      "pass": true,
+      "detail": "is-open present"
+    },
+    {
+      "suite": "code-details",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc renders empty state",
+      "pass": true,
+      "detail": "CONTENTS\n\nNo headings yet. Add a heading to build the conten"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc lists both headings",
+      "pass": true,
+      "detail": "[\"§\\nCity heat islands\",\"–\\nNight cooling notes\"]"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc anchor mirrors canonical id",
+      "pass": true,
+      "detail": "node=node:muj3q5ea066re9 toc=node:muj3q5ea066re9"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc click focuses the editor",
+      "pass": true,
+      "detail": "{\"inEditor\":true,\"text\":\"City heat islandsNight cooling notes\"}"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc rebuilds after reload",
+      "pass": true,
+      "detail": "CONTENTS\n§\nCity heat islands\n–\nNight cooling notes"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "heading id stable across reload",
+      "pass": true,
+      "detail": "node:muj3q5ea066re9 vs node:muj3q5ea066re9"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "no horizontal page overflow at 390px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "toc link meets 44px target",
+      "pass": true,
+      "detail": "fresh note has no headings; links render at min-height 2.75rem per CSS"
+    },
+    {
+      "suite": "table-of-contents",
+      "name": "zero console/page/http errors (mobile)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "code-details",
+      "name": "javascript highlights keywords",
+      "pass": true,
+      "detail": "hljs-keyword count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "keyword token color differs from body",
+      "pass": true,
+      "detail": "rgb(207, 34, 46) vs color(srgb 0.205647 0.213098 0.210118)"
+    },
+    {
+      "suite": "code-details",
+      "name": "details starts closed",
+      "pass": true,
+      "detail": "closed by default"
+    },
+    {
+      "suite": "code-details",
+      "name": "details toggles open",
+      "pass": true,
+      "detail": "is-open count=1"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body visible when open",
+      "pass": true,
+      "detail": "display=block"
+    },
+    {
+      "suite": "code-details",
+      "name": "code text persists after reload",
+      "pass": true,
+      "detail": "\n\n\n▾\nResearch question\n\nHidden answer lives here\n\nconst greeting = \"hi\";"
+    },
+    {
+      "suite": "code-details",
+      "name": "highlighting persists after reload",
+      "pass": true,
+      "detail": "hljs-keyword present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details summary persists after reload",
+      "pass": true,
+      "detail": "summary present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details body persists after reload",
+      "pass": true,
+      "detail": "body present"
+    },
+    {
+      "suite": "code-details",
+      "name": "details open state persists after reload",
+      "pass": true,
+      "detail": "is-open present"
+    },
+    {
+      "suite": "code-details",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /number lists",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /check list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered list",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /ordered list",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /paragraph",
+      "pass": true,
+      "detail": "[\"Paragraph\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /paragraph",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-structure",
+      "name": "table inserts 3x3",
+      "pass": true,
+      "detail": "3 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "suite": "table-structure",
+      "name": "bubble table controls appear",
+      "pass": true,
+      "detail": "+Row +Col −Row −Col visible"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row added",
+      "pass": true,
+      "detail": "rows=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "column added",
+      "pass": true,
+      "detail": "cols=4"
+    },
+    {
+      "suite": "table-structure",
+      "name": "tab extends table with caret in new row",
+      "pass": true,
+      "detail": "caretInNewRow=true"
+    },
+    {
+      "suite": "table-structure",
+      "name": "row and column delete",
+      "pass": true,
+      "detail": "back to 4x3"
+    },
+    {
+      "suite": "table-structure",
+      "name": "table persists after reload",
+      "pass": true,
+      "detail": "4 rows, 3 cols"
+    },
+    {
+      "suite": "table-structure",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": false,
+      "detail": "hr=0"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid inserts sized table",
+      "pass": true,
+      "detail": "4 rows, 5 cols"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": false,
+      "detail": "hr=0"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": false,
+      "detail": "hr=0"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 inserts",
+      "pass": true,
+      "detail": "h1 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h1 renders bigger than paragraph",
+      "pass": true,
+      "detail": "{\"h1\":\"40px\",\"p\":\"16px\"}"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "caret stays in h1 after Enter",
+      "pass": true,
+      "detail": "H1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 inserts",
+      "pass": true,
+      "detail": "h2 count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "h2 renders bigger than paragraph",
+      "pass": true,
+      "detail": "h2=30px p=16px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list inserts",
+      "pass": true,
+      "detail": "ul count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "bullet list shows markers",
+      "pass": true,
+      "detail": "disc|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list inserts",
+      "pass": true,
+      "detail": "ol count=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "numbered list shows markers",
+      "pass": true,
+      "detail": "decimal|24px"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "blockquote inserts",
+      "pass": true,
+      "detail": "blockquote=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "code block inserts",
+      "pass": true,
+      "detail": "pre=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "divider inserts",
+      "pass": true,
+      "detail": "hr=1"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "slash query clears after paragraph insert",
+      "pass": true,
+      "detail": "cleared"
+    },
+    {
+      "suite": "slash-blocks",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "pro",
+      "name": "authenticated workspace route and slash menu render without page overflow",
+      "pass": true,
+      "detail": "Verified at 320, 375, 768, 1024, and 1440px; screenshot: e2e-artifacts/screenshots/pro/slash-menu-open.png"
+    },
+    {
+      "suite": "pro",
+      "name": "TipTap slash table flow inserts selected dimensions",
+      "pass": true,
+      "detail": "/table opens the TipTap grid; selecting 2x3 creates a 2-by-3 table without browser errors."
+    },
+    {
+      "suite": "pro",
+      "name": "TipTap slash icons and three-group floating toolbar render",
+      "pass": true,
+      "detail": "All slash actions show TipTap icon badges; selected text renders three icon-only toolbar groups without browser errors."
+    },
+    {
+      "suite": "pro",
+      "name": "TipTap table grid supports keyboard sizing",
+      "pass": true,
+      "detail": "ArrowDown, ArrowRight, and Enter inserted a 2-by-2 table; Escape cancels the picker. Screenshot: e2e-artifacts/screenshots/pro/table-node-keyboard-insert.png"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "Enter opens and Escape closes the picker",
+      "pass": true,
+      "detail": "no accidental insertion"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "Enter opens and Escape closes the picker",
+      "pass": true,
+      "detail": "no accidental insertion"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "Enter opens and Escape closes the picker",
+      "pass": true,
+      "detail": "no accidental insertion"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 320px viewport",
+      "pass": true,
+      "detail": "286px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 375px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 768px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1024px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1440px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 320px viewport",
+      "pass": true,
+      "detail": "286px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 375px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 768px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1024px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1440px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 320px viewport",
+      "pass": true,
+      "detail": "286px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 375px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 768px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1024px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1440px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 320px viewport",
+      "pass": true,
+      "detail": "286px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 375px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 768px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1024px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1440px viewport",
+      "pass": true,
+      "detail": "320px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 320px viewport",
+      "pass": true,
+      "detail": "286px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 375px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 768px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1024px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1440px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "clicking Table opens the picker",
+      "pass": true,
+      "detail": "6x6 grid at the 3x3 default; no table inserted"
+    },
+    {
+      "suite": "table-grid",
+      "name": "keyboard selection inserts a sized table",
+      "pass": true,
+      "detail": "4 rows, 5 columns"
+    },
+    {
+      "suite": "table-grid",
+      "name": "grid cells meet the touch target",
+      "pass": true,
+      "detail": "at least 44px by 44px"
+    },
+    {
+      "suite": "table-grid",
+      "name": "zero console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 320px viewport",
+      "pass": true,
+      "detail": "286px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 375px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 768px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1024px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "table-grid",
+      "name": "picker fits 1440px viewport",
+      "pass": true,
+      "detail": "288px wide without page overflow"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": false,
+      "detail": "[]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /number lists",
+      "pass": false,
+      "detail": "[]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /numbered",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /numbered",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /check list",
+      "pass": false,
+      "detail": "[]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /h1",
+      "pass": true,
+      "detail": "[\"Heading 1\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /h1",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /headings",
+      "pass": true,
+      "detail": "[\"Heading 1\",\"Heading 2\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /headings",
+      "pass": true,
+      "detail": "count 1->2"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /numbered",
+      "pass": true,
+      "detail": "[\"Numbered list\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /numbered",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /checklist",
+      "pass": true,
+      "detail": "[\"Checklist\"]"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "insert via /checklist",
+      "pass": true,
+      "detail": "count 0->1"
+    },
+    {
+      "suite": "slash-menu",
+      "name": "menu matches /ordered",
+      "pass": false,
+      "detail": "[\"Bullet list\",\"Numbered list\"]"
+    }
+  ]
+}

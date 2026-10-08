@@ -19,11 +19,11 @@ export function AuthScreen() {
 
   const verifyCode = (event: FormEvent) => {
     event.preventDefault()
-    router.push('/dashboard')
+    router.push('/notes')
   }
 
   const continueWithGoogle = () => {
-    router.push('/dashboard')
+    router.push('/notes')
   }
 
   return (

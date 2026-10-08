@@ -4,6 +4,7 @@ import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list'
 import { BlockMath as TiptapBlockMath, InlineMath } from '@tiptap/extension-mathematics'
+import { TableNode as TiptapTable } from '@/components/tiptap-node/table-node/extensions/table-node-extension'
 import { incantlyLowlight } from './codeHighlight'
 
 const nodeIdAttribute = {
@@ -183,12 +184,12 @@ const IncantlyDetails = Details.extend({
   },
 })
 
-const Table = Node.create({
-  name: 'table', group: 'block', content: 'tableRow+', isolating: true,
-  addAttributes: () => ({ ...nodeIdAttribute, caption: { default: null } }),
-  parseHTML: () => [{ tag: 'table' }],
-  renderHTML: ({ HTMLAttributes }) => ['table', HTMLAttributes, ['tbody', {}, 0]],
-})
+/** TipTap's table node view supplies the resize and handle-control host. */
+const Table = TiptapTable.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...nodeIdAttribute, caption: { default: null } }
+  },
+}).configure({ resizable: true })
 
 const TableRow = Node.create({
   name: 'tableRow', content: '(tableHeaderCell|tableCell)+',

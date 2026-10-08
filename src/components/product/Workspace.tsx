@@ -2,8 +2,13 @@
 
 import dynamic from 'next/dynamic'
 import { createDocument, type IncantlyDocument } from '@incantly/core/document'
-import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, TableHandles } from '../../lib/document-editor'
-import { incantlySlashMenuItems, renderSlashItem } from './slashMenuItems'
+import type { Editor } from '@tiptap/core'
+import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu } from '../../lib/document-editor'
+import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
+import { TableSelectionOverlay } from '@/components/tiptap-node/table-node/ui/table-selection-overlay'
+import { TableExtendRowColumnButtons } from '@/components/tiptap-node/table-node/ui/table-extend-row-column-button'
+import { TableCellHandleMenu } from '@/components/tiptap-node/table-node/ui/table-cell-handle-menu'
+import { incantlySlashMenuItems } from './slashMenuItems'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
 import { WorkspaceLibrary } from './WorkspaceLibrary'
@@ -14,6 +19,18 @@ type NoteRecord = { id: string; title: string; excerpt: string; kind: NoteKind; 
 type InboxItem = { id: string; title: string; detail: string; when: string }
 
 const STORAGE_KEY = 'incantly-workspace-notes-v1'
+
+const WorkspaceTableCellMenu = ({ editor, onOpenChange, onResizeStart }: {
+  editor?: Editor | null
+  onOpenChange?: (isOpen: boolean) => void
+  onResizeStart?: (handle: 'tl' | 'tr' | 'bl' | 'br' | null) => (event: React.MouseEvent) => void
+}) => (
+  <TableCellHandleMenu
+    editor={editor}
+    onOpenChange={onOpenChange}
+    onMouseDown={(event) => onResizeStart?.('br')(event)}
+  />
+)
 const initialNotes: NoteRecord[] = [
   { id: 'cities-at-night', title: 'Why cities stay warm at night', excerpt: 'Concrete, trees, moving air, and the shape of a neighborhood.', kind: 'note', updatedAt: 3, document: createDocument({ id: 'cities-at-night', title: 'Why cities stay warm at night' }) },
   { id: 'attention-garden', title: 'Attention as a garden', excerpt: 'What changes when focus is treated as something we tend?', kind: 'note', updatedAt: 2, document: createDocument({ id: 'attention-garden', title: 'Attention as a garden' }) },
@@ -117,7 +134,7 @@ function SettingsView() {
 }
 
 function NoteView({ note, save, status }: { note: NoteRecord; save: (document: IncantlyDocument) => void; status: string }) {
-  return <div className="flex min-h-full flex-col"><div className="min-h-0 flex-1"><DocumentEditor key={note.id} document={note.document} onChange={save} ui="none" aria-label={`Edit ${note.title}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"><DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} renderItem={renderSlashItem} /><TableHandles /><DocumentFileUploads /><DocumentFindBar /></DocumentEditor></div><span role="status" className="sr-only">{status}</span></div>
+  return <div className="flex min-h-full flex-col"><div className="min-h-0 flex-1"><DocumentEditor key={note.id} document={note.document} onChange={save} ui="none" aria-label={`Edit ${note.title}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"><DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads /><DocumentFindBar /></DocumentEditor></div><span role="status" className="sr-only">{status}</span></div>
 }
 
 function readSavedNotes(): NoteRecord[] | null {

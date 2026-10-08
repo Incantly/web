@@ -212,55 +212,6 @@
   padding-block-start: 0.5rem;
 }
 
-/* Table structure controls (bubble toolbar). Buttons meet the 44px
-   touch target; the group itself adds no box so the row stays compact. */
-.incantly-format-table-controls {
-  display: contents;
-}
-
-.incantly-document-bubble-toolbar .incantly-format-table-controls .incantly-format-button {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-}
-
-/* Slash menu size grid (e.g. table rows by columns). Cells meet the
-   44px touch target; the live size label announces for screen readers. */
-.incantly-slash-grid {
-  display: block;
-  padding: 0.5rem 0.65rem 0.65rem;
-}
-.incantly-slash-grid-size {
-  display: block;
-  margin-block-end: 0.4rem;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-.incantly-slash-grid-cells {
-  display: grid;
-  gap: 0.25rem;
-  justify-content: start;
-}
-.incantly-slash-grid-cell {
-  width: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  padding: 0;
-  border: 1px solid var(--incantly-document-border);
-  border-radius: 0.35rem;
-  background: transparent;
-  cursor: pointer;
-}
-.incantly-slash-grid-cell[data-active='true'] {
-  border-color: var(--incantly-document-focus);
-  background: var(--incantly-document-selection);
-}
-.incantly-slash-grid-hint {
-  display: block;
-  margin-block-start: 0.4rem;
-  color: var(--incantly-document-muted);
-  font-size: 0.75rem;
-}
-
 /* Code-block language picker (bubble toolbar). */
 /* Word-style paragraph spacing picker. Layout mirrors the code-language
    picker; the glyph inherits the surrounding control color. */
@@ -627,8 +578,7 @@
   box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
 }
 
-.incantly-format-button,
-.incantly-document-slash-menu button {
+.incantly-format-button {
   min-width: 2rem;
   min-height: 2rem;
   border: 1px solid transparent;
@@ -652,44 +602,48 @@
   opacity: 0.4;
 }
 
-.incantly-toolbar-separator {
-  width: 1px;
-  height: 1.5rem;
-  margin-inline: 0.15rem;
-  background: var(--incantly-document-border);
+.tiptap-slash-table-picker.tiptap-card {
+  position: fixed;
+  z-index: 60;
+  max-width: calc(100vw - 1rem);
 }
 
-.incantly-document-slash-menu {
-  position: absolute;
-  z-index: 3;
-  width: min(20rem, calc(100% - 2rem));
-  max-height: 20rem;
-  overflow: auto;
-  padding: 0.4rem;
-  border: 1px solid var(--incantly-document-border);
-  border-radius: 0.5rem;
-  color: var(--incantly-document-text);
-  background: var(--incantly-document-surface);
-  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
-}
-
-.incantly-document-slash-menu button {
-  display: grid;
+.tiptap-slash-table-picker .tiptap-card-body {
   width: 100%;
-  padding: 0.5rem 0.65rem;
+  padding-inline: 0;
+}
+
+.tiptap-slash-table-picker .tiptap-table-grid {
+  justify-content: start;
+}
+
+.tiptap-suggestion-menu {
+  width: min(18rem, calc(100vw - 1rem));
+  max-width: calc(100vw - 1rem);
+}
+
+.tiptap-suggestion-menu .tiptap-slash-card {
+  width: 100%;
+}
+
+/* Keep the slash command list legible even when the copied Tiptap primitive
+   styles are loaded after the editor stylesheet. */
+.tiptap-suggestion-menu .tiptap-card-item-group {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tiptap-suggestion-menu .tiptap-button {
+  width: 100%;
+  min-height: 2.75rem;
+  justify-content: flex-start;
   text-align: start;
 }
 
-.incantly-document-slash-menu button:hover,
-.incantly-document-slash-menu button:focus-visible,
-.incantly-document-slash-menu button[aria-current='true'] {
-  background: var(--incantly-document-selection);
-  outline: none;
-}
-
-.incantly-document-slash-menu button span {
-  color: var(--incantly-document-muted);
-  font-size: 0.8rem;
+.tiptap-suggestion-menu .tiptap-button-text {
+  min-width: 0;
 }
 
 @media (max-width: 40rem) {

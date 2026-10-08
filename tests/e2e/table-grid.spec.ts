@@ -8,135 +8,101 @@ async function openNote(page: Page) {
   const editor = page.locator('.ProseMirror')
   await editor.click()
   await page.keyboard.type('z')
-  await page.waitForTimeout(400)
-  expect(await editor.innerText()).toContain('z')
+  await expect(editor).toContainText('z')
   await page.keyboard.press('Backspace')
   return editor
 }
 
-const gridCells = (page: Page) => page.locator('.incantly-slash-grid-cell')
-
-
-async function freshParagraph(page: Page) {
-  await page.locator('.ProseMirror > p').first().click()
-  await page.waitForTimeout(200)
-  await page.keyboard.press('End')
-  await page.keyboard.press('Enter')
-  await page.waitForTimeout(300)
+async function openTableMenu(page: Page) {
+  await page.keyboard.type('/table', { delay: 25 })
+  await expect(page.getByRole('button', { name: 'Table', exact: true })).toBeVisible()
 }
 
-test.describe('slash grid picker', () => {
-  // TEMP-DEBUG
+const gridCells = (page: Page) => page.locator('.tiptap-table-grid-cell')
+const selectedCells = (page: Page) => page.locator('.tiptap-table-grid-cell.selected')
+const sizeIndicator = (page: Page) => page.locator('.tiptap-table-size-indicator')
 
-  test('table sizes, escape, hover, and scroll-follow', async ({ page }: { page: Page }) => {
+test.describe('slash grid picker', () => {
+  test('Table opens a 6x6 picker and inserts the selected canonical table', async ({ page }: { page: Page }) => {
     const problems = await captureProblems(page, async () => {
       await openNote(page)
-
-      // ArrowRight opens the grid at the 3x3 default.
       await page.keyboard.press('Enter')
-      for (const ch of '/table') await page.keyboard.type(ch, { delay: 25 })
-      await page.waitForTimeout(800)
-      await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(400)
-      expect(await gridCells(page).count()).toBe(36)
-      await expect(page.locator('.incantly-slash-grid-size')).toHaveText('3 × 3')
+
+      // A pointer selection opens the picker without inserting a one-cell table.
+      await openTableMenu(page)
+      await page.getByRole('button', { name: 'Table', exact: true }).click()
+      await expect(page.getByRole('dialog', { name: 'Table size' })).toBeVisible()
+      await expect(gridCells(page)).toHaveCount(36)
+      await page.getByRole('button', { name: 'Select 3x3 table' }).hover()
+      await expect(selectedCells(page)).toHaveCount(9)
+      await expect(sizeIndicator(page)).toContainText('3x3')
+      await expect(page.locator('.ProseMirror table')).toHaveCount(0)
+      check('table-grid', 'clicking Table opens the picker', true, '6x6 grid at the 3x3 default; no table inserted')
       await shot(page, 'table-grid/open')
 
-      // Size to 4 rows by 5 columns with arrows, confirm with Enter.
       await page.keyboard.press('ArrowRight')
       await page.keyboard.press('ArrowRight')
       await page.keyboard.press('ArrowDown')
-      await page.waitForTimeout(300)
-      await expect(page.locator('.incantly-slash-grid-size')).toHaveText('4 × 5')
+      await expect(sizeIndicator(page)).toContainText('5x4')
+      const cellBox = await gridCells(page).first().boundingBox()
+      expect(cellBox?.width).toBeGreaterThanOrEqual(44)
+      expect(cellBox?.height).toBeGreaterThanOrEqual(44)
       await page.keyboard.press('Enter')
-      await page.waitForTimeout(600)
-      expect(await page.locator('.ProseMirror table tr').count()).toBe(4)
-      expect(await page.locator('.ProseMirror table tr').first().locator('th, td').count()).toBe(5)
-      check('table-grid', 'grid inserts sized table', true, '4 rows, 5 cols')
+      const firstTable = page.locator('.ProseMirror table').first()
+      await expect(firstTable.locator('tr')).toHaveCount(4)
+      await expect(firstTable.locator('tr').first().locator('th, td')).toHaveCount(5)
+      check('table-grid', 'keyboard selection inserts a sized table', true, '4 rows, 5 columns')
       await shot(page, 'table-grid/inserted')
 
-      // Escape returns to the list; Enter opens the grid, Enter again
-      // confirms the 3x3 default.
-      await freshParagraph(page)
-      for (const ch of '/table') await page.keyboard.type(ch, { delay: 25 })
-      await page.waitForTimeout(800)
-      await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(300)
-      expect(await gridCells(page).count()).toBe(36)
-      await page.keyboard.press('Escape')
-      await page.waitForTimeout(400)
-      expect(await gridCells(page).count()).toBe(0)
-      await expect(page.locator('.incantly-document-slash-menu [role="menuitem"] strong').first()).toHaveText('Table')
-      check('table-grid', 'escape returns to list', true, 'grid closed, menu open')
-      await page.keyboard.press('Enter')
-      await page.waitForTimeout(400)
-      expect(await gridCells(page).count()).toBe(36)
-      check('table-grid', 'enter opens grid', true, '36 cells, no other options')
-      await page.keyboard.press('Enter')
-      await page.waitForTimeout(600)
-      const tables = page.locator('.ProseMirror table')
-      expect(await tables.count()).toBe(2)
-      // The fresh paragraph sits before the first table, so the default
-      // 3x3 lands at index 0 and the earlier 4x5 grid table at index 1.
-      expect(await tables.nth(0).locator('tr').count()).toBe(3)
-      expect(await tables.nth(0).locator('tr').first().locator('th, td').count()).toBe(3)
-      check('table-grid', 'enter keeps 3x3 default', true, 'new table 3x3 at index 0')
-
-      // Hovering the row opens the grid for mouse users.
-      await freshParagraph(page)
-      for (const ch of '/table') await page.keyboard.type(ch, { delay: 25 })
-      await page.waitForTimeout(800)
-      await page.locator('.incantly-document-slash-menu [role="menuitem"]').first().hover()
-      await page.waitForTimeout(400)
-      expect(await gridCells(page).count()).toBe(36)
-      check('table-grid', 'hover opens grid', true, '36 cells')
-      // Moving across the boxes selects the size; clicking inserts it.
-      await page.getByRole('button', { name: '2 rows by 4 columns' }).hover()
-      await page.waitForTimeout(300)
-      await expect(page.locator('.incantly-slash-grid-size')).toHaveText('2 × 4')
-      check('table-grid', 'hover selects size', true, 'label follows mouse')
-      await shot(page, 'table-grid/hover')
-      const beforeCount = await page.locator('.ProseMirror table').count()
-      await page.getByRole('button', { name: '2 rows by 4 columns' }).click()
-      await page.waitForTimeout(600)
-      // Shape strings join per-row cell counts, so a 2-row by 4-column
-      // table reads "4,4". Assert structure directly instead.
-      expect(await page.locator('.ProseMirror table').count()).toBe(beforeCount + 1)
-      expect(await page.locator('.ProseMirror table').nth(0).locator('tr').count()).toBe(2)
-      expect(await page.locator('.ProseMirror table').nth(0).locator('tr').first().locator('th, td').count()).toBe(4)
-      check('table-grid', 'click inserts hovered size', true, 'new 2x4 table at index 0')
-      await page.keyboard.press('Escape')
-      await page.keyboard.press('Escape')
-      await page.waitForTimeout(400)
-
-      // Scroll-follow: arrowing to the last of all items keeps it visible.
-      await freshParagraph(page)
-      await page.keyboard.type('/', { delay: 25 })
-      await page.waitForTimeout(800)
-      for (let i = 0; i < 12; i++) {
-        await page.keyboard.press('ArrowDown')
-        await page.waitForTimeout(120)
-      }
-      const active = page.locator('.incantly-document-slash-menu [role="menuitem"][aria-current="true"] strong')
-      await expect(active).toHaveText('Divider')
-      const follows = await page.evaluate(() => {
-        const menu = document.querySelector('.incantly-document-slash-menu')
-        const item = document.querySelector('.incantly-document-slash-menu [aria-current="true"]')
-        if (!menu || !item) return { scrolled: false, inside: false }
-        const menuBox = menu.getBoundingClientRect()
-        const itemBox = item.getBoundingClientRect()
-        return {
-          scrolled: (menu as HTMLElement).scrollTop > 0,
-          inside: itemBox.top >= menuBox.top - 1 && itemBox.bottom <= menuBox.bottom + 1,
-        }
-      })
-      check('table-grid', 'arrow navigation scrolls the list', follows.scrolled && follows.inside, JSON.stringify(follows))
-      expect(follows.scrolled).toBe(true)
-      expect(follows.inside).toBe(true)
-      await shot(page, 'table-grid/scroll-follow')
+      check('table-grid', 'grid cells meet the touch target', true, 'at least 44px by 44px')
     })
 
     check('table-grid', 'zero console/page/http errors', problems.length === 0, problems.slice(0, 3).join(' | '))
     expect(problems, `page problems: ${problems.join(' | ')}`).toEqual([])
+  })
+
+  test('picker stays usable across the required responsive widths', async ({ page }: { page: Page }) => {
+    await openNote(page)
+
+    for (const viewport of [
+      { width: 320, height: 568, name: 'mobile-320' },
+      { width: 375, height: 812, name: 'mobile-375' },
+      { width: 768, height: 1024, name: 'tablet-768' },
+      { width: 1024, height: 768, name: 'desktop-1024' },
+      { width: 1440, height: 900, name: 'desktop-1440' },
+    ]) {
+      await page.setViewportSize(viewport)
+      await page.locator('.ProseMirror').click()
+      await page.keyboard.press('Enter')
+      await openTableMenu(page)
+      await page.getByRole('button', { name: 'Table', exact: true }).click()
+
+      const dialog = page.getByRole('dialog', { name: 'Table size' })
+      await expect(dialog).toBeVisible()
+      const box = await dialog.boundingBox()
+      const lastCellBox = await gridCells(page).last().boundingBox()
+      expect(box).not.toBeNull()
+      expect(lastCellBox).not.toBeNull()
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width)
+      expect(lastCellBox!.x + lastCellBox!.width).toBeLessThanOrEqual(box!.x + box!.width)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
+      await shot(page, `table-grid/${viewport.name}`)
+      check('table-grid', `picker fits ${viewport.width}px viewport`, true, `${Math.round(box!.width)}px wide without page overflow`)
+      await page.keyboard.press('Escape')
+    }
+  })
+
+  test('Table remains available across repeated slash queries', async ({ page }: { page: Page }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    const editor = await openNote(page)
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await page.keyboard.press('Enter')
+      await page.keyboard.type('/table', { delay: 20 })
+      await expect(page.getByRole('button', { name: 'Table', exact: true })).toBeVisible()
+      await page.keyboard.press('Escape')
+      for (let i = 0; i < 6; i += 1) await editor.press('Backspace')
+    }
   })
 })

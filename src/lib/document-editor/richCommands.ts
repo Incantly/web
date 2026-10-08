@@ -105,7 +105,6 @@ export const documentRichCommands = {
       // this item inside tables and the command refuses as backstop.
       if ($from.node(depth).type.name === 'table') return false
     }
-    console.log('[slashdbg2] insertTable', JSON.stringify(options))
     const rows = Math.max(1, options.rows ?? 3)
     const columns = Math.max(1, options.columns ?? 3)
     const content: JSONContent[] = Array.from({ length: rows }, (_, rowIndex) => ({

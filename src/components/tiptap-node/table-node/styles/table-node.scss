@@ -1,0 +1,325 @@
+:root {
+  --tt-table-border-color: var(--tt-gray-light-a-300);
+  --tt-table-selected-bg: rgba(195, 189, 255, 0.4);
+  --tt-table-selected-stroke: var(--tt-brand-color-400);
+  --tt-table-column-resize-handle-bg: var(--tt-brand-color-400);
+
+  --tt-table-cell-padding: 0.5rem;
+  --tt-table-margin-block: 1.25rem;
+
+  --tt-table-pad-block-start: 1rem; /* 8px */
+  --tt-table-pad-block-end: 1.5rem; /* 24px */
+  --tt-table-pad-inline-start: 1rem; /* 8px */
+  --tt-table-pad-inline-end: 1.5rem; /* 24px */
+}
+
+.dark {
+  --tt-table-border-color: var(--tt-gray-dark-a-300);
+  --tt-table-selected-bg: rgba(195, 189, 255, 0.2);
+  --tt-table-selected-stroke: var(--tt-brand-color-400);
+  --tt-table-column-resize-handle-bg: var(--tt-brand-color-400);
+}
+
+.tiptap [data-content-type="table"] {
+  margin-block: var(--tt-table-margin-block);
+}
+
+.tiptap [data-content-type="table"] .tableWrapper {
+  padding-block-start: var(--tt-table-pad-block-start);
+  padding-inline-start: var(--tt-table-pad-inline-start);
+  padding-inline-end: var(--tt-table-pad-inline-end);
+  padding-block-end: var(--tt-table-pad-block-end);
+  margin-left: -1rem;
+  overflow-y: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.tiptap [data-content-type="table"] .table-controls,
+.tiptap-table-control-viewport-floating {
+  z-index: 30;
+}
+
+.tiptap [data-content-type="table"] .tiptap-table-handle-floating,
+.tiptap-table-handle-viewport-floating {
+  z-index: 40;
+}
+
+.tiptap table {
+  width: auto !important;
+  word-break: break-word;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid var(--tt-table-border-color);
+  padding: var(--tt-table-cell-padding);
+}
+
+.tiptap table th {
+  background-color: var(--tt-gray-light-a-100);
+  font-weight: 700;
+  text-align: left;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  margin-inline-start: -1px;
+  margin-top: -1px;
+  height: calc(100% + 2px);
+  background: var(--tt-table-column-resize-handle-bg);
+  cursor: col-resize;
+  transition: background 150ms 50ms;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* ================================================================================================
+ * TABLE CELL ALIGNMENT STYLES
+ *
+ * The NodeAlignment extension serialises text/vertical alignment as
+ * `data-node-text-align` / `data-node-vertical-align` (and as an inline
+ * `style` when `useStyle: true`, which is its default). The older
+ * `@tiptap/extension-text-align` writes `data-text-align`. Cover both
+ * attribute names so cells render correctly whichever extension is wired
+ * up.
+ * ================================================================================================ */
+
+.tiptap td[data-text-align="left"],
+.tiptap td[data-node-text-align="left"],
+.tiptap th[data-text-align="left"],
+.tiptap th[data-node-text-align="left"] {
+  text-align: left;
+}
+
+.tiptap td[data-text-align="center"],
+.tiptap td[data-node-text-align="center"],
+.tiptap th[data-text-align="center"],
+.tiptap th[data-node-text-align="center"] {
+  text-align: center;
+}
+
+.tiptap td[data-text-align="right"],
+.tiptap td[data-node-text-align="right"],
+.tiptap th[data-text-align="right"],
+.tiptap th[data-node-text-align="right"] {
+  text-align: right;
+}
+
+.tiptap td[data-text-align="justify"],
+.tiptap td[data-node-text-align="justify"],
+.tiptap th[data-text-align="justify"],
+.tiptap th[data-node-text-align="justify"] {
+  text-align: justify;
+}
+
+.tiptap td[data-vertical-align="top"],
+.tiptap td[data-node-vertical-align="top"],
+.tiptap th[data-vertical-align="top"],
+.tiptap th[data-node-vertical-align="top"] {
+  vertical-align: top;
+}
+
+.tiptap td[data-vertical-align="middle"],
+.tiptap td[data-node-vertical-align="middle"],
+.tiptap th[data-vertical-align="middle"],
+.tiptap th[data-node-vertical-align="middle"] {
+  vertical-align: middle;
+}
+
+.tiptap td[data-vertical-align="bottom"],
+.tiptap td[data-node-vertical-align="bottom"],
+.tiptap th[data-vertical-align="bottom"],
+.tiptap th[data-node-vertical-align="bottom"] {
+  vertical-align: bottom;
+}
+
+.tiptap [data-content-type="table"] td[data-text-align="left"],
+.tiptap [data-content-type="table"] td[data-node-text-align="left"],
+.tiptap [data-content-type="table"] th[data-text-align="left"],
+.tiptap [data-content-type="table"] th[data-node-text-align="left"] {
+  text-align: left;
+}
+
+.tiptap [data-content-type="table"] td[data-text-align="center"],
+.tiptap [data-content-type="table"] td[data-node-text-align="center"],
+.tiptap [data-content-type="table"] th[data-text-align="center"],
+.tiptap [data-content-type="table"] th[data-node-text-align="center"] {
+  text-align: center;
+}
+
+.tiptap [data-content-type="table"] td[data-text-align="right"],
+.tiptap [data-content-type="table"] td[data-node-text-align="right"],
+.tiptap [data-content-type="table"] th[data-text-align="right"],
+.tiptap [data-content-type="table"] th[data-node-text-align="right"] {
+  text-align: right;
+}
+
+.tiptap [data-content-type="table"] td[data-text-align="justify"],
+.tiptap [data-content-type="table"] td[data-node-text-align="justify"],
+.tiptap [data-content-type="table"] th[data-text-align="justify"],
+.tiptap [data-content-type="table"] th[data-node-text-align="justify"] {
+  text-align: justify;
+}
+
+.tiptap [data-content-type="table"] td[data-vertical-align="top"],
+.tiptap [data-content-type="table"] td[data-node-vertical-align="top"],
+.tiptap [data-content-type="table"] th[data-vertical-align="top"],
+.tiptap [data-content-type="table"] th[data-node-vertical-align="top"] {
+  vertical-align: top;
+}
+
+.tiptap [data-content-type="table"] td[data-vertical-align="middle"],
+.tiptap [data-content-type="table"] td[data-node-vertical-align="middle"],
+.tiptap [data-content-type="table"] th[data-vertical-align="middle"],
+.tiptap [data-content-type="table"] th[data-node-vertical-align="middle"] {
+  vertical-align: middle;
+}
+
+.tiptap [data-content-type="table"] td[data-vertical-align="bottom"],
+.tiptap [data-content-type="table"] td[data-node-vertical-align="bottom"],
+.tiptap [data-content-type="table"] th[data-vertical-align="bottom"],
+.tiptap [data-content-type="table"] th[data-node-vertical-align="bottom"] {
+  vertical-align: bottom;
+}
+
+/* tiptap uses colwidth instead of data-colwidth, se we need to adjust this style from prosemirror-tables */
+.ProseMirror td,
+.ProseMirror th {
+  min-width: auto !important;
+}
+.ProseMirror td:not([colwidth]):not(.column-resize-dragging),
+.ProseMirror th:not([colwidth]):not(.column-resize-dragging) {
+  /* if there's no explicit width set and the column is not being resized, set a default width */
+  min-width: var(--default-cell-min-width) !important;
+}
+
+/* ================================================================================================
+ * PAGES (PAGINATION) COMPATIBILITY
+ *
+ * The table node view sets `data-pages-active` on its block container when
+ * the `@tiptap-pro/extension-pages` extension is registered on the editor.
+ * Pages paginates by floating full-width page breakers into the document
+ * flow; its own stylesheet renders `table`/`tbody` as `display: contents`
+ * and every `tr` as a `display: grid` block so rows flow around the
+ * breakers and a table can split across pages row by row.
+ *
+ * Everything below is scoped to that marker and adapts this component to
+ * that rendering model. Without Pages none of these rules apply.
+ * ================================================================================================ */
+
+/* The overflow rules on .tableWrapper (overflow-x: auto above, overflow-y:
+   hidden here) create a block formatting context. Floats cannot intrude
+   into a BFC, so the whole table becomes one atomic box that Pages cannot
+   break across pages — a table taller than one page then grows the page
+   count unboundedly. `overflow: visible` dissolves the BFC so rows flow
+   around the page breakers; padding stays as-is since the wrapper's hover
+   zone below/right of the table drives the extend-row/column buttons. */
+.tiptap [data-content-type="table"][data-pages-active] .tableWrapper {
+  overflow: visible;
+}
+
+/* Per-cell borders for the `display: contents` world, where the table has
+   no layout box and `border-collapse` is inert. Each cell paints its right
+   and bottom edge inside the box and its top edge as a box-shadow painted
+   just outside it; the leftmost cell adds the left edge. On the same page
+   a row's bottom border and the next row's top shadow land on the same
+   pixel, so interior lines stay 1px. Across a page break each row carries
+   both its own edges, so the last row before the break and the first row
+   after it both render complete borders.
+
+   The min-width unlock beats the `--default-cell-min-width !important`
+   rules above (grid tracks own the column widths under Pages). The padding
+   redeclaration protects table-node's cell rhythm from ConvertKit's DOCX
+   reset, which is injected after component CSS and removes vertical table
+   cell padding. Normal cells must not become scroll containers; the optional
+   oversized-cell guard is generated only for cells that actually exceed the
+   page content height. */
+.tiptap [data-content-type="table"][data-pages-active] th,
+.tiptap [data-content-type="table"][data-pages-active] td {
+  min-width: 0 !important;
+  max-height: none;
+  overflow: visible;
+  padding: var(--tt-table-cell-padding);
+  border-top: 0;
+  border-left: 0;
+  border-right: 1px solid var(--tt-table-border-color);
+  border-bottom: 1px solid var(--tt-table-border-color);
+  box-shadow: 0 -1px 0 var(--tt-table-border-color);
+}
+
+.tiptap [data-content-type="table"][data-pages-active] th:first-child,
+.tiptap [data-content-type="table"][data-pages-active] td:first-child {
+  border-left: 1px solid var(--tt-table-border-color);
+}
+
+/* Vertical cell alignment under Pages. Grid rows blockify their items, so
+   cells compute to `display: block` and the native `vertical-align`
+   behavior of table cells is lost. `align-content` performs the same
+   distribution for block containers. NodeAlignment emits an inline
+   `vertical-align` style by default (`useStyle: true`) and data
+   attributes otherwise; the text-align variant emits `data-vertical-align`
+   — cover all three. */
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  td[style*="vertical-align: middle"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  th[style*="vertical-align: middle"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  td[data-node-vertical-align="middle"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  th[data-node-vertical-align="middle"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  td[data-vertical-align="middle"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  th[data-vertical-align="middle"] {
+  align-content: center;
+}
+
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  td[style*="vertical-align: bottom"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  th[style*="vertical-align: bottom"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  td[data-node-vertical-align="bottom"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  th[data-node-vertical-align="bottom"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  td[data-vertical-align="bottom"],
+.tiptap
+  [data-content-type="table"][data-pages-active]
+  th[data-vertical-align="bottom"] {
+  align-content: end;
+}
+
+.tiptap-table-dropcursor {
+  position: absolute;
+  z-index: 20;
+  background-color: var(--tt-table-column-resize-handle-bg);
+  pointer-events: none;
+}
+
+.table-cell-dragging-source {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+}

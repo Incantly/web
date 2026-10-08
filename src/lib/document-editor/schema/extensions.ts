@@ -14,6 +14,7 @@ import { IncantlyNodeIds } from './nodeIds'
 import { IncantlyTableSchemaRoles, incantlyDocumentNodes } from './nodes'
 import { WebPagination, type WebPaginationOptions } from '../paginationExtension'
 import { DocumentClipboard, type DocumentClipboardOptions } from '../clipboardExtension'
+import { TableHandleExtension } from '@/components/tiptap-node/table-node/extensions/table-handle'
 
 const restrictedStarterKit = StarterKit.configure({
   document: false,
@@ -126,6 +127,7 @@ export function createIncantlyDocumentExtensions(
     }),
     ...incantlyDocumentNodes,
     IncantlyTableSchemaRoles,
+    TableHandleExtension,
     ...incantlyDocumentMarks,
     IncantlyNodeIds,
     // Word-style text alignment (left/center/right only — justify is
