@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1021" viewBox="0 0 1024 1021">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <defs>
+    <radialGradient id="paper" cx="49%" cy="48%" r="74%">
+      <stop stop-color="#fffbed" offset="0" />
+      <stop stop-color="#faf6e7" offset="1" />
+    </radialGradient>
+    <linearGradient id="coral-note" y2=".7">
+      <stop stop-color="#ffb497" offset="0" />
+      <stop stop-color="#ffad92" offset=".56" />
+      <stop stop-color="#ffb299" offset="1" />
+    </linearGradient>
+    <linearGradient id="mint-cloud" y2="1">
+      <stop stop-color="#a5dac4" offset="0" />
+      <stop stop-color="#9dd5bf" offset=".5" />
+      <stop stop-color="#a9ddc7" offset="1" />
+    </linearGradient>
+    <linearGradient id="gold-note" y2="1">
+      <stop stop-color="#ffda7e" offset="0" />
+      <stop stop-color="#ffd77c" offset="1" />
+    </linearGradient>
+    <style>.ink { stroke-width: 4.3; stroke-linecap: round; stroke-linejoin: round; }
+.halo { stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+.hand { font-family: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Segoe Print", cursive; font-style: normal; font-weight: 600; paint-order: stroke; stroke-width: 1.5; stroke-linejoin: round; }
+.small { font-size: 29px; }
+#teal-connecting-lines{animation:explorer-paths 6s ease-in-out infinite}
+#central-question-note{animation:explorer-question 6s ease-in-out infinite}
+#related-notes-card{animation:explorer-related 6s ease-in-out infinite}
+#sources-folder{animation:explorer-sources 6s ease-in-out infinite}
+#observations-note{animation:explorer-observations 6s ease-in-out infinite}
+#possibilities-cloud{animation:explorer-possibilities 6s ease-in-out infinite}
+#bottom-left-leaf-sprig,#decorative-dashes{animation:explorer-spark 4.6s ease-in-out infinite}
+#teal-connecting-lines g:nth-child(2){stroke:#2B62D9}
+@keyframes explorer-paths{0%,15%,100%{opacity:.3;stroke-dasharray:12 12}44%,82%{opacity:1;stroke-dasharray:0 0}}
+@keyframes explorer-question{0%,100%{transform:translate(0,0)}50%{transform:translate(-5px,5px) rotate(-1deg)}}
+@keyframes explorer-related{0%,100%{transform:translate(0,0)}50%{transform:translate(6px,-7px) rotate(1deg)}}
+@keyframes explorer-sources{0%,100%{transform:translate(0,0)}50%{transform:translate(-7px,4px)}}
+@keyframes explorer-observations{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes explorer-possibilities{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(0,-8px) scale(1.025)}}
+@keyframes explorer-spark{0%,100%{opacity:.45}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){#teal-connecting-lines,#central-question-note,#related-notes-card,#sources-folder,#observations-note,#possibilities-cloud,#bottom-left-leaf-sprig,#decorative-dashes{animation:none}}</style>
+  </defs>
+  <g id="teal-connecting-lines" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#fffdf1" stroke-width="9">
+      <path d="m289 317c26-38 25-81 74-114q30-22 68-24" />
+      <path d="m397 465c59 0 103-22 142-62s64-57 112-56 65 0 84-20" />
+      <path d="m411 512c60-5 85 50 169 42" />
+      <path d="m365 646c50 23 59 80 81 118s44 51 81 55" />
+    </g>
+    <g stroke="#388a88" stroke-width="4.6">
+      <path d="m289 317c26-38 25-81 74-114q30-22 68-24" />
+      <path d="m397 465c59 0 103-22 142-62s64-57 112-56 65 0 84-20" />
+      <path d="m411 512c60-5 85 50 169 42" />
+      <path d="m573 547 10 7-10 7" stroke-width="3.6" />
+      <path d="m365 646c50 23 59 80 81 118s44 51 81 55" />
+    </g>
+  </g>
+  <g id="central-question-note">
+    <path class="halo" d="m67 389q-9 24 8 65l23 120q5 53 29 96l42 8q40 1 85-21 46-3 87-15l66-30q13-29-1-64l-38-124-18-103q-16 2-34 8-26-6-55 8l-151 28q-18 18-33 14-20-2-10 10z" fill="none" stroke="rgb(255, 254, 245)" />
+    <path class="ink" d="m66 399q-3 31 14 65l18 112q6 56 30 96 52 16 125-15 47-2 85-15l68-29q14-29-2-68l-44-162z" fill="#f7edda" stroke="rgb(21, 24, 19)" />
+    <g fill="none" stroke="#21231c" stroke-linecap="round" stroke-width="2.6">
+      <path d="m65 414 11-11m-10 20 12-12m-10 22 12-12m-9 23 11-11m-8 21 11-10" />
+      <path d="m99 582 10-12m-8 21 10-13m-8 22 9-13m-7 22 11-14m-8 24 10-15m-8 24 11-14m-8 24 11-15m-8 25 12-16m-9 27 11-18m-6 28 8-19" />
+      <path d="m148 673 3 5m7-7 4 6m7-8 3 6m9-8 3 6m8-8 4 6m9-8 4 5m9-9 4 5" />
+      <path d="m402 549 7 6m-6 5 8 6m-6 5 8 6m-6 6 6 4m-6 8 5 4" />
+    </g>
+    <path class="ink" d="m66 383q6-7 19-2 11 3 24-10 9-9 25-6 17 1 40-10l70-13q16-3 37-11 15-5 30-2 15 1 35-9 6-4 7 12l8 59q2 20 11 43 7 22 9 45 5 28 17 59 11 32 14 73 2 4-14 4-20 2-39 15-24 12-55 14-30 0-55 11-23 10-54 12-34 2-63 10-4-14-4-34-2-23-13-41-13-22-16-46l-17-63q-5-15-5-39-1-33-11-61-4-9 0-10z" fill="url(#coral-note)" stroke="rgb(21, 24, 19)" />
+    <path class="halo" d="m158 342 85-20 9 34-85 20z" fill="none" stroke="rgb(255, 254, 245)" />
+    <path class="ink" d="m158 342 85-20 9 34-85 20z" fill="#70beb2" stroke="rgb(21, 24, 19)" />
+    <path d="m165 346 74-17 5 22-72 18z" fill="#81c8bb" opacity=".36" />
+    <g class="hand" transform="rotate(-10 236 474)" font-size="43" stroke-width=".7" text-anchor="middle" fill="rgb(20, 23, 19)" stroke="rgb(255, 248, 230)">
+      <text x="229" y="447">How does</text>
+      <text x="232" y="503">our brain</text>
+      <text x="237" y="556">learn?</text>
+    </g>
+    <path d="m214 604q36-10 81-20" fill="none" stroke="#fff2dc" stroke-linecap="round" stroke-width="8" />
+    <path d="m214 604q37-10 81-20" fill="none" stroke="#1d2018" stroke-linecap="round" stroke-width="3.8" />
+  </g>
+  <g id="related-notes-card">
+    <path class="halo" d="m450 78q-19 3-16 30-7 31 0 65l7 98q4 35 13 57 21 1 56-6l119-8q41-1 58-11l2-40q-2-43-8-79l-14-91q2-28-13-36-10-7-41 1l-123 18z" fill="none" stroke="rgb(255, 254, 245)" />
+    <path class="ink" d="m450 78q-19 3-16 30-7 31 0 65l7 98q4 35 13 57 21 1 56-6l119-8q41-1 58-11l2-40q-2-43-8-79l-14-91q2-28-13-36-10-7-41 1l-123 18z" fill="#faf5e2" stroke="rgb(21, 24, 19)" />
+    <path d="m439 173q-1 42 5 81l1 27" fill="none" stroke="#34342a" stroke-width="2" />
+    <path class="halo" d="m515 56 47-7q3 0 3 5l3 21-48 7z" fill="none" stroke="rgb(255, 254, 245)" />
+    <path class="ink" d="m515 56 47-7q3 0 3 5l3 21-48 7z" fill="#72beb1" stroke="rgb(21, 24, 19)" />
+    <path d="m522 60 37-6 3 17-37 5z" fill="#89c9bb" opacity=".5" />
+    <g class="hand" transform="rotate(-4 557 196)" fill="rgb(20, 23, 19)" stroke="rgb(255, 248, 230)">
+      <text x="484" y="127" font-size="34">Related</text>
+      <text x="486" y="168" font-size="34">Notes</text>
+      <g class="small">
+        <text x="480" y="209">• memory</text>
+        <text x="480" y="248">• focus</text>
+        <text x="480" y="287">• repetition</text>
+      </g>
+    </g>
+    <g id="small-brain-icon" fill="#fffbed" stroke-linecap="round" stroke-linejoin="round">
+      <path class="halo" d="m685 99q-11-13-19-3-11-1-14 10-10 5-7 14-11 6-4 20-3 13 9 18 6 1 10 0 6 16 20 5l7 5q9 15 18 5 13-1 15-12 12-6 10-18 5-11-4-21 1-12-10-14-2-10-13-9-9-14-18 0z" stroke="rgb(255, 254, 245)" />
+      <path class="ink" d="m685 99q-11-13-19-3-11-1-14 10-10 5-7 14-11 6-4 20-3 13 9 18 6 1 10 0 6 16 20 5l7 5q9 15 18 5 13-1 15-12 12-6 10-18 5-11-4-21 1-12-10-14-2-10-13-9-9-14-18 0z" stroke-width="3.6" stroke="rgb(21, 24, 19)" />
+      <g fill="none" stroke="#25271e" stroke-width="3.5">
+        <path d="m685 99q-1 30-2 51-1 12 7 19" />
+        <path d="m670 106q-10 7-1 15m-17 4q8 9-1 15m25-5q-12 0-9 12m-13 1-4 5m23 3 1 4" />
+        <path d="m699 105 1 5m13 9-2 4m-16 7 6-3m15 8h3l-3 8m-19 3 4-2m-12 14q8 1 13-5m-2 15q4-7 11-8" />
+      </g>
+    </g>
+  </g>
+  <g id="sources-folder">
+    <g class="halo" fill="none" stroke="rgb(255, 254, 245)">
+      <path d="m807 235 7-83q0-6 11-3l106 19q5 1 2 9l-15 101" />
+      <path d="m774 254 6-76q0-6 7-4l18 2" />
+      <path d="m790 261 8-96q-1-7 9-4l108 12-11 103" />
+      <path d="m776 255-23-7q-14-4-16 13l-5 50 2 74q4 13 5 34 40 16 117 6l68-3" />
+    </g>
+    <path class="ink" d="m805 243 9-91q0-6 11-3l106 19q5 1 2 9l-15 101" fill="#fffdf4" stroke="rgb(21, 24, 19)" />
+    <path class="ink" d="m774 255 6-77q0-6 7-4l18 2 11 90" fill="#f9f7ea" stroke="rgb(21, 24, 19)" />
+    <path class="ink" d="m790 261 8-96q-1-7 9-4l108 12-11 103" fill="#fffdf4" stroke="rgb(21, 24, 19)" />
+    <g fill="none" stroke="#292a22" stroke-linecap="round" stroke-width="4.4">
+      <path d="m819 188 71 10" />
+      <path d="m818 206 71 9" />
+      <path d="m816 224 71 9" />
+      <path d="m814 242 70 9" />
+    </g>
+    <path d="m776 255-23-7q-14-4-16 13l-5 50 2 74q4 13 5 34 40 16 117 6l68-3-7-143-16-5-110-13z" fill="#fcf7e5" />
+    <path class="ink" d="m776 255-23-7q-14-4-16 13l-5 50 2 74q4 13 5 34 40 16 117 6l68-3" fill="none" stroke="rgb(21, 24, 19)" />
+    <path d="m733 286q4 40-1 65l4 36" fill="none" stroke="#1e211a" stroke-width="2.4" />
+    <g class="hand" transform="rotate(-1 839 343)" fill="rgb(20, 23, 19)" stroke="rgb(255, 248, 230)">
+      <text x="770" y="303" font-size="34">Sources</text>
+      <text x="771" y="339" font-size="28">• studies</text>
+      <text x="771" y="371" font-size="28">• articles</text>
+      <text x="771" y="403" font-size="28">• interviews</text>
+    </g>
+  </g>
+  <g id="observations-note">
+    <path d="m637 451q90-7 165-1 58 3 76 32 15 23 9 63 13 45-8 78-19 32-67 37-65 10-120 6-58-2-84-23-27-20-25-50 0-20 10-40-14-22-10-49 6-44 54-53z" fill="url(#gold-note)" stroke="#fffcf0" stroke-width="3" />
+    <g class="hand" transform="rotate(-3 736 548)" fill="rgb(20, 23, 19)" stroke="rgb(255, 248, 230)">
+      <text x="631" y="500" font-size="34">Observations</text>
+      <text x="638" y="545" font-size="29">• new skills</text>
+      <text x="638" y="585" font-size="29">• progress</text>
+      <text x="638" y="625" font-size="29">• challenges</text>
+    </g>
+    <g id="eye-symbol">
+      <path class="halo" d="m852 540q23-34 50-32 29-1 51 36-20 30-48 30-30 1-53-34z" fill="none" stroke="rgb(255, 254, 245)" />
+      <path class="ink" d="m852 540q23-34 50-32 29-1 51 36-20 30-48 30-30 1-53-34z" fill="#fffef3" stroke="rgb(21, 24, 19)" />
+      <ellipse cx="903" cy="539" rx="20" ry="21" fill="#fcfaef" stroke="#151813" stroke-width="4" />
+      <path d="m899 523q-12 5-8 18 3 13 13 11 13-2 11-16-1-11-9-13 2 14-3 17-6-3-4-17z" fill="#10130f" />
+    </g>
+  </g>
+  <g id="possibilities-cloud">
+    <path class="halo" d="m583 740q9-36 43-45 37-9 69 19 25-18 50 3 27-24 57-14 26 5 38 30 16-6 29 7 21 20 15 65 39 8 45 36 4 32-26 52 1 25-20 39-16 10-34 6-17 25-44 29-34 4-59-18-28 25-62 19-29-3-47-28-31 9-56-7t-29-46q-3-18 8-41-22-14-23-40-1-46 46-66z" fill="none" stroke="rgb(255, 254, 245)" />
+    <path class="ink" d="m583 740q9-36 43-45 37-9 69 19 25-18 50 3 27-24 57-14 26 5 38 30 16-6 29 7 21 20 15 65 39 8 45 36 4 32-26 52 1 25-20 39-16 10-34 6-17 25-44 29-34 4-59-18-28 25-62 19-29-3-47-28-31 9-56-7t-29-46q-3-18 8-41-22-14-23-40-1-46 46-66z" fill="url(#mint-cloud)" stroke="rgb(21, 24, 19)" />
+    <g class="hand" transform="rotate(-3 729 818)" stroke="rgb(255, 248, 230)" stroke-width="2" fill="rgb(20, 23, 19)">
+      <text x="607" y="777" font-size="34">Possibilities</text>
+      <text x="606" y="823" font-size="29">• deeper focus</text>
+      <text x="606" y="864" font-size="29">• more confidence</text>
+      <text x="606" y="904" font-size="29">• lifelong learning</text>
+    </g>
+    <g id="growing-sprig" class="ink" fill="#93d1b9" stroke-width="3.8" stroke="rgb(21, 24, 19)">
+      <path class="halo" d="m885 825q10-24 13-50 9-5 21-9 23-11 27-44-31 1-40 23-4 9-4 25m-6 10q-36-4-33-46 30 3 33 46" fill="none" stroke="rgb(255, 254, 245)" />
+      <path d="m902 770q0-41 44-48-5 39-44 48z" />
+      <path d="m896 780q-36-4-33-46 30 3 33 46z" />
+      <path d="m885 825q10-24 13-50 11-19 30-36m-32 41-17-26" fill="none" />
+    </g>
+  </g>
+  <g id="lower-brain-illustration" stroke-linecap="round" stroke-linejoin="round">
+    <path class="halo" d="m168 751q7-18 26-15 17-17 32-4 19-14 36 5 18-5 23 16 19 3 18 24 19 10 8 36 9 21-16 31-5 28-33 26 6 29-8 27l-8-2q-7-21-23-35-29 11-45-17-28 10-39-10-17-16-6-39 3-12 13-18-3-20 22-25z" fill="none" stroke="rgb(255, 254, 245)" />
+    <path class="ink" d="m223 851q20 17 28 45 14 6 10-9-5-20-17-33z" fill="#fffbe9" stroke="rgb(21, 24, 19)" />
+    <path class="ink" d="m236 840q11 33 32 31 22 1 27-28l-13-16z" fill="#fffbe9" stroke="rgb(21, 24, 19)" />
+    <g fill="none" stroke="#282a21" stroke-width="2.9">
+      <path d="m245 848q9 17 30 14l8-7" />
+      <path d="m251 843q11 9 29 6m-25 5 10 3m4-6 7 2" />
+    </g>
+    <path class="ink" d="m168 751q7-18 26-15 17-17 32-4 19-14 36 5 18-5 23 16 19 3 18 24 19 10 8 36 9 21-16 31-15 4-32-2-16 13-40 18-29 11-45-17-28 10-39-10-17-16-6-39 3-12 13-18-3-20 22-25z" fill="#fffbe9" stroke="rgb(21, 24, 19)" />
+    <g fill="none" stroke="#22251c" stroke-width="4.3">
+      <path d="m226 733q-11 13-6 26-10 13-3 27v16" />
+      <path d="m195 751q-12 7-3 21-12 17 1 27l8 10" />
+      <path d="m262 738q12 15 8 30 8 12-5 30" />
+      <path d="m284 755q-15 0-14 12" />
+      <path d="m302 780q-11 8-16 28-4 10-8 11" />
+      <path d="m244 788q5 12-12 14-27 0-46 18-15 13-6 25" />
+      <path d="m311 813q-3 6-12 3" />
+      <path d="m146 776q-1 10 7 16l-2 8" />
+      <path d="m133 807q8 3 16-1" />
+      <path d="m140 832q6-13 18-8" />
+      <path d="m170 758 8 6m-8 6 5-3" />
+      <path d="m174 793q-8 10-1 18" />
+      <path d="m158 830h7" />
+      <path d="m244 748v5m0 16v8" />
+      <path d="m204 831q11 5 21-5 7-8 17-1l12-9" />
+      <path d="m202 841 2 3m65-25h6" />
+    </g>
+  </g>
+  <g id="bottom-left-leaf-sprig" stroke-linecap="round" stroke-linejoin="round">
+    <path class="halo" d="m198 962q-33-22-56-37-30-17-48-47m13 18q-29-1-37-42 36 8 37 42m31 26q-17-16-7-45 17 20 7 45m-8 2q-22 11-42-7 21-12 42 7m30 20q-24 21-41 10 17-16 41-10m16 1q-19-17-7-41 16 20 7 41" fill="none" stroke="rgb(255, 254, 245)" />
+    <g class="ink" fill="#8ac9b2" stroke-width="3.7" stroke="rgb(21, 24, 19)">
+      <path d="m107 896q-29-1-37-42 36 8 37 42z" />
+      <path d="m138 922q-17-16-7-45 17 20 7 45z" />
+      <path d="m130 924q-22 11-42-7 21-12 42 7z" />
+      <path d="m160 944q-24 21-41 10 17-16 41-10z" />
+      <path d="m176 945q-19-17-7-41 16 20 7 41z" />
+      <path d="m198 962q-33-22-56-37-30-17-54-52" fill="none" />
+    </g>
+  </g>
+  <g id="decorative-dashes" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#fffef4" stroke-width="9">
+      <path d="m121 304-5-11m283 104 18-11m-357 131-15-2m6 41 13-7m382 63 13 10" />
+      <path d="m956 220 14-9m-7 26 12-2m-14 22 12 5m-55 211 6-18m25 41 13-10m-21 107 7 10" />
+      <path d="m868 698-2-11m46 7 6-15m32 209 11 5m-35 37 8 11m-409-35-12 10m-14-48h16m-173-8 11 7" />
+    </g>
+    <g stroke="#24271e" stroke-width="4.6">
+      <path d="m125 304-8-13m282 106 18-11m-357 131-15-2m6 41 13-7m382 63 13 10" />
+      <path d="m956 220 14-9m-7 26 12-2m-14 22 12 5m-55 211 6-18m25 41 13-10m-21 107 7 10" />
+      <path d="m868 698-2-11m46 7 6-15m32 209 11 5m-35 37 8 11m-409-35-12 10m-14-48h16m-173-8 11 7" />
+      <path d="m880 608-2 6" stroke-width="5.5" />
+      <path d="m925 792 7-3" opacity=".7" stroke-width="6" />
+    </g>
+    <g stroke="#fff9dc" stroke-width="11">
+      <path d="m314 721 12-18m12 50 21-14m-12 56 22 2m-271 0-21 1m243 91 8 12" />
+    </g>
+    <g stroke="#ffd373" stroke-width="6.5">
+      <path d="m314 721 12-18m12 50 21-14m-12 56 22 2m-271 0-21 1m243 91 8 12" />
+      <path d="m92 740 17 14m-11-14 13 8m-20-2 14 7" opacity=".8" stroke-width="5" />
+    </g>
+    <path d="m160 240q1 19 13 21-15 3-14 21-2-19-12-19 12-2 13-23z" fill="#fffef4" stroke="#fffef4" stroke-width="9" />
+    <path d="m160 240q1 19 13 21-15 3-14 21-2-19-12-19 12-2 13-23z" stroke="#20231c" stroke-width="4" />
+    <path d="m73 727 5 5-2 5-6-4z" stroke="#45483b" stroke-width="4" />
+    <path d="m951 821q5-5 9 2 2 4-4 7-6-1-5-9z" stroke="#fffef4" stroke-width="9" />
+    <path d="m951 821q5-5 9 2 2 4-4 7-6-1-5-9z" stroke="#34382b" stroke-width="3" />
+  </g>
+</svg>

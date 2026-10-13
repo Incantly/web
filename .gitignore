@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results
+/e2e-artifacts/screenshots
+/e2e-artifacts/playwright-report.json
+/e2e-artifacts/videos
 
 # next.js
 /.next/
@@ -39,3 +43,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+
+# Tiptap Pro registry auth (never commit that file)
+.npmrc

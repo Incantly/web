@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="460" viewBox="0 0 560 460" role="img" aria-labelledby="title desc">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title id="title">Experiments you can change</title>
+  <desc id="desc">A whimsical pendulum experiment. An animated slider changes the string length, and the pendulum changes its swing. Warm paper, hand-drawn black outlines, and soft blue and coral accents.</desc>
+  <defs>
+    <pattern id="hatching" width="7" height="7" patternUnits="userSpaceOnUse">
+      <path d="M-2 7 7-2M4 10 10 4" fill="none" stroke="#252724" stroke-width=".8" opacity=".3"/>
+    </pattern>
+  </defs>
+  <g fill="none" stroke="#252724" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- A little laboratory, open to possibility. -->
+    <path d="M73 320C161 318 345 322 468 319"/>
+    <path d="M94 327C174 326 355 329 443 326" stroke-width="1" opacity=".35"/>
+    <path d="M100 318 106 307 158 307 167 319" fill="#e4e9e2"/>
+    <path d="M120 306C121 244 117 160 120 94Q120 72 141 72L285 73Q298 73 298 87L298 101 285 102 285 88 141 88Q134 88 134 98L134 307Z" fill="#faf8f2"/>
+    <path d="M122 112 132 105M122 123 132 116M122 134 132 127M122 145 132 138M123 156 132 149" stroke-width="1" opacity=".55"/>
+    <path d="M112 319H154" stroke-width="1.2"/>
+    <circle cx="291" cy="102" r="6" fill="#faf8f2"/>
+    <!-- Quiet guides show the two possible experiments. -->
+    <path d="M239 199Q291 232 343 199" stroke="#829b9a" stroke-width="1.4" stroke-dasharray="3 7"/>
+    <path d="M212 253Q291 309 370 253" stroke="#829b9a" stroke-width="1.4" stroke-dasharray="3 7"/>
+    <path d="m212 246-2 9 9-1M363 253l9 2-2-9" stroke="#829b9a" stroke-width="1.4"/>
+    <!-- Changing the length changes the visible swing. -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-25 291 102;25 291 102;-25 291 102;25 291 102;-25 291 102;25 291 102;-25 291 102;25 291 102;-25 291 102" keyTimes="0;.085;.17;.28;.42;.58;.74;.885;1" calcMode="spline" keySplines=".37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1;.37 0 .63 1" dur="12s" repeatCount="indefinite"/>
+      <path d="M291 109V195">
+        <animate attributeName="d" values="M291 109V195;M291 109V195;M291 109V255;M291 109V255;M291 109V195" keyTimes="0;.17;.42;.74;1" dur="12s" repeatCount="indefinite"/>
+      </path>
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 60;0 60;0 0" keyTimes="0;.17;.42;.74;1" dur="12s" repeatCount="indefinite"/>
+        <path d="M288 190 294 190 295 198 287 198Z" fill="#faf8f2"/>
+        <path d="M312 216C312 228 303 237 291 237C278 237 269 228 269 216C269 203 278 196 291 196C304 195 312 204 312 216Z" fill="#2B62D9"/>
+        <path d="M276 213Q277 204 286 203" stroke="#faf8f2" stroke-width="3"/>
+        <path d="m295 230 9-8m-4 9 7-7" stroke-width="1" opacity=".55"/>
+      </g>
+    </g>
+    <circle cx="291" cy="102" r="2" fill="#252724" stroke="none"/>
+    <!-- A small measuring scale makes the variable visible. -->
+    <path d="M402 155C403 184 401 250 402 282" stroke-width="1.6"/>
+    <path d="M393 156H402M397 171H402M397 186H402M393 201H402M397 216H402M397 231H402M393 246H402M397 261H402M393 280H402" stroke-width="1.4"/>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 60;0 60;0 0" keyTimes="0;.17;.42;.74;1" dur="12s" repeatCount="indefinite"/>
+      <path d="m412 211-7 5 7 5" stroke="#b6745e" stroke-width="2"/>
+      <path d="M413 216H426" stroke="#b6745e" stroke-width="2"/>
+    </g>
+    <!-- Small, spare editorial doodles. -->
+    <path d="m327 66 7-9m5 22 11-3m-30-17 1-8" stroke-width="1.8"/>
+    <path d="M196 140C189 131 192 121 200 119C211 116 216 128 210 133C206 137 202 132 205 127C211 118 226 127 233 137" stroke-width="1.5"/>
+    <path d="m226 134 8 5-1-9" stroke-width="1.5"/>
+    <path d="M86 245v10m-5-5h10" stroke-width="1.6"/>
+  </g>
+  <path d="M106 330H162L153 339H99ZM343 330H441L430 338H338Z" fill="url(#hatching)"/>
+  <!-- The control repeats the change at the same rhythm as the experiment. -->
+  <g stroke="#252724" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M134 356Q134 349 143 349L416 350Q425 350 425 360L424 413Q424 422 414 422L144 421Q134 421 134 410Z" fill="#f1eee5" stroke-width="1.8"/>
+    <path d="M226 379Q286 377 386 379" fill="none" stroke-width="5"/>
+    <path d="M226 379H386" fill="none" stroke="#faf8f2" stroke-width="2"/>
+    <path d="M226 392v4m40-4v4m40-4v4m40-4v4m40-4v4" fill="none" stroke-width="1" opacity=".6"/>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;160 0;160 0;0 0" keyTimes="0;.17;.42;.74;1" dur="12s" repeatCount="indefinite"/>
+      <path d="M215 379Q215 368 226 368Q237 368 237 379Q237 390 226 390Q215 390 215 379Z" fill="#2B62D9" stroke-width="2"/>
+      <path d="M223 375v8m5-8v8" fill="none" stroke-width="1.1"/>
+    </g>
+  </g>
+  <g fill="#252724" font-family="ui-rounded, 'Trebuchet MS', sans-serif">
+    <text x="153" y="378" font-size="13">String</text>
+    <text x="153" y="395" font-size="13">length</text>
+    <text x="225" y="410" font-size="9" letter-spacing="1.2">SHORT</text>
+    <text x="359" y="410" font-size="9" letter-spacing="1.2">LONG</text>
+  </g>
+</svg>

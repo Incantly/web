@@ -1,0 +1,1113 @@
+.incantly-document-editor {
+  --incantly-document-background: #ffffff;
+  --incantly-document-surface: #ffffff;
+  --incantly-document-text: #202124;
+  --incantly-document-muted: #74787f;
+  --incantly-document-selection: rgb(69 128 255 / 24%);
+  --incantly-document-focus: #4f7cff;
+  --incantly-document-border: #dfe2e7;
+  --incantly-document-content-width: 48rem;
+  --incantly-document-block-gap: 0.75rem;
+  --incantly-document-padding-inline: clamp(1rem, 4vw, 3rem);
+  --incantly-document-padding-block: clamp(1.5rem, 5vw, 4rem);
+
+  box-sizing: border-box;
+  position: relative;
+  min-width: 0;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-background);
+  color-scheme: light;
+}
+
+.incantly-document-editor[data-theme='dark'] {
+  --incantly-document-background: #17181b;
+  --incantly-document-surface: #1d1f23;
+  --incantly-document-text: #eceef2;
+  --incantly-document-muted: #9ba1aa;
+  --incantly-document-selection: rgb(110 155 255 / 32%);
+  --incantly-document-focus: #87a8ff;
+  --incantly-document-border: #363940;
+
+  color-scheme: dark;
+}
+
+.incantly-document-editor,
+.incantly-document-editor *,
+.incantly-document-editor *::before,
+.incantly-document-editor *::after {
+  box-sizing: border-box;
+}
+
+.incantly-document-editor__content {
+  min-width: 0;
+  background: var(--incantly-document-surface);
+}
+
+.incantly-document-editor .ProseMirror {
+  width: min(100%, var(--incantly-document-content-width));
+  min-height: clamp(24rem, 70vh, 60rem);
+  margin-inline: auto;
+  padding: var(--incantly-document-padding-block) var(--incantly-document-padding-inline);
+  color: var(--incantly-document-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  caret-color: var(--incantly-document-focus);
+  outline: none;
+}
+
+.incantly-document-editor .ProseMirror:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--incantly-document-focus);
+}
+
+.incantly-document-editor .ProseMirror > * {
+  margin-block: 0 var(--incantly-document-block-gap);
+}
+
+.incantly-document-editor .ProseMirror > *:last-child {
+  margin-block-end: 0;
+}
+
+.incantly-document-editor .ProseMirror ::selection {
+  background: var(--incantly-document-selection);
+}
+
+.incantly-document-editor .ProseMirror blockquote {
+  padding-inline-start: 1rem;
+  border-inline-start: 0.22rem solid var(--incantly-document-border);
+  color: var(--incantly-document-muted);
+}
+
+/* Block typography. Tailwind preflight resets headings and lists to
+   inherit/none, so the editor must declare its own sizes and markers.
+   Without these an inserted H1 or bullet list is functionally correct
+   but visually identical to a paragraph, which reads as "Enter did
+   nothing". */
+.incantly-document-editor .ProseMirror h1,
+.incantly-document-editor .ProseMirror h2,
+.incantly-document-editor .ProseMirror h3,
+.incantly-document-editor .ProseMirror h4,
+.incantly-document-editor .ProseMirror h5,
+.incantly-document-editor .ProseMirror h6 {
+  color: var(--incantly-document-text);
+  font-weight: 700;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.incantly-document-editor .ProseMirror h1 {
+  font-size: clamp(1.875rem, 1.4rem + 2vw, 2.5rem);
+  letter-spacing: -0.02em;
+}
+
+.incantly-document-editor .ProseMirror h2 {
+  font-size: clamp(1.5rem, 1.25rem + 1.2vw, 1.875rem);
+  letter-spacing: -0.015em;
+}
+
+.incantly-document-editor .ProseMirror h3 {
+  font-size: 1.375rem;
+}
+
+.incantly-document-editor .ProseMirror h4 {
+  font-size: 1.125rem;
+}
+
+.incantly-document-editor .ProseMirror h5,
+.incantly-document-editor .ProseMirror h6 {
+  font-size: 1rem;
+}
+
+.incantly-document-editor .ProseMirror ul:not([data-type='checklist']) {
+  padding-inline-start: 1.5rem;
+  list-style-type: disc;
+}
+
+.incantly-document-editor .ProseMirror ol {
+  padding-inline-start: 1.5rem;
+  list-style-type: decimal;
+}
+
+.incantly-document-editor .ProseMirror li p {
+  margin-block: 0.25rem;
+}
+
+.incantly-document-editor .ProseMirror ul[data-type='checklist'] {
+  padding-inline-start: 1.5rem;
+  list-style: none;
+}
+
+.incantly-document-editor .ProseMirror li[data-type='checklist-item']::marker {
+  content: '';
+}
+
+.incantly-document-editor .ProseMirror hr {
+  margin-block: 1.5rem;
+  border: 0;
+  border-top: 1px solid var(--incantly-document-border);
+}
+
+/*
+ * Details (collapsible sections). The editor renders a div wrapper with a
+ * toggle button; static HTML and export previews use native
+ * <details>/<summary>, so both shapes are styled from the same tokens.
+ */
+.incantly-document-editor .ProseMirror div[data-type='details'],
+.incantly-document-editor .ProseMirror details {
+  margin-block: 0 var(--incantly-document-block-gap);
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--incantly-document-border) 22%, transparent);
+}
+
+.incantly-document-editor .ProseMirror div[data-type='details'] > button {
+  display: inline-grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-inline-end: 0.35rem;
+  padding: 0 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: var(--incantly-document-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  place-items: center;
+  vertical-align: middle;
+}
+
+.incantly-document-editor .ProseMirror div[data-type='details'] > button:hover,
+.incantly-document-editor .ProseMirror div[data-type='details'] > button:focus-visible {
+  border-color: var(--incantly-document-border);
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-document-editor .ProseMirror div[data-type='details'] > button + div > summary {
+  display: inline-block;
+  min-width: min(12rem, 100%);
+  min-height: 1.65em;
+  font-weight: 600;
+  vertical-align: middle;
+  cursor: text;
+}
+
+.incantly-document-editor .ProseMirror details > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Inline math renders KaTeX inside the sentence; the pointer signals it is editable. */
+.incantly-document-editor .ProseMirror span[data-type='inline-math'].tiptap-mathematics-render--editable {
+  cursor: pointer;
+}
+
+.incantly-document-editor .ProseMirror div[data-type='detailsContent'] {
+  padding-block-start: 0.5rem;
+}
+
+/* Code-block language picker (bubble toolbar). */
+/* Word-style paragraph spacing picker. Layout mirrors the code-language
+   picker; the glyph inherits the surrounding control color. */
+/* Font-size picker (stock FontSize extension). Mirrors the font picker. */
+.incantly-format-font-size {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.25rem;
+}
+
+.incantly-format-font-size svg {
+  display: block;
+  flex: none;
+  color: inherit;
+}
+
+.incantly-format-font-size select {
+  min-height: 2.75rem;
+  max-width: 5.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-format-font-size select:hover,
+.incantly-format-font-size select:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/* Font picker (stock FontFamily extension). Options render in their own
+   typeface; the Aa glyph inherits the surrounding control color. */
+.incantly-format-font {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.25rem;
+}
+
+.incantly-format-font .incantly-format-font-glyph {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.incantly-format-font select {
+  min-height: 2.75rem;
+  max-width: 9rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-format-font select:hover,
+.incantly-format-font select:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/* Selection bubble must wrap instead of overflowing narrow screens now
+   that it hosts color, alignment, spacing, and font controls. */
+.incantly-document-bubble-toolbar {
+  flex-wrap: wrap;
+  max-width: calc(100vw - 2rem);
+}
+.incantly-format-spacing {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.25rem;
+}
+
+.incantly-format-spacing svg {
+  display: block;
+  flex: none;
+  color: inherit;
+}
+
+.incantly-format-spacing select {
+  min-height: 2.75rem;
+  max-width: 8rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-format-spacing select:hover,
+.incantly-format-spacing select:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-format-language select {
+  min-height: 2.75rem;
+  max-width: 11rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-format-language select:hover,
+.incantly-format-language select:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/*
+ * Syntax highlighting. Lowlight decorates code with `hljs-*` classes;
+ * every token color resolves to a semantic `--ui-code-*` role so the
+ * palette stays the single source of truth.
+ */
+.incantly-document-editor .ProseMirror pre code .hljs-keyword,
+.incantly-document-editor .ProseMirror pre code .hljs-selector-tag,
+.incantly-document-editor .ProseMirror pre code .hljs-doctag {
+  color: var(--ui-code-keyword);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-string,
+.incantly-document-editor .ProseMirror pre code .hljs-regexp,
+.incantly-document-editor .ProseMirror pre code .hljs-template-string {
+  color: var(--ui-code-string);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-comment,
+.incantly-document-editor .ProseMirror pre code .hljs-quote {
+  color: var(--ui-code-comment);
+  font-style: italic;
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-number,
+.incantly-document-editor .ProseMirror pre code .hljs-literal {
+  color: var(--ui-code-number);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-title,
+.incantly-document-editor .ProseMirror pre code .hljs-title.function_,
+.incantly-document-editor .ProseMirror pre code .hljs-function {
+  color: var(--ui-code-function);
+}
+
+.incantly-document-editor .ProseMirror pre code .hljs-attr,
+.incantly-document-editor .ProseMirror pre code .hljs-attribute,
+.incantly-document-editor .ProseMirror pre code .hljs-variable,
+.incantly-document-editor .ProseMirror pre code .hljs-template-variable,
+.incantly-document-editor .ProseMirror pre code .hljs-name,
+.incantly-document-editor .ProseMirror pre code .hljs-type,
+.incantly-document-editor .ProseMirror pre code .hljs-built_in,
+.incantly-document-editor .ProseMirror pre code .hljs-selector-id,
+.incantly-document-editor .ProseMirror pre code .hljs-selector-class,
+.incantly-document-editor .ProseMirror pre code .hljs-meta,
+.incantly-document-editor .ProseMirror pre code .hljs-operator,
+.incantly-document-editor .ProseMirror pre code .hljs-punctuation {
+  color: var(--ui-code-title);
+}
+
+.incantly-document-editor .ProseMirror pre {
+  overflow: auto;
+  padding: 0.9rem 1rem;
+  border-radius: 0.5rem;
+  color: var(--incantly-document-text);
+  background: color-mix(in srgb, var(--incantly-document-border) 38%, transparent);
+}
+
+.incantly-document-editor .ProseMirror code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.incantly-document-editor .ProseMirror mark {
+  color: inherit;
+}
+
+.incantly-document-editor .ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/*
+ * Fitted layout. Columns share the content width instead of sizing by
+ * content, so a table can never grow past the page or export margins —
+ * including tables nested inside a cell, which simply fit their cell.
+ */
+.incantly-document-editor .ProseMirror table {
+  table-layout: fixed;
+}
+
+
+.incantly-document-editor .ProseMirror th,
+.incantly-document-editor .ProseMirror td {
+  min-width: 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--incantly-document-border);
+  vertical-align: top;
+}
+
+.incantly-document-editor .ProseMirror th {
+  text-align: start;
+  background: color-mix(in srgb, var(--incantly-document-border) 38%, transparent);
+}
+
+.incantly-document-editor .ProseMirror [data-incantly-node='image'],
+.incantly-document-editor .ProseMirror [data-incantly-node='fileAttachment'],
+.incantly-document-editor .ProseMirror [data-incantly-node='audio'],
+.incantly-document-editor .ProseMirror [data-incantly-node='videoEmbed'],
+.incantly-document-editor .ProseMirror [data-incantly-node='pdfEmbed'],
+.incantly-document-editor .ProseMirror [data-incantly-node='canvasEmbed'] {
+  display: block;
+  min-height: 3rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-muted);
+  background: color-mix(in srgb, var(--incantly-document-border) 22%, transparent);
+}
+
+.incantly-document-editor .ProseMirror div[data-type='block-math'] {
+  overflow-x: auto;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--incantly-document-border) 22%, transparent);
+}
+
+/* Math formula editor (bubble toolbar). */
+.incantly-format-math input {
+  min-height: 2.75rem;
+  min-width: 10rem;
+  max-width: 14rem;
+  padding-inline: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.incantly-format-math input:hover,
+.incantly-format-math input:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/* Text-color picker (stock Color extension). The native swatch keeps its
+   own preview; the wrapper only guarantees the 44px touch target. */
+/* Word-style alignment buttons (stock TextAlign extension). Icons inherit
+   the button color; layout mirrors the color group. */
+.incantly-format-align {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.incantly-format-align svg {
+  display: block;
+}
+
+.incantly-format-color {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.incantly-format-color input[type="color"] {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.3rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.incantly-format-color input[type="color"]:hover,
+.incantly-format-color input[type="color"]:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-format-color input[type="color"]:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+
+.incantly-document-editor .ProseMirror [data-incantly-node='image']::before,
+.incantly-document-editor .ProseMirror [data-incantly-node='fileAttachment']::before,
+.incantly-document-editor .ProseMirror [data-incantly-node='audio']::before,
+.incantly-document-editor .ProseMirror [data-incantly-node='videoEmbed']::before,
+.incantly-document-editor .ProseMirror [data-incantly-node='pdfEmbed']::before,
+.incantly-document-editor .ProseMirror [data-incantly-node='canvasEmbed']::before {
+  content: attr(data-card-label) ' attachment';
+  font-weight: 600;
+}
+
+.incantly-document-editor .ProseMirror [data-incantly-node='pageBreak'] {
+  height: 1px;
+  margin-block: 2rem;
+  border: 0;
+  background: repeating-linear-gradient(90deg, var(--incantly-document-border) 0 0.4rem, transparent 0.4rem 0.8rem);
+}
+
+.incantly-document-editor .ProseMirror p.is-empty::before,
+.incantly-document-editor .ProseMirror .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  height: 0;
+  color: var(--incantly-document-muted);
+  pointer-events: none;
+  float: left;
+}
+
+.incantly-document-editor[data-readonly='true'] .ProseMirror {
+  caret-color: transparent;
+}
+
+.incantly-document-toolbar,
+.incantly-document-bubble-toolbar {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.5rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+}
+
+.incantly-document-toolbar {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--incantly-document-border);
+}
+
+.incantly-document-bubble-toolbar {
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.incantly-format-button {
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.incantly-format-button:hover:not(:disabled),
+.incantly-format-button:focus-visible,
+.incantly-format-button[aria-pressed='true'] {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-format-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.tiptap-slash-table-picker.tiptap-card {
+  position: fixed;
+  z-index: 60;
+  max-width: calc(100vw - 1rem);
+}
+
+.tiptap-slash-table-picker .tiptap-card-body {
+  width: 100%;
+  padding-inline: 0;
+}
+
+.tiptap-slash-table-picker .tiptap-table-grid {
+  justify-content: start;
+}
+
+.tiptap-suggestion-menu {
+  width: min(18rem, calc(100vw - 1rem));
+  max-width: calc(100vw - 1rem);
+}
+
+.tiptap-suggestion-menu .tiptap-slash-card {
+  width: 100%;
+}
+
+/* Keep the slash command list legible even when the copied Tiptap primitive
+   styles are loaded after the editor stylesheet. */
+.tiptap-suggestion-menu .tiptap-card-item-group {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tiptap-suggestion-menu .tiptap-button {
+  width: 100%;
+  min-height: 2.75rem;
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.tiptap-suggestion-menu .tiptap-button-text {
+  min-width: 0;
+}
+
+@media (max-width: 40rem) {
+  .incantly-document-editor {
+    --incantly-document-padding-inline: 1rem;
+    --incantly-document-padding-block: 1.5rem;
+  }
+
+  .incantly-document-editor .ProseMirror {
+    min-height: 70vh;
+  }
+}
+
+@media (forced-colors: active) {
+  .incantly-document-editor .ProseMirror:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .incantly-document-editor *,
+  .incantly-document-editor *::before,
+  .incantly-document-editor *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (max-width: 28rem) {
+  .incantly-document-toolbar { overflow-x: auto; flex-wrap: nowrap; }
+  .incantly-document-editor .ProseMirror { overflow-wrap: anywhere; }
+}
+.incantly-calculated-page-break {
+  border-top: 1px dashed color-mix(in srgb, currentColor 25%, transparent);
+  height: 24px;
+  margin: 18px -32px;
+  pointer-events: none;
+  content-visibility: auto;
+  contain-intrinsic-size: 24px;
+}
+
+.incantly-page-safe-area {
+  position: absolute;
+  border: 1px dashed color-mix(in srgb, currentColor 24%, transparent);
+  pointer-events: none;
+}
+
+/* Composable page presentation for DocumentPageView. Every dimension arrives
+   as an --incantly-page-* custom property so host stylesheets can restyle or
+   replace any of it; the rules below are only the default theme. */
+.incantly-document-page {
+  --incantly-page-width: 100%;
+  --incantly-page-height: auto;
+  --incantly-page-margin-top: 72px;
+  --incantly-page-margin-right: 72px;
+  --incantly-page-margin-bottom: 72px;
+  --incantly-page-margin-left: 72px;
+  --incantly-page-header-distance: 36px;
+  --incantly-page-footer-distance: 36px;
+  --incantly-page-chrome: #6b7280;
+  --incantly-page-surface: #ffffff;
+  --incantly-page-gap: 2rem auto;
+
+  position: relative;
+  transition: width 160ms ease, min-height 160ms ease, padding 160ms ease;
+}
+
+.incantly-document-page--paginated {
+  box-sizing: border-box;
+  width: min(var(--incantly-page-width), calc(100% - 2rem));
+  min-height: var(--incantly-page-height);
+  margin: var(--incantly-page-gap);
+  padding: var(--incantly-page-margin-top) var(--incantly-page-margin-right) var(--incantly-page-margin-bottom) var(--incantly-page-margin-left);
+  border: 1px solid var(--incantly-document-border);
+  background: var(--incantly-page-surface);
+  box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 12%);
+}
+
+.incantly-document-page--paginated .incantly-document-editor,
+.incantly-document-page--paginated .incantly-document-editor__content,
+.incantly-document-page--paginated .incantly-document-editor .ProseMirror {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.incantly-document-page__header,
+.incantly-document-page__footer {
+  position: absolute;
+  right: var(--incantly-page-margin-right);
+  left: var(--incantly-page-margin-left);
+  color: var(--incantly-page-chrome);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.incantly-document-page__header { top: var(--incantly-page-header-distance); }
+.incantly-document-page__footer { bottom: var(--incantly-page-footer-distance); }
+
+
+/* File-upload status card. Absolute bottom-right of the editor; only
+   rendered while uploads are in flight or failed. */
+.incantly-upload-status {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 5;
+  display: grid;
+  gap: 0.375rem;
+  width: min(20rem, calc(100% - 1.5rem));
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.75rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+  font-size: 0.85rem;
+}
+
+.incantly-upload-status .incantly-upload-status__item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.incantly-upload-status .incantly-upload-status__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incantly-upload-status .incantly-upload-status__state {
+  flex: none;
+  color: var(--incantly-document-muted);
+}
+
+.incantly-upload-status button {
+  flex: none;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.incantly-upload-status button:hover,
+.incantly-upload-status button:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+/* Find toggle + bar. The closed toggle floats top-right; the open panel
+   overlays the same corner instead of shifting document layout. */
+.incantly-find-toggle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-muted);
+  background: var(--incantly-document-surface);
+  cursor: pointer;
+}
+
+.incantly-find-toggle:hover,
+.incantly-find-toggle:focus-visible {
+  border-color: var(--incantly-document-focus);
+  color: var(--incantly-document-text);
+  outline: none;
+}
+
+.incantly-find-bar {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+  display: grid;
+  gap: 0.375rem;
+  width: min(24rem, calc(100% - 1rem));
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.75rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.incantly-find-bar .incantly-find-bar__row {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.incantly-find-bar label {
+  min-width: 0;
+  flex: 1 1 8rem;
+}
+
+.incantly-find-bar input[type=text] {
+  width: 100%;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.incantly-find-bar input[type=text]:focus-visible {
+  border-color: var(--incantly-document-focus);
+  outline: none;
+}
+
+.incantly-find-bar button {
+  flex: none;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.incantly-find-bar button:hover,
+.incantly-find-bar button:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-find-bar .incantly-find-bar__count {
+  flex: none;
+  min-width: 4.5rem;
+  color: var(--incantly-document-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.incantly-find-bar .incantly-find-bar__case {
+  display: inline-flex;
+  flex: none;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.incantly-find-bar .incantly-find-bar__case input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--incantly-document-focus);
+}
+
+/* In-document search hits. Selection-colored wash, focus-colored active. */
+.incantly-document-editor .ProseMirror-search-match {
+  border-radius: 0.2rem;
+  background: var(--incantly-document-selection);
+}
+
+.incantly-document-editor .ProseMirror-active-search-match {
+  outline: 2px solid var(--incantly-document-focus);
+  outline-offset: 1px;
+  background: var(--incantly-document-selection);
+}
+/* Image-card alignment. Cards cap width so alignment is visible;
+   block-level auto margins keep narrow screens safe (no floats). */
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align] {
+  max-width: min(24rem, 100%);
+}
+
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align=center] {
+  margin-inline: auto;
+}
+
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align=left] {
+  margin-right: auto;
+}
+
+.incantly-document-editor .ProseMirror figure[data-incantly-node=image][data-align=right] {
+  margin-left: auto;
+}
+
+.incantly-document-editor .ProseMirror > [data-incantly-node] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 12rem;
+}
+
+/* Table row/column handles and action menus. Handles float in the table
+   gutter and dock inside the table edge when no gutter space exists, so
+   narrow screens never gain horizontal overflow. */
+.incantly-table-handles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.incantly-table-handles .incantly-table-handle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.incantly-table-handles .incantly-table-handle:hover,
+.incantly-table-handles .incantly-table-handle:focus-visible,
+.incantly-table-handles .incantly-table-handle[aria-expanded=true] {
+  border-color: var(--incantly-document-focus);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-table-menu {
+  position: absolute;
+  z-index: 4;
+  width: 15rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.4rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+  pointer-events: auto;
+}
+
+.incantly-table-menu .incantly-table-menu-row {
+  display: block;
+}
+
+.incantly-table-menu .incantly-table-menu-separator {
+  display: block;
+  height: 1px;
+  margin: 0.3rem 0.4rem;
+  background: var(--incantly-document-border);
+}
+
+.incantly-table-menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.incantly-table-menu button:hover,
+.incantly-table-menu button:focus-visible {
+  border-color: var(--incantly-document-border);
+  background: var(--incantly-document-selection);
+  outline: none;
+}
+
+.incantly-table-menu button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* Extend bars: slim pills in generous transparent hit zones, revealed only
+   at the table edges (see data-edge) or whenever the editor has focus
+   (touch tap / keyboard tab), so touch and keyboard keep full parity. */
+.incantly-table-extend {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 3rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 0s linear 160ms;
+}
+
+.incantly-table-extend[data-edge=true],
+.incantly-document-editor:focus-within .incantly-table-extend {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 160ms ease;
+}
+
+.incantly-table-extend .incantly-table-extend-pill {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 1.75rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 999px;
+  color: var(--incantly-document-muted);
+  background: var(--incantly-document-surface);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.incantly-table-extend[data-table-extend=columns] .incantly-table-extend-pill {
+  width: 1.75rem;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.incantly-table-extend:hover .incantly-table-extend-pill,
+.incantly-table-extend:focus-visible .incantly-table-extend-pill {
+  border-color: var(--incantly-document-focus);
+  color: var(--incantly-document-text);
+  background: var(--incantly-document-selection);
+}
+
+.incantly-table-extend:focus-visible {
+  outline: none;
+}

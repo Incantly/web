@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520" viewBox="0 0 720 520" fill="none" role="img" aria-labelledby="title desc">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title id="title">Notes that go further</title>
+  <desc id="desc">A pencil captures a thought in a tabbed notebook. A connected research clipping and a gently growing leafy stem suggest ideas being organized and built upon.</desc>
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <path d="M1 0V7" stroke="#262922" stroke-width=".8" opacity=".32"/>
+    </pattern>
+    <style>
+      .ink { stroke:#262922; stroke-width:2.7; stroke-linecap:round; stroke-linejoin:round; }
+      .fine { stroke:#262922; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+      .grow { transform-origin:511px 211px; animation:sway 6s ease-in-out infinite; }
+      .spark { transform-origin:574px 79px; animation:twinkle 4s ease-in-out infinite; }
+      .thought { stroke-dasharray:220; stroke-dashoffset:220; animation:write 7s ease-in-out infinite; }
+      .pencil { animation:hover 7s ease-in-out infinite; }
+      @keyframes sway { 0%,100% { transform:rotate(-2deg); } 50% { transform:rotate(3deg); } }
+      @keyframes twinkle { 0%,100% { opacity:.5; transform:scale(.86); } 50% { opacity:1; transform:scale(1.08); } }
+      @keyframes write { 0%,10% { stroke-dashoffset:220; } 48%,88% { stroke-dashoffset:0; } 100% { stroke-dashoffset:220; } }
+      @keyframes hover { 0%,100% { transform:translate(0,0); } 40%,65% { transform:translate(3px,-5px); } }
+      @media (prefers-reduced-motion:reduce) {
+        .grow,.spark,.thought,.pencil { animation:none; }
+        .thought { stroke-dashoffset:0; }
+      }
+    </style>
+  </defs>
+  <!-- Quiet pen-hatched grounding. -->
+  <path d="M178 431C257 416 403 421 473 435L456 446C354 452 253 449 181 442Z" fill="url(#hatch)" opacity=".55"/>
+  <path d="M171 451C214 455 254 454 277 455M434 451L475 448" class="fine" opacity=".35"/>
+  <!-- Research grows beyond the page. -->
+  <g class="grow">
+    <path d="M509 219C516 180 516 142 540 105C547 94 549 84 550 75" class="ink"/>
+    <path d="M519 167C498 166 480 151 480 131C501 131 518 146 519 167Z" fill="#CFDBBF" class="ink"/>
+    <path d="M520 167L489 140" class="fine"/>
+    <path d="M530 135C551 134 568 119 571 101C551 102 532 116 530 135Z" fill="#CFDBBF" class="ink"/>
+    <path d="M530 135L561 111" class="fine"/>
+    <path d="M545 98C528 95 516 80 519 64C536 67 546 81 545 98Z" fill="#E7C883" class="ink"/>
+    <path d="M545 98L525 74" class="fine"/>
+    <path d="M550 76C547 60 553 46 566 40C571 56 564 71 550 76Z" fill="#CFDBBF" class="ink"/>
+    <path d="M550 76L563 49" class="fine"/>
+    <path d="M490 153L500 151M493 157L504 155M546 124L547 117M552 121L553 113" class="fine" opacity=".55"/>
+  </g>
+  <!-- A collected reference, tucked behind the notebook. -->
+  <g transform="rotate(9 473 242)">
+    <path d="M396 157Q397 148 407 148L548 147Q558 148 558 159L561 324Q560 332 550 333L408 335Q399 334 399 324Z" fill="#E8DABB" class="ink"/>
+    <path d="M389 147Q389 138 400 137L537 139L555 159L553 314Q553 324 542 324L400 323Q390 323 390 312Z" fill="#FFFEF8" class="ink"/>
+    <path d="M537 139L536 159L555 159" class="ink"/>
+    <path d="M409 175L485 176" stroke="#E7C883" stroke-width="13" stroke-linecap="round" opacity=".7"/>
+    <path d="M406 175Q442 173 480 176M407 193L522 194M407 205L493 206" class="fine"/>
+    <path d="M420 220L420 260L476 260" class="fine"/>
+    <path d="M426 251L438 238L450 243L468 225" class="ink"/>
+    <path d="M458 225L468 225L468 235" class="fine"/>
+    <circle cx="438" cy="238" r="3.5" fill="#FAF8F1" class="fine"/>
+    <path d="M405 281L523 282M405 293L501 294M405 305L454 305" class="fine"/>
+    <path d="M449 156L449 128C449 117 465 117 465 128V151C465 158 455 158 455 151V131" stroke="#262922" stroke-width="2.3" stroke-linecap="round"/>
+  </g>
+  <!-- The working notebook: soft cover, useful tabs, generous blank space. -->
+  <g transform="rotate(-5 310 308)">
+    <path d="M181 185L434 185Q447 185 448 199L449 420Q449 436 434 437L183 435Q169 435 169 421L168 202Q168 187 181 185Z" fill="#CFDBBF" class="ink"/>
+    <path d="M442 246L462 247Q468 247 468 254V276Q468 282 461 282L443 281" fill="#E6B39C" class="ink"/>
+    <path d="M444 293L466 294Q472 294 472 301V321Q472 328 464 328L444 328" fill="#E7C883" class="ink"/>
+    <path d="M444 341L461 342Q467 342 467 349V369Q467 376 460 376L444 375" fill="#CFDBBF" class="ink"/>
+    <path d="M185 179Q183 171 194 170L428 171Q441 170 441 184L441 419Q442 427 431 428L190 426Q182 426 182 417Z" fill="#F0EDE2" class="ink"/>
+    <path d="M187 167Q188 159 200 160L425 160Q438 161 438 173L437 409Q437 419 426 419L199 418Q187 417 187 406Z" fill="#FFFEF8" class="ink"/>
+    <path d="M212 177L211 403" stroke="#DDD9CD" stroke-width="1.5"/>
+    <!-- Loose, individually inked binding loops. -->
+    <g class="ink">
+      <path d="M195 188C174 177 172 201 194 197"/>
+      <path d="M195 228C173 216 173 242 194 237"/>
+      <path d="M195 269C175 257 172 282 194 278"/>
+      <path d="M195 309C174 297 174 323 194 318"/>
+      <path d="M195 349C174 338 174 363 194 358"/>
+      <path d="M195 389C174 377 174 403 194 398"/>
+    </g>
+    <g fill="#262922">
+      <circle cx="196" cy="197" r="2.6"/>
+      <circle cx="196" cy="237" r="2.6"/>
+      <circle cx="196" cy="278" r="2.6"/>
+      <circle cx="196" cy="318" r="2.6"/>
+      <circle cx="196" cy="358" r="2.6"/>
+      <circle cx="196" cy="398" r="2.6"/>
+    </g>
+    <path d="M233 199Q294 195 354 199" stroke="#E7C883" stroke-width="17" stroke-linecap="round" opacity=".55"/>
+    <path d="M231 198Q266 195 304 197M315 197L359 198" class="ink"/>
+    <path d="M232 222L397 223M232 237Q307 235 371 238" class="fine"/>
+    <!-- A thought, becoming a continuous line. -->
+    <path d="M238 286C250 276 258 279 266 287S282 300 290 286S307 276 317 287S333 298 348 283S371 280 384 284" stroke="#E6B39C" stroke-width="12" stroke-linecap="round" opacity=".28"/>
+    <path d="M238 286C250 276 258 279 266 287S282 300 290 286S307 276 317 287S333 298 348 283S371 280 384 284" class="ink thought"/>
+    <rect x="231" y="324" width="12" height="12" rx="2" fill="#CFDBBF" class="fine"/>
+    <path d="M234 329L238 333L246 322M256 330L395 331" class="fine"/>
+    <rect x="231" y="351" width="12" height="12" rx="2" fill="#CFDBBF" class="fine"/>
+    <path d="M234 356L238 360L246 349M256 357L371 358" class="fine"/>
+    <rect x="231" y="378" width="12" height="12" rx="2" class="fine"/>
+    <path d="M256 384L344 385" class="fine"/>
+    <path d="M404 394L411 402L425 383" class="fine" opacity=".45"/>
+    <path d="M193 430L427 432" class="fine" opacity=".5"/>
+  </g>
+  <!-- A pencil poised to capture the next thought. -->
+  <g class="pencil">
+    <g transform="rotate(23 133 295)">
+      <path d="M123 226Q123 221 129 221H140Q146 221 146 227V348L135 374L123 348Z" fill="#E7C883" class="ink"/>
+      <path d="M123 240H146M123 247H146" class="fine"/>
+      <path d="M123 227Q123 221 129 221H140Q146 221 146 227V240H123Z" fill="#E6B39C" class="ink"/>
+      <path d="M130 248L130 346M139 248L139 346" class="fine"/>
+      <path d="M123 348L135 374L146 348Q140 352 135 347Q128 352 123 348Z" fill="#FFFEF8" class="ink"/>
+      <path d="M131 365L135 374L139 365Z" fill="#262922"/>
+      <path d="M126 226L126 235" stroke="#FFFEF8" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </g>
+  <!-- A small onward gesture, outside the confines of the page. -->
+  <path d="M493 388C553 388 590 345 584 302" class="fine" stroke-dasharray="4 9"/>
+  <path d="M575 311L583 299L593 309" class="ink"/>
+  <path d="M484 390L480 391" class="fine"/>
+  <g class="spark">
+    <path d="M587 73L590 82L599 85L590 88L587 97L584 88L575 85L584 82Z" fill="#E7C883" class="fine"/>
+  </g>
+  <path d="M148 146L141 135M169 137L168 126M129 163L117 160" class="ink"/>
+  <path d="M595 212L603 206M605 228L615 229" class="fine"/>
+  <circle cx="112" cy="393" r="3" fill="#E6B39C"/>
+  <circle cx="612" cy="156" r="3" fill="#CFDBBF"/>
+</svg>

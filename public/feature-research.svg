@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="460" viewBox="0 0 640 460" fill="none" role="img" aria-labelledby="title desc">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title id="title">Research in context</title>
+  <desc id="desc">A question inside a handwritten note sends a gently moving trail toward an open reference book. A magnifying glass explores the book, while a second path leads to a bookmarked discovery.</desc>
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(24)">
+      <path d="M1 0V7" stroke="#242923" stroke-width=".8" opacity=".2"/>
+    </pattern>
+    <path id="researchTrail" d="M278 208C330 211 315 127 365 114C410 102 457 128 452 186"/>
+    <path id="sideTrail" d="M327 169C358 180 337 302 376 342"/>
+    <style>
+      .ink{stroke:#242923;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+      .fine{stroke:#242923;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+      .trail{stroke:#2B62D9;stroke-width:2;stroke-linecap:round;stroke-dasharray:3 8}
+      .spark{transform-box:fill-box;transform-origin:center;animation:twinkle 4s ease-in-out infinite}
+      .lens{animation:explore 7s ease-in-out infinite}
+      .question{animation:question 5s ease-in-out infinite}
+      @keyframes twinkle{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+      @keyframes explore{0%,100%{transform:translate(0,0)}45%{transform:translate(-7px,-5px)}70%{transform:translate(-3px,2px)}}
+      @keyframes question{0%,100%{opacity:.55}45%,65%{opacity:1}}
+      @media(prefers-reduced-motion:reduce){.spark,.lens,.question{animation:none}.moving-dot{display:none}}
+    </style>
+  </defs>
+  <path d="M101 391C169 400 256 399 305 388M393 333C445 344 501 342 538 332" class="fine" opacity=".12"/>
+  <!-- The starting point is a real note, not a detached search box. -->
+  <g transform="rotate(-5 208 246)">
+    <path d="M115 132L293 128Q306 128 307 143L307 361Q307 377 294 378L114 380Q103 379 103 368L104 145Q104 133 115 132Z" fill="url(#hatch)" class="fine"/>
+    <path d="M107 120Q103 119 102 131L100 362Q100 369 110 369L288 368Q298 368 298 358L301 150L272 120Z" fill="#FFFDF8" class="ink"/>
+    <path d="M272 121L271 146Q271 153 278 152L300 150" fill="#DCE7FF" class="ink"/>
+    <path d="M126 152L222 153M126 160L189 160" class="ink"/>
+    <path d="M124 180L269 182M125 190L233 190" class="fine" opacity=".55"/>
+    <path d="M120 205Q155 200 197 204L274 205L273 246Q233 243 196 247L119 245Z" fill="#DCE7FF"/>
+    <path d="M162 218L250 220M162 231L231 232" class="fine"/>
+    <g class="question">
+      <path d="M132 216C132 209 144 208 146 215C149 223 138 223 138 230" class="ink"/>
+      <circle cx="138" cy="237" r="1.8" fill="#242923"/>
+    </g>
+    <path d="M125 269L257 271M125 281L265 282M125 293L217 294" class="fine" opacity=".7"/>
+    <path d="M126 321L135 328L150 312" stroke="#2B62D9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M164 319L255 321M164 330L230 331" class="fine" opacity=".65"/>
+    <path d="M82 170L83 206M82 214L82 227" class="fine" opacity=".4"/>
+  </g>
+  <!-- Two useful paths grow directly from the highlighted passage. -->
+  <use href="#researchTrail" class="trail"/>
+  <use href="#sideTrail" class="trail" opacity=".7"/>
+  <circle cx="278" cy="208" r="4.5" fill="#2B62D9" stroke="#FAF8F2" stroke-width="2"/>
+  <circle cx="327" cy="169" r="3" fill="#2B62D9"/>
+  <circle r="4" fill="#2B62D9" class="moving-dot">
+    <animateMotion dur="5.5s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.85;1" calcMode="linear">
+      <mpath href="#researchTrail"/>
+    </animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;.08;.77;.86;1" dur="5.5s" repeatCount="indefinite"/>
+  </circle>
+  <path d="M445 177L452 188L458 178" stroke="#2B62D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- An open source, with irregular page edges and restrained pen hatching. -->
+  <g transform="rotate(5 454 257)">
+    <path d="M370 216L446 227L461 226L535 207L539 303Q496 303 457 324Q414 309 369 317Z" fill="#DCE7FF" class="ink"/>
+    <path d="M377 208Q415 206 453 226Q486 204 528 200L531 294Q490 296 455 316Q415 298 375 307Z" fill="#FFFDF8" class="ink"/>
+    <path d="M383 202Q421 204 452 222Q484 201 522 196L524 288Q484 293 454 310Q418 293 382 298Z" fill="#FFFDF8" class="ink"/>
+    <path d="M452 222Q449 263 454 310" class="ink"/>
+    <path d="M394 222Q418 225 438 235M394 234Q418 237 436 246M394 246L421 253M393 268Q416 271 438 281M393 279L426 287" class="fine" opacity=".75"/>
+    <path d="M466 230Q485 218 510 215M465 242Q488 230 510 228M466 253Q484 243 502 240" class="fine" opacity=".75"/>
+    <path d="M484 205L496 201L496 235L490 232L483 240Z" fill="#DAB97A" class="fine"/>
+    <path d="M385 307L391 301M396 309L402 305M407 312L412 308M473 313L478 306M485 308L489 303M496 304L500 299" class="fine" opacity=".3"/>
+  </g>
+  <!-- A drifting lens makes discovery feel exploratory. -->
+  <g class="lens">
+    <path d="M511 294L543 332Q547 338 542 342Q537 346 532 340L501 302" fill="#DAB97A" class="ink"/>
+    <path d="M508 303L516 296" class="fine"/>
+    <circle cx="485" cy="275" r="35" fill="#FAF8F2" fill-opacity=".94" class="ink"/>
+    <circle cx="485" cy="275" r="28.5" stroke="#2B62D9" stroke-width="1.3"/>
+    <path d="M469 267Q484 258 501 258M469 278Q484 269 501 270M473 287L492 282" class="ink"/>
+    <path d="M465 257Q468 252 475 250" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- A small saved lead at the end of the secondary path. -->
+  <g transform="rotate(-9 390 360)">
+    <path d="M377 343L403 343L403 381L390 373L377 381Z" fill="#E6EDE6" class="ink"/>
+    <path d="M384 354L397 354M384 361L393 361" class="fine"/>
+    <path d="M367 355L361 353M414 351L419 347" class="fine" opacity=".5"/>
+  </g>
+  <g class="spark">
+    <path d="M489 118L491 127L499 130L491 132L488 140L486 132L479 129L486 127Z" fill="#DAB97A" class="fine"/>
+  </g>
+  <path d="M339 97L335 89M355 90L356 81" class="fine"/>
+  <path d="M89 295Q78 299 77 309" class="fine" opacity=".5"/>
+  <circle cx="548" cy="183" r="2.4" fill="#2B62D9"/>
+  <circle cx="348" cy="392" r="2" fill="#DAB97A"/>
+</svg>

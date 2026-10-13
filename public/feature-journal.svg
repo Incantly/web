@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="440" viewBox="0 0 480 440" fill="none" role="img" aria-labelledby="title desc">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title id="title">Returning to a thought</title>
+  <desc id="desc">An open, hand-drawn journal. A wandering thought on one page becomes a clear little spark on the other. Soft amber marks slowly revisit a question and illuminate a revised passage, while the book remains still.</desc>
+  <defs>
+    <pattern id="hatching" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(24)">
+      <path d="M2 0V7" stroke="#242420" stroke-width=".7" opacity=".36"/>
+    </pattern>
+  </defs>
+  <g stroke="#242420" stroke-linecap="round" stroke-linejoin="round">
+    <!-- The soft, irregular footprint of the paper stack. -->
+    <path d="M76 318Q151 307 235 338Q310 313 398 322L386 333Q310 324 235 347Q152 320 83 331Z" fill="url(#hatching)" stroke="none"/>
+    <!-- Cloth cover and stacked page edges. -->
+    <path d="M65 127Q145 110 235 138Q321 109 399 123L405 315Q405 324 395 325Q314 314 236 340Q150 315 73 328Q65 328 65 318Z" fill="#DFD7C5" stroke-width="2.7"/>
+    <path d="M71 128Q151 116 235 143Q322 115 394 127L397 314Q308 307 236 332Q158 307 73 320Z" fill="#FAF8F2" stroke-width="1.6"/>
+    <path d="M78 307Q159 298 234 324M247 324Q319 303 390 308" stroke-width="1"/>
+    <path d="M78 312Q157 304 225 327M259 325Q321 309 386 314" stroke-width=".9"/>
+    <!-- Two gently cupped pages. -->
+    <path d="M64 119Q142 98 232 130Q237 189 236 320Q153 291 72 311Q65 314 65 305L60 129Q60 122 64 119Z" fill="#FFFEFA" stroke-width="2.7"/>
+    <path d="M232 130Q313 100 389 115Q396 116 396 123L398 302Q398 309 391 308Q310 295 236 320Q241 222 232 130Z" fill="#FFFEFA" stroke-width="2.7"/>
+    <path d="M231 137Q235 219 234 306" stroke-width="1.1"/>
+    <path d="M225 143Q229 213 229 279" stroke-width=".7" opacity=".45"/>
+    <path d="M242 140Q246 204 243 255" stroke-width=".8" opacity=".4"/>
+    <!-- Small journal heading marks. -->
+    <path d="M86 142L117 138M87 149L108 147" stroke-width="1.6"/>
+    <path d="M351 134L376 135M359 141L376 142" stroke-width="1.3"/>
+    <!-- A question, revisited quietly rather than a moving book. -->
+    <path d="M106 177Q110 159 131 158Q149 158 153 174Q157 193 138 199Q116 205 108 189" stroke="#2B62D9" stroke-width="6" opacity=".12">
+      <animate attributeName="opacity" values=".12;.12;.42;.42;.12;.12" keyTimes="0;.12;.3;.47;.7;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <path d="M121 171Q122 163 130 163Q140 163 139 172Q139 177 133 180Q130 182 131 186" stroke-width="2.5"/>
+    <path d="M131 192L131.3 192.6" stroke-width="3.2"/>
+    <!-- A tangled idea unwinds across the spread. -->
+    <path d="M157 179C176 159 195 181 176 190C159 198 160 170 184 172C208 174 204 199 187 195C173 192 193 173 207 188C217 199 215 210 229 209C252 208 255 183 279 180C292 178 303 181 315 173" stroke-width="1.7"/>
+    <path d="M306 172L316 172L313 182" stroke-width="1.6"/>
+    <!-- A resolved thought, written as a small marginal spark. -->
+    <path d="M338 153Q339 170 351 176Q337 179 334 192Q331 178 319 175Q332 172 338 153Z" fill="#E8D39D" stroke-width="1.9"/>
+    <path d="M353 158L357 153M358 174L364 173M339 198L340 203" stroke-width="1.4"/>
+    <path d="M329 175Q336 173 338 165" stroke="#FFFEFA" stroke-width="2" opacity=".5">
+      <animate attributeName="opacity" values=".25;.25;.25;.85;.45;.25" keyTimes="0;.2;.4;.6;.8;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <!-- Earlier notes: one thought crossed out, not erased. -->
+    <g stroke-width="1.8">
+      <path d="M89 219Q141 211 201 223"/>
+      <path d="M90 232Q130 226 179 235"/>
+      <path d="M92 247Q141 241 200 253"/>
+      <path d="M93 261Q129 257 166 264"/>
+    </g>
+    <path d="M108 233L175 229" stroke-width="1.15"/>
+    <path d="M184 235Q197 234 197 242" stroke-width="1.2"/>
+    <path d="M194 239L197 243L201 241" stroke-width="1.2"/>
+    <path d="M94 283L113 281" stroke-width="1.3"/>
+    <!-- The new passage slowly acquires a warm, translucent underline. -->
+    <path d="M267 244Q312 234 365 241" stroke="#DEC282" stroke-width="10" opacity=".14">
+      <animate attributeName="opacity" values=".14;.14;.14;.57;.57;.14" keyTimes="0;.18;.36;.57;.77;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <g stroke-width="1.8">
+      <path d="M264 215Q309 204 372 213"/>
+      <path d="M265 230Q304 221 350 227"/>
+      <path d="M267 243Q309 234 369 241"/>
+      <path d="M267 257Q299 250 335 254"/>
+    </g>
+    <path d="M257 237L253 238L254 260L259 259" stroke-width="1.1"/>
+    <path d="M349 275L353 280L363 267" stroke-width="1.6"/>
+    <!-- Restrained pen hatching in the fold and at the corners. -->
+    <g stroke-width=".75" opacity=".58">
+      <path d="M210 301L215 308M216 301L222 310M222 303L228 312"/>
+      <path d="M247 307L251 300M253 305L257 298M259 303L263 297"/>
+      <path d="M77 298L82 290M83 297L87 290M89 296L93 290"/>
+      <path d="M377 296L382 289M383 297L388 290"/>
+    </g>
+    <!-- A narrow, still ribbon marks where to return. -->
+    <path d="M282 310L284 348L294 341L302 344L297 306" fill="#C5A76B" stroke-width="1.8"/>
+    <path d="M288 315L291 334" stroke-width=".8" opacity=".55"/>
+  </g>
+</svg>

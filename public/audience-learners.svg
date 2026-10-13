@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1019" height="1024" viewBox="0 0 1019 1024">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <defs>
+    <radialGradient id="warm-paper" cx="49%" cy="44%" r="75%">
+      <stop stop-color="#faf4df" offset="0"/>
+      <stop stop-color="#fcf8eb" offset="1"/>
+    </radialGradient>
+    <linearGradient id="teal-tape" y2="1">
+      <stop stop-color="#80b8aa" offset="0"/>
+      <stop stop-color="#81b9ae" offset=".55"/>
+      <stop stop-color="#6eaa9e" offset="1"/>
+    </linearGradient>
+    <linearGradient id="observation-yellow" y2=".4">
+      <stop stop-color="#ffda82" offset="0"/>
+      <stop stop-color="#ffd578" offset="1"/>
+    </linearGradient>
+    <radialGradient id="possibility-green" cx="45%" cy="45%" r="70%">
+      <stop stop-color="#acd9c7" offset="0"/>
+      <stop stop-color="#9bd0bb" offset="1"/>
+    </radialGradient>
+    <style>.ink{stroke:#171b16;stroke-width:4.3;stroke-linecap:round;stroke-linejoin:round}
+      .halo{stroke:#fffdf4;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
+      .hand{font-family:'Comic Sans MS','Segoe Print','Chalkboard SE',cursive;font-weight:600;fill:#171a14;stroke:#fffcf0;stroke-width:3.5;paint-order:stroke fill;stroke-linejoin:round}
+      .small{font-size:28px}
+      #connecting-arrows{animation:learner-paths 6s ease-in-out infinite}
+      #main-question-paper{animation:learner-question 6s ease-in-out infinite}
+      #related-notes-paper{animation:learner-notes 6s ease-in-out infinite}
+      #sources-document-stack{animation:learner-sources 6s ease-in-out infinite}
+      #observations-panel{animation:learner-observations 6s ease-in-out infinite}
+      #possibilities-cloud{animation:learner-possibilities 6s ease-in-out infinite}
+      #sun-doodle,#scattered-hand-drawn-accents{animation:learner-spark 4.5s ease-in-out infinite}
+      #connecting-arrows g:nth-child(2){stroke:#2B62D9}
+      @keyframes learner-paths{0%,12%,100%{opacity:.32;stroke-dasharray:12 12}42%,80%{opacity:1;stroke-dasharray:0 0}}
+      @keyframes learner-question{0%,100%{transform:translate(0,0) rotate(0deg)}45%{transform:translate(-5px,6px) rotate(-1deg)}}
+      @keyframes learner-notes{0%,100%{transform:translate(0,0)}50%{transform:translate(5px,-7px)}}
+      @keyframes learner-sources{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-6px,4px) rotate(1deg)}}
+      @keyframes learner-observations{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+      @keyframes learner-possibilities{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(0,-8px) scale(1.025)}}
+      @keyframes learner-spark{0%,100%{opacity:.5}50%{opacity:1}}
+      @media(prefers-reduced-motion:reduce){#connecting-arrows,#main-question-paper,#related-notes-paper,#sources-document-stack,#observations-panel,#possibilities-cloud,#sun-doodle,#scattered-hand-drawn-accents{animation:none}}</style>
+  </defs>
+  <g id="connecting-arrows" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#fffdf3" stroke-width="10">
+      <path d="m313 339c27-33 27-90 62-125q24-22 52-26"/>
+      <path d="m386 481c65-3 105-28 139-66s60-56 100-60 78 8 99-23"/>
+      <path d="m396 527c53-7 81 33 124 40q21 4 45 0m-9-7 11 7-10 7"/>
+      <path d="m375 699c40 21 56 72 79 99s49 32 74 37"/>
+    </g>
+    <g stroke="#50978e" stroke-width="5">
+      <path d="m313 339c27-33 27-90 62-125q24-22 52-26"/>
+      <path d="m386 481c65-3 105-28 139-66s60-56 100-60 78 8 99-23"/>
+      <path d="m396 527c53-7 81 33 124 40q21 4 45 0m-9-7 11 7-10 7"/>
+      <path d="m375 699c40 21 56 72 79 99s49 32 74 37"/>
+    </g>
+    <g opacity=".6" stroke="#81b6a8" stroke-width="1.3">
+      <path d="m314 335c26-38 29-89 64-121q21-18 42-22"/>
+      <path d="m389 479c68-5 104-31 137-67"/>
+    </g>
+  </g>
+  <g id="main-question-paper">
+    <path class="halo" d="m54 405c13-8 20 6 36-8s26-4 47-10l28-9 66-8c24-5 43-19 63-15s30-3 47-8q7-4 7 7l5 55c2 23 14 45 17 71s7 49 17 74q15 39 15 68l5 48q0 4-18 6c-26 2-35 15-59 18l-54 6c-36 7-63 21-100 25q-29 6-57 1c-6-20-15-40-21-61-12-25-11-49-17-75l-14-72q-7-25-4-46c2-20-5-47-9-67z" fill="#fcf7e7"/>
+    <path class="ink" d="m61 443q-7 20 0 45l19 95q8 37 5 52c11 33 17 66 34 91 38 5 61 1 84-5l74-19q38 1 64-9l64-21 3-46q-3-26-14-47l-24-96-18-68q6-27-5-62l-14 1z" fill="#f9f3e1"/>
+    <g fill="none" stroke="#292c23" stroke-linecap="round" stroke-width="2.8">
+      <path d="m87 635 8 10m-8 1 12-7m-10 15 12-8m-8 18 11-11m-9 22 12-13m-9 24 12-15m-9 26 12-17m-9 27 12-17m-8 26 11-14"/>
+      <path d="m145 722 2 5m8-7 3 6m7-6 2 7m7-7 4 5m10-8 3 4"/>
+      <path d="m398 600 7 13m-5 0 7 11m-7 1 7 11"/>
+    </g>
+    <path class="ink" d="m54 405c13-8 20 6 36-8s26-4 47-10l28-9 66-8c24-5 43-19 63-15s30-3 47-8q7-4 7 7l2 56c5 26 16 45 19 71s8 48 18 73q10 27 11 53l9 63q0 4-18 6c-26 2-35 15-59 18l-54 6c-36 7-67 19-99 19q-30 1-58 7l-9-38c-8-27-20-46-24-71l-11-61q-14-43-12-77c5-26-5-53-9-74z" fill="url(#warm-paper)"/>
+    <path class="halo" d="m153 366 80-17 9 33-82 17z" fill="none"/>
+    <path class="ink" d="m153 366 80-17 9 33-82 17z" fill="url(#teal-tape)"/>
+    <path d="m158 369 72-16 3 6-72 16z" fill="#a4c9b6" opacity=".25"/>
+    <g id="question-text" class="hand" transform="rotate(-10 245 532)" font-size="40">
+      <text x="122" y="461">What</text>
+      <text x="118" y="512">if we could</text>
+      <text x="117" y="562">live more</text>
+      <text x="119" y="612">sustainably?</text>
+    </g>
+    <g fill="none" stroke-linecap="round">
+      <path class="halo" d="m196 657 99-20m-61 27 38-8"/>
+      <path class="ink" d="m196 657 99-20m-61 27 38-8"/>
+    </g>
+  </g>
+  <g id="related-notes-paper">
+    <path class="halo" d="m445 88c-19 2-20 18-22 35-6 37 5 70 6 104l2 56q2 29 10 46 5 6 24 2l54-4q25-6 55-4c28-1 63-4 82-13 6-15 3-42 4-56-1-28-10-50-10-73-1-26-4-37-4-59-3-23-1-43-15-50-12-7-26-1-41 1l-42 5-50 2-28 7z" fill="#faf5e5"/>
+    <path class="ink" d="m424 116c-9 41 5 75 5 109l1 56q1 30 12 49l78-5 93-5 40-9q9-17 11-36l-8-52-8-43-6-62z" fill="#f8f1dc"/>
+    <path class="ink" d="m445 88c-19 2-19 16-21 34-6 35 3 68 5 102l6 62q2 27 7 43 4 4 23 1l54-3q26-6 55-4c28-1 63-4 82-13 4-15 3-42 4-56-1-28-10-50-10-73-1-26-4-37-4-59-3-23-1-43-15-50-12-7-26-1-41 1l-42 5-50 2-28 7z" fill="url(#warm-paper)"/>
+    <path class="halo" d="m495 66q21-4 54-7l4 27-54 7z" fill="none"/>
+    <path class="ink" d="m495 66q21-4 54-7l4 27-54 7z" fill="url(#teal-tape)"/>
+    <path d="m501 68 44-5 1 5-45 6z" fill="#a9cbbb" opacity=".35"/>
+    <g id="related-notes-text" class="hand" transform="rotate(-4 539 203)">
+      <text x="473" y="139" font-size="32">Related</text>
+      <text x="474" y="178" font-size="32">Notes</text>
+      <text x="470" y="222" font-size="27">• climate</text>
+      <text x="470" y="258" font-size="27">• systems</text>
+      <text x="470" y="294" font-size="27">• lifestyle</text>
+    </g>
+    <g id="upper-leaf-sprig" class="ink" fill="#8bbfa9">
+      <path class="halo" d="m641 205c17-24 20-54 36-77m0 1c-14-12-8-35 16-47 4 21-6 39-16 47m-9 17c9-15 22-23 37-19-8 13-21 21-37 19m-15 36c12-16 25-17 40-15-11 16-24 20-40 15m1-20c-14-9-17-28-10-40 12 5 15 24 10 40" fill="none"/>
+      <path d="m677 129c-14-12-8-35 16-47 4 21-6 39-16 47z"/>
+      <path d="m668 146c9-15 22-23 37-19-8 13-21 21-37 19z"/>
+      <path d="m653 182c12-16 25-17 40-15-11 16-24 20-40 15z"/>
+      <path d="m654 162c-14-9-17-28-10-40 12 5 15 24 10 40z"/>
+      <path d="m641 205c17-24 20-54 36-77l10-30m-18 47 20-11m-34 46 21-7" fill="none" stroke-width="3.5"/>
+    </g>
+  </g>
+  <g id="sources-document-stack">
+    <g class="halo" fill="none">
+      <path d="m790 159 1-10q1-4 9-2l116 22 25 8-15 118"/>
+      <path d="m765 176h-14l-12 92q-9-4-13 16l-10 84 13 4-7 17 14 16"/>
+      <path d="m745 266 3-53 2-37 20-1m-5 93 4-106q0-4 9-2l141 3-5 128"/>
+      <path d="m763 267-22-3-5 62 3 82q1 29 8 28c38 6 63 9 95 5s45-5 79-3"/>
+    </g>
+    <path class="ink" d="m782 178 8-29q2-4 10-2l116 22 25 8-15 118" fill="#fcf8ea"/>
+    <path class="ink" d="m765 176h-14l-12 92q-9-4-13 16l-10 84 13 4-7 17 14 16 29-68z" fill="#fcf8ea"/>
+    <path class="ink" d="m745 266 3-53 2-37 20-1 20 100z" fill="#fbf6e4"/>
+    <path class="ink" d="m763 267 6-105q0-4 9-2l141 3-5 128 8 147c-35-4-54-1-80 3s-57 1-95-5q-7 1-8-28l-3-82 5-62z" fill="url(#warm-paper)"/>
+    <path class="ink" d="m763 267 6-105q0-4 9-2l141 3-5 128m-151-24-22-3-5 62 3 82q1 29 8 28c38 6 63 9 95 5s45-5 79-3m-200-51 14 5m-9 4 10 2" fill="none"/>
+    <g id="earth-icon" stroke="#16251c" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m884 226c0 25-19 47-43 46-25 0-45-19-45-43-1-24 20-46 43-46 26-1 45 19 45 43z" fill="#a2d2c1" stroke="#fffdf0" stroke-width="10"/>
+      <path d="m884 226c0 25-19 47-43 46-25 0-45-19-45-43-1-24 20-46 43-46 26-1 45 19 45 43z" fill="#91c4b6" stroke-width="4.3"/>
+      <path d="m805 207 8 8 7-1 2-5 10-6 1-7 10-1-1-11q-22 0-37 23z" fill="#b3d9b9" stroke-width="3.4"/>
+      <path d="m799 216 9 9h9l-2 7 10 8v10l-5 11 5 7 4-14 8-7q7-9 1-14l-14-6-4-6-6 3" fill="#b0d7b7" stroke-width="3.4"/>
+      <path d="m869 196-8 1-2 6 5 8 14 2 1 5-7-4h-10q-9 4-8 12 1 9 11 6l4 5-1 10 5 7q10-11 11-25 0-19-15-33z" fill="#b2d8b9" stroke-width="3.4"/>
+    </g>
+    <g id="sources-text" class="hand">
+      <text x="776" y="320" font-size="33">Sources</text>
+      <text x="778" y="354" font-size="27">• research</text>
+      <text x="778" y="386" font-size="27">• reports</text>
+      <text x="778" y="418" font-size="27">• experts</text>
+    </g>
+  </g>
+  <g id="observations-panel">
+    <path d="m623 464c33-5 57-1 85-4 32-1 45 3 71 4 36 1 69 8 88 29 17 18 22 44 11 65-10 18 6 36 9 53 6 30-23 52-56 59-29 7-66 5-96 9-35 4-76 1-101-5-32-7-60-23-66-50-9-23 0-39 7-53 7-13-9-24-9-44-1-34 21-56 57-63z" fill="url(#observation-yellow)" stroke="#fff9e6" stroke-width="4"/>
+    <g id="observations-text" class="hand" transform="rotate(-2 725 557)">
+      <text x="613" y="518" font-size="32">Observations</text>
+      <text x="620" y="560" font-size="28">• local changes</text>
+      <text x="620" y="600" font-size="28">• community</text>
+      <text x="620" y="640" font-size="28">• daily choices</text>
+    </g>
+    <g id="observations-leaf-sprig" class="ink" fill="#8ebda4">
+      <path class="halo" d="m850 643c34-25 54-58 70-94q10-19 13-32m0 2c-3-22 11-36 31-39-5 19-16 34-31 39m-11 17c-18-11-21-31-13-47 12 13 17 29 13 47m-7 20c16-19 30-23 44-20-8 17-25 25-44 20m-11 24c-19-9-23-32-15-45 13 10 19 28 15 45m-4 13c13-15 29-19 43-14-9 12-25 21-43 14m-27 30c-13-12-14-30-3-44 9 12 11 29 3 44m0 4c15-13 31-13 43-5-13 11-27 14-43 5" fill="none"/>
+      <path d="m933 519c-3-22 11-36 31-39-5 19-16 34-31 39z"/>
+      <path d="m922 536c-18-11-21-31-13-47 12 13 17 29 13 47z"/>
+      <path d="m915 556c16-19 30-23 44-20-8 17-25 25-44 20z"/>
+      <path d="m904 580c-19-9-23-32-15-45 13 10 19 28 15 45z"/>
+      <path d="m900 593c13-15 29-19 43-14-9 12-25 21-43 14z"/>
+      <path d="m873 623c-13-12-14-30-3-44 9 12 11 29 3 44z"/>
+      <path d="m873 627c15-13 31-13 43-5-13 11-27 14-43 5z"/>
+      <path d="m850 643c34-25 54-58 70-94q10-19 13-32l18-23m-31 41-9-26m4 47 30-13m-43 36-9-26m8 39 25-8m-53 41 25-1" fill="none" stroke-width="3.4"/>
+    </g>
+  </g>
+  <g id="possibilities-cloud">
+    <path class="halo" d="m565 870c-23-16-30-39-21-66 7-23 23-37 42-41 6-26 25-47 51-50 20-5 39 2 52 12 17-14 39-15 56 2 25-18 51-17 70-5q15 10 22 27c15-8 28 1 37 15 14 18 27 41 42 65 18 26 10 56-23 72-4 25-26 47-54 42-22 33-62 39-95 14-31 26-80 23-105-11-28 6-58-10-71-32q-13-21-3-44z" fill="url(#possibility-green)"/>
+    <path class="ink" d="m565 870c-23-16-30-39-21-66 7-23 23-37 42-41 6-26 25-47 51-50 20-5 39 2 52 12 17-14 39-15 56 2 25-18 51-17 70-5q15 10 22 27c13-7 26 0 34 10m44 70c19 26 11 56-22 72-4 25-26 47-54 42-22 33-62 39-95 14-31 26-80 23-105-11-28 6-58-10-71-32q-13-21-3-44" fill="url(#possibility-green)"/>
+    <g id="possibilities-text" class="hand" transform="rotate(-3 725 839)">
+      <text x="617" y="791" font-size="33" stroke="#d1e7d5">Possibilities</text>
+      <text x="617" y="835" font-size="28" stroke="#cbe5d2">• cleaner cities</text>
+      <text x="617" y="874" font-size="28" stroke="#cbe5d2">• healthier planet</text>
+      <text x="617" y="913" font-size="28" stroke="#cbe5d2">• brighter future</text>
+    </g>
+  </g>
+  <g id="sun-doodle" stroke-linecap="round" stroke-linejoin="round">
+    <g class="halo" fill="none">
+      <path d="m846 785 12 1m-1 39 11-9m26 25 2-13m43 0-9-10m29-29-14-1m7-48-16 13m-34-23v15m-24-46 3 13m45-16-7 14"/>
+      <path d="m928 786c-1 16-12 29-28 28s-27-13-26-28c1-16 13-27 29-27 14 1 25 12 25 27z"/>
+    </g>
+    <path class="ink" d="m928 786c-1 16-12 29-28 28s-27-13-26-28c1-16 13-27 29-27 14 1 25 12 25 27z" fill="#ffd371"/>
+    <path d="m904 766c13 3 19 11 19 21-1 12-9 21-20 22" fill="none" opacity=".6" stroke="#edbe5c" stroke-width="2"/>
+    <path class="ink" d="m846 785 12 1m-1 39 11-9m26 25 2-13m43 0-9-10m29-29-14-1m7-48-16 13m-34-23v15m-24-46 3 13m45-16-7 14" fill="none"/>
+    <path class="halo" d="m963 837q0 7-7 7-6-5-1-10 6-3 8 3z" fill="none"/>
+    <path class="ink" d="m963 837q0 7-7 7-6-5-1-10 6-3 8 3z" fill="none" stroke-width="3.5"/>
+  </g>
+  <g id="landscape-doodle" stroke-linecap="round" stroke-linejoin="round">
+    <g class="halo" fill="none">
+      <path d="m61 926c27-21 63-70 116-124 25 33 44 63 70 96m-20-27 32-33c36 37 61 75 104 103"/>
+      <path d="m78 892 5-53m-18 29 16-29 16 27-8 2 8 13-6 2 14 32-16-1-1 16m-5-49-13 17 13-2"/>
+      <path d="m252 780c-1 13-10 22-22 21-14 1-22-9-22-21-1-13 9-23 21-22 12-1 22 10 23 22z"/>
+      <path d="m80 810q11-15 18-10 8-20 21-6l6 9q7-3 13 7zm234 44q8-17 22-15 7-23 25-12 6 5 7 14 14-5 23 13z"/>
+    </g>
+    <path class="ink" d="m252 780c-1 13-10 22-22 21-14 1-22-9-22-21-1-13 9-23 21-22 12-1 22 10 23 22z" fill="#ffd174"/>
+    <path d="m234 764q14 8 12 19-2 12-14 13" fill="none" opacity=".65" stroke="#ebbc60" stroke-width="2"/>
+    <g class="ink" fill="none">
+      <path d="m61 926c27-21 63-70 116-124 25 33 44 63 70 96m-20-27 32-33c36 37 61 75 104 103"/>
+      <path d="m144 842 10 5 5-4 7 9 9-11 9 6 9-3 6 4 5-5m34 19 9 7 6-9 10 10 5-6 10 5" stroke-width="3.6"/>
+    </g>
+    <path class="ink" d="m80 810q11-15 18-10 8-20 21-6l6 9q7-3 13 7zm234 44q8-17 22-15 7-23 25-12 6 5 7 14 14-5 23 13z" fill="#fffaf0" stroke-width="3.8"/>
+    <g id="pine-trees" class="ink" fill="#a5cdb1" stroke-width="3.8">
+      <path d="m65 868 16-29 16 27-9 2 9 13-8 1 17 33-17-3-11 6 4-21-11 2 10-18-8 1 6-12z"/>
+      <path d="m82 865 5 29 1 36" fill="none"/>
+      <path d="m131 910 11-21 11 20-8-1 9 16-9-1 10 16-12-4-13 4 8-15-7 1 8-15z"/>
+      <path d="m142 909 1 39" fill="none"/>
+      <path d="m161 930 11-19 10 19h-7l8 13-7-1 9 9-13-2-12 2 8-11-7 1 7-10z"/>
+      <path d="m172 930v30" fill="none"/>
+      <path d="m285 910 11-18 10 17h-7l7 11-6-1 7 9-11-2-12 2 5-11-5 1 7-10z"/>
+      <path d="m296 909v28" fill="none"/>
+    </g>
+  </g>
+  <g id="scattered-hand-drawn-accents" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g class="halo">
+      <path d="m188 261c1 14 1 19 14 23-12 0-13 7-14 23-1-13-3-21-15-22 14-2 14-7 15-24z"/>
+      <path d="m101 326 9 14m284 77 19-14m-380 143 13 3m-9 39 13-7m395 33 15 9m501-390 14-11m-7 28 12-2m-14 21 11 4m-470 632 16-5m8 51 11-12m402-39 12 6m-37 30 7 13"/>
+      <path d="m64 753 2 5q9 4-1 12-10-5-4-11zm236 25q6 0 5 4l-4 4-4-4z"/>
+    </g>
+    <g class="ink">
+      <path d="m188 261c1 14 1 19 14 23-12 0-13 7-14 23-1-13-3-21-15-22 14-2 14-7 15-24z"/>
+      <path d="m101 326 9 14m284 77 19-14m-380 143 13 3m-9 39 13-7m395 33 15 9m501-390 14-11m-7 28 12-2m-14 21 11 4m-470 632 16-5m8 51 11-12m402-39 12 6m-37 30 7 13"/>
+      <path d="m64 753 2 5q9 4-1 12-10-5-4-11zm236 25q6 0 5 4l-4 4-4-4z" stroke-width="3.5"/>
+    </g>
+  </g>
+</svg>

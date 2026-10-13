@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="560" viewBox="0 0 720 560" fill="none" role="img" aria-labelledby="title desc">
+<!-- SVG created with Arrow, by QuiverAI (https://quiver.ai) -->
+  <title id="title">Try it for yourself</title>
+  <desc id="desc">A question becomes a playful physics experiment. A hand adjusts a slider beneath a miniature scene, while a coral ball follows a bouncing path toward a little cup.</desc>
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(32)">
+      <path d="M1 0V7" stroke="#292B28" stroke-width=".8" opacity=".22"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M2 2L9 6L2 10" fill="none" stroke="#292B28" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .ink{stroke:#292B28;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+      .fine{stroke:#292B28;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+      .adjust{animation:adjust 5s ease-in-out infinite}
+      .glint{animation:glint 5s ease-in-out infinite;transform-origin:543px 326px}
+      @keyframes adjust{0%,12%,88%,100%{transform:translateX(0)}35%,65%{transform:translateX(58px)}}
+      @keyframes glint{0%,62%,100%{opacity:0;transform:scale(.6)}72%,82%{opacity:1;transform:scale(1)}}
+      @media(prefers-reduced-motion:reduce){.adjust,.glint{animation:none}.moving-ball{display:none}.still-ball{display:inline}}
+    </style>
+  </defs>
+  <!-- A roomy, hand-inked miniature experiment -->
+  <path d="M131 115Q120 115 120 128L119 397Q120 416 140 417L590 416Q612 416 612 396L613 133Q613 114 594 115Z" fill="url(#hatch)" transform="translate(7 8)"/>
+  <path d="M128 107Q111 108 111 127L110 387Q109 407 131 408L585 409Q607 409 607 388L608 127Q608 109 588 108Z" fill="#FFFEFA" class="ink"/>
+  <path d="M112 350Q218 339 337 350T606 349L606 390Q605 408 585 408L131 407Q111 407 111 387Z" fill="#DCE7FF"/>
+  <path d="M113 350Q214 340 334 350T604 350" stroke="#2B62D9" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M136 378Q242 382 328 378M398 378Q486 382 580 377" class="fine" opacity=".45"/>
+  <!-- Question, opening directly into the scene -->
+  <path d="M73 66Q67 55 82 51Q134 44 191 50Q205 51 204 67L203 113Q203 124 190 125L155 125L142 143L138 125L84 125Q69 125 70 111Z" fill="#F4D985" class="ink"/>
+  <path d="M125 76C126 63 146 63 149 75C152 87 136 87 136 98" class="ink" stroke-width="3.2"/>
+  <circle cx="136" cy="109" r="2.2" fill="#292B28"/>
+  <path d="M177 143Q199 162 226 158" class="fine" marker-end="url(#arrow)"/>
+  <!-- Small scene marks, not a conventional application toolbar -->
+  <path d="M553 133L548 143L557 142L552 152" class="fine"/>
+  <circle cx="577" cy="142" r="3" stroke="#292B28" stroke-width="1.5"/>
+  <path d="M566 162H586" class="fine" opacity=".3"/>
+  <!-- Ramp and its quiet pen hatching -->
+  <path d="M148 273Q180 311 207 332Q231 351 270 366L149 366Z" fill="#E1E8D9" class="ink"/>
+  <path d="M148 273Q178 308 209 330Q240 353 274 363" class="ink"/>
+  <path d="M157 342L171 327M158 353L179 332M164 360L187 338M176 361L195 343M187 362L203 348M200 362L213 351" class="fine" opacity=".45"/>
+  <path d="M144 370Q209 373 276 370" class="fine"/>
+  <!-- The predicted bounce is visible while the ball tests it -->
+  <path d="M161 258Q208 329 272 350Q347 128 445 278Q466 310 480 347Q500 279 530 345" stroke="#84947C" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="3 8"/>
+  <path d="M342 205Q356 195 367 199" stroke="#84947C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <ellipse cx="274" cy="370" rx="17" ry="3" fill="#292B28" opacity=".09">
+    <animate attributeName="cx" values="161;272;370;480;530;530" keyTimes="0;.25;.46;.68;.8;1" dur="5s" repeatCount="indefinite"/>
+    <animate attributeName="rx" values="10;17;8;16;12;12" keyTimes="0;.25;.46;.68;.8;1" dur="5s" repeatCount="indefinite"/>
+  </ellipse>
+  <g class="moving-ball">
+    <animateMotion dur="5s" repeatCount="indefinite" calcMode="linear" path="M161 258Q208 329 272 350Q347 128 445 278Q466 310 480 347Q500 279 530 345" keyPoints="0;.29;.72;.89;1;1" keyTimes="0;.25;.57;.7;.82;1"/>
+    <circle r="13" fill="#E59A83" class="ink"/>
+    <path d="M-6-5Q-3-9 2-8" stroke="#FFEEE3" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M4 9L8 5" class="fine" opacity=".4"/>
+  </g>
+  <g class="still-ball" display="none" transform="translate(367 223)">
+    <circle r="13" fill="#E59A83" class="ink"/>
+    <path d="M-6-5Q-3-9 2-8" stroke="#FFEEE3" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- A little landing cup -->
+  <path d="M509 344L512 368Q529 375 547 368L551 344" fill="#F4D985" class="ink"/>
+  <path d="M509 344Q529 350 551 344M517 355L518 364M523 357L524 366" class="fine"/>
+  <path d="M510 377Q530 380 550 376" class="fine" opacity=".4"/>
+  <g class="glint">
+    <path d="M557 317L562 309M565 328L576 326M546 308L545 301" class="ink"/>
+  </g>
+  <!-- A tactile adjustment sits beside, rather than replacing, the scene -->
+  <path d="M225 441Q225 430 239 429L468 430Q482 430 483 443L482 482Q482 495 468 495L239 494Q225 494 225 481Z" fill="url(#hatch)" transform="translate(5 5)"/>
+  <path d="M219 436Q219 423 234 423L466 424Q480 424 480 438L479 476Q479 489 465 489L234 488Q219 488 219 475Z" fill="#FFFEFA" class="ink"/>
+  <path d="M241 456H252M450 455H463M457 449V462" class="fine"/>
+  <path d="M270 456Q351 454 432 456" stroke="#D5DCCF" stroke-width="7" stroke-linecap="round"/>
+  <path d="M270 456Q350 455 432 456" class="fine"/>
+  <path d="M280 470V473M310 470V473M341 470V473M371 470V473M402 470V473M431 470V473" class="fine" opacity=".35"/>
+  <g class="adjust">
+    <circle cx="323" cy="456" r="11" fill="#E59A83" class="ink"/>
+    <path d="M319 452L326 452" stroke="#FFF6EB" stroke-width="2" stroke-linecap="round"/>
+    <!-- A gently moving drawn hand implies experimentation -->
+    <path d="M329 531L317 514Q310 504 302 497Q298 493 302 490Q305 487 311 491L319 496L319 466Q319 459 324 459Q330 459 330 466L331 486Q333 480 338 482Q341 483 342 488Q345 483 349 486Q352 487 353 492Q357 488 361 492Q366 497 365 509L362 531" fill="#FAF8F2" class="ink"/>
+    <path d="M331 486L331 496M342 488L342 498M353 492L352 501M321 516L328 522" class="fine"/>
+    <path d="M326 532Q344 535 365 533" class="ink"/>
+  </g>
+  <!-- Sparse editorial doodles -->
+  <path d="M85 289L82 300L71 303L82 306L85 317L88 306L99 303L88 300Z" fill="#F4D985" class="fine"/>
+  <path d="M635 221Q649 213 651 222Q651 230 639 232" class="fine"/>
+  <path d="M634 246L641 251M78 398L72 406M91 411L88 420" class="fine"/>
+  <path d="M498 462Q533 460 548 434" class="fine" marker-end="url(#arrow)"/>
+</svg>
