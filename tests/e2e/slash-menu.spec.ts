@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { captureProblems, check, shot } from './artifacts'
 
-async function openNote(page) {
+async function openNote(page: Page) {
   await page.goto('/dashboard', { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: /Why cities stay warm/i }).first().click()
   await page.waitForTimeout(2500)
@@ -30,7 +30,7 @@ test.describe('slash menu custom queries', () => {
       ]
 
       for (const [index, c] of cases.entries()) {
-        const before = 'base' in c ? c.base : await c.assert()
+        const before = c.base ?? await c.assert()
         await page.keyboard.press('Enter')
         for (const ch of c.query) {
           await page.keyboard.type(ch, { delay: 30 })

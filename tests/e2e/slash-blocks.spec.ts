@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { captureProblems, check, shot } from './artifacts'
 
-async function openNote(page) {
+async function openNote(page: Page) {
   await page.goto('/dashboard', { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: /Why cities stay warm/i }).first().click()
   await page.waitForTimeout(2500)
@@ -14,7 +14,7 @@ async function openNote(page) {
   return editor
 }
 
-async function insertViaSlash(page, query: string) {
+async function insertViaSlash(page: Page, query: string) {
   await page.keyboard.press('Enter')
   for (const ch of query) await page.keyboard.type(ch, { delay: 25 })
   await page.waitForTimeout(800)
