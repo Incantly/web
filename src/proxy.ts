@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSessionCookie } from 'better-auth/cookies'
 
 const protectedPaths = ['/notes', '/workspace', '/dashboard', '/pro']
 
@@ -6,7 +7,9 @@ export function proxy(request: NextRequest) {
   const isProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`),
   )
-  const hasSession = request.cookies.get('incantly_session')?.value === 'active'
+  // This is only an early navigation check. The API remains responsible for
+  // validating the signed session and authorizing every protected resource.
+  const hasSession = getSessionCookie(request) !== null
 
   if (isProtected && !hasSession) {
     const login = new URL('/auth', request.url)

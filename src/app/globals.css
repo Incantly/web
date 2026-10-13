@@ -1,92 +1,218 @@
+@import '../styles/_variables.scss';
+@import '../styles/_keyframe-animations.scss';
+
 @import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+@import '../lib/document-editor/document.css';
 
+/*
+ * Color system — the only place raw colors live.
+ *
+ * - Change a hue by editing a `--palette-*` primitive below.
+ * - Components consume semantic `--ui-*` tokens via their Tailwind aliases
+ *   (bg-canvas, text-foreground, border-default, bg-feature-research, …).
+ *   Never add new names for an existing color; reuse the alias.
+ */
 :root {
-  --bg-paper: #faf6ef;
-  --bg-surface: #fffdf8;
-  --bg-dark: #14111b;
-  --ink-primary: #191408;
-  --ink-secondary: #5f574a;
-  --ink-inverse: #f5f1e8;
-  --brand-violet: #6d28d9;
-  --brand-violet-deep: #4c1d95;
-  --accent-mint: #2fb484;
-  --accent-pink: #ef6eb5;
-  --accent-amber: #e3a23c;
-  --accent-blue: #3d6fe0;
-  --line-hairline: #e5dccb;
-  --line-dark: #2b2536;
+  /* Brand primitives */
+  --palette-white: #ffffff;
+  --palette-soft: #f4f4f3;
+  --palette-border: #bec2c6;
+  --palette-ink: #8a8f8d;
 
-  --font-serif: var(--font-fraunces), 'Georgia', serif;
-  --font-sans: var(--font-instrument), 'Helvetica Neue', sans-serif;
-  --font-mono: var(--font-space), 'Courier New', monospace;
+  /*
+   * Feature-stack module fills, sampled from the Paper design
+   * (“One notebook. So many ways to follow an idea”).
+   * Confirm against the Paper fill picker if those cards are re-edited.
+   */
+  --palette-sage-light: #dee6e1;
+  --palette-stone: #e9e8e5;
+  --palette-sage: #ccd8d1;
 
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --page-max: 1440px;
-  --gutter: clamp(20px, 6.5vw, 96px);
+  /*
+   * Closing eyebrow accent, sampled from the Paper footer design.
+   */
+  --palette-pine: #3e6b51;
+
+  /*
+   * Middle blue for primary buttons, hero side-note arrows, and the
+   * closing band. White on --palette-blue is 5.4:1; on -deep it is 6.4:1.
+   */
+  --palette-blue: #2b62d9;
+  --palette-blue-deep: #2459c4;
+
+  /* Semantic roles */
+  --ui-canvas: var(--palette-white);
+  --ui-surface: var(--palette-soft);
+  --ui-surface-raised: var(--palette-white);
+  --ui-border: var(--palette-border);
+  --ui-border-strong: var(--palette-ink);
+  --ui-text: color-mix(in srgb, var(--palette-ink) 38%, black);
+  --ui-text-muted: color-mix(in srgb, var(--palette-ink) 72%, black);
+  --ui-text-subtle: var(--palette-ink);
+  --ui-text-inverse: var(--palette-white);
+  --ui-action: color-mix(in srgb, var(--palette-ink) 38%, black);
+  --ui-action-hover: color-mix(in srgb, var(--palette-ink) 24%, black);
+  --ui-focus: color-mix(in srgb, var(--palette-ink) 38%, black);
+  --ui-disabled: var(--palette-border);
+
+  /* Feature-stack module surfaces (Paper: “So many ways to follow an idea”) */
+  --ui-feature-note: var(--palette-soft);
+  --ui-feature-research: var(--palette-sage-light);
+  --ui-feature-visual: var(--palette-stone);
+  --ui-feature-experiment: var(--palette-sage);
+  --ui-feature-journal: var(--palette-soft);
+
+  /* Closing band + eyebrow accent (Paper footer) */
+  --ui-band: var(--palette-blue);
+  --ui-accent: var(--palette-pine);
+
+  /* Primary buttons + hero side-note arrows */
+  --ui-button: var(--palette-blue);
+  --ui-button-hover: var(--palette-blue-deep);
+
+  /*
+   * Code-block syntax tokens. Fixed hues for lowlight `hljs-*` token
+   * classes (mapped in the document stylesheet). Each holds at least
+   * 4.5:1 against the raised surface.
+   */
+  --ui-code-keyword: #cf222e;
+  --ui-code-string: #0a3069;
+  --ui-code-comment: #59636e;
+  --ui-code-number: #0550ae;
+  --ui-code-function: #8250df;
+  --ui-code-title: #953800;
 }
 
+/* Tailwind theme: colors, fonts, breakpoints, animations. */
 @theme inline {
-  --color-background: var(--bg-paper);
-  --color-foreground: var(--ink-primary);
-}
+  /* Mobile-first viewport tiers */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
 
-html {
-  scroll-behavior: auto;
-  overflow-x: clip;
-  overflow-y: auto;
-}
+  --color-canvas: var(--ui-canvas);
+  --color-surface: var(--ui-surface);
+  --color-raised: var(--ui-surface-raised);
+  --color-default: var(--ui-border);
+  --color-strong: var(--ui-border-strong);
+  --color-foreground: var(--ui-text);
+  --color-muted: var(--ui-text-muted);
+  --color-subtle: var(--ui-text-subtle);
+  --color-inverse: var(--ui-text-inverse);
+  --color-action: var(--ui-action);
+  --color-action-hover: var(--ui-action-hover);
+  --color-focus: var(--ui-focus);
+  --color-disabled: var(--ui-disabled);
+  --color-feature-note: var(--ui-feature-note);
+  --color-feature-research: var(--ui-feature-research);
+  --color-feature-visual: var(--ui-feature-visual);
+  --color-feature-experiment: var(--ui-feature-experiment);
+  --color-feature-journal: var(--ui-feature-journal);
+  --color-band: var(--ui-band);
+  --color-accent: var(--ui-accent);
+  --color-button: var(--ui-button);
+  --color-button-hover: var(--ui-button-hover);
 
-body {
-  margin: 0;
-  background: #0f1111;
-  color: var(--ink-primary);
-  font-family: var(--font-sans);
-  font-size: 17px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-  overflow: visible;
-}
+  --animate-hero-drift: hero-drift 4.5s ease-in-out infinite;
+  --animate-hero-drift-slow: hero-drift 5.5s ease-in-out infinite reverse;
+  --animate-draw-left: draw-left 6s ease-in-out infinite;
+  --animate-draw-right: draw-right 6s ease-in-out infinite;
+  --animate-head-left: head-left 6s ease-in-out infinite;
+  --animate-head-right: head-right 6s ease-in-out infinite;
 
-h1,
-h2,
-h3,
-p {
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font: inherit;
-  border: none;
-  cursor: pointer;
-  appearance: none;
-}
-
-::selection {
-  background: var(--brand-violet);
-  color: var(--ink-inverse);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  @keyframes hero-drift {
+    50% {
+      transform: translateY(-0.5rem) rotate(7deg);
+    }
   }
-  html {
-    scroll-behavior: auto;
-    scroll-snap-type: none;
+
+  /*
+   * Hero side-note arrows: the left arrow draws first, then the right,
+   * both hold, then the cycle restarts every few seconds.
+   */
+  @keyframes draw-left {
+    0%, 4% { stroke-dashoffset: 1; opacity: 0; }
+    8% { opacity: 1; }
+    26%, 86% { stroke-dashoffset: 0; opacity: 1; }
+    94%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+
+  @keyframes draw-right {
+    0%, 24% { stroke-dashoffset: 1; opacity: 0; }
+    28% { opacity: 1; }
+    46%, 86% { stroke-dashoffset: 0; opacity: 1; }
+    94%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+
+  @keyframes head-left {
+    0%, 20% { opacity: 0; }
+    26%, 86% { opacity: 1; }
+    94%, 100% { opacity: 0; }
+  }
+
+  @keyframes head-right {
+    0%, 42% { opacity: 0; }
+    48%, 86% { opacity: 1; }
+    94%, 100% { opacity: 0; }
+  }
+}
+
+code {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 3px;
+}
+
+.incantly-document-editor {
+  --incantly-document-background: var(--ui-surface-raised);
+  --incantly-document-surface: var(--ui-surface-raised);
+  --incantly-document-text: var(--ui-text);
+  --incantly-document-muted: var(--ui-text-muted);
+  --incantly-document-selection: color-mix(in srgb, var(--ui-button) 20%, transparent);
+  --incantly-document-focus: var(--ui-button);
+  --incantly-document-border: var(--ui-border);
+  --incantly-document-content-width: 52rem;
+  --incantly-document-padding-block: clamp(2.5rem, 8vw, 7rem);
+}
+
+.incantly-document-editor .ProseMirror {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Reading view stays quiet: no inset highlight ring when clicking to write. */
+.incantly-document-editor .ProseMirror:focus-visible {
+  box-shadow: none;
+}
+
+@keyframes audience-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(.audience-exit) {
+    animation: 140ms ease-in both audience-fade-up reverse;
+  }
+
+  ::view-transition-new(.audience-enter) {
+    animation: 320ms ease-out 90ms both audience-fade-up;
   }
 }
