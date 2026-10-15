@@ -16,6 +16,9 @@
 :root {
   /* Brand primitives */
   --palette-white: #ffffff;
+  --palette-shader-blue: #99CDFC;
+  --ui-shader-front: var(--palette-shader-blue);
+  --ui-shader-back: #00000000;
   --palette-soft: #f4f4f3;
   --palette-border: #bec2c6;
   --palette-ink: #8a8f8d;

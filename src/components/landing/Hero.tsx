@@ -27,7 +27,7 @@ function HeroNavigation() {
         <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#about">About</a>
       </nav>
 
-      <a className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-[0.625rem] border border-button bg-button px-[0.9rem] py-2.5 text-[0.8125rem] font-medium text-inverse transition-[background-color,color,transform] duration-[180ms] hover:bg-button-hover focus-visible:bg-button-hover sm:px-[1.15rem]" href="/auth">Get started</a>
+      <a className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-[0.625rem] border border-button bg-button px-[0.9rem] py-2.5 text-[0.8125rem] font-medium text-inverse transition-[background-color,color,transform] duration-[180ms] hover:bg-button-hover focus-visible:bg-button-hover sm:px-[1.15rem]" href="/auth/signup">Get started</a>
     </header>
   )
 }
@@ -57,7 +57,7 @@ function HeroContent() {
         Write a thought. Follow a question. Turn what you are learning into visuals
         and interactive experiences, all inside your notes.
       </p>
-      <a className="mt-7 inline-flex min-h-12 min-w-[10.25rem] items-center justify-center rounded-[0.5625rem] bg-button text-[0.875rem] font-semibold text-inverse no-underline transition-[background-color,color,transform] duration-[180ms] hover:-translate-y-0.5 hover:bg-button-hover focus-visible:-translate-y-0.5 focus-visible:bg-button-hover" href="/auth">Start exploring</a>
+      <a className="mt-7 inline-flex min-h-12 min-w-[10.25rem] items-center justify-center rounded-[0.5625rem] bg-button text-[0.875rem] font-semibold text-inverse no-underline transition-[background-color,color,transform] duration-[180ms] hover:-translate-y-0.5 hover:bg-button-hover focus-visible:-translate-y-0.5 focus-visible:bg-button-hover" href="/auth/signup">Start exploring</a>
     </div>
   )
 }
