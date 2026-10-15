@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-02T17:06:51.793Z",
+  "when": "2026-10-15T14:31:05.978Z",
   "results": [
     {
       "suite": "landing",
@@ -6258,6 +6258,264 @@
       "name": "menu matches /ordered",
       "pass": false,
       "detail": "[\"Bullet list\",\"Numbered list\"]"
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "reset validates confirmation and removes reset token from URL",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "reset validates confirmation and removes reset token from URL",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "reset validates confirmation and removes reset token from URL",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "invalid OTP produces visible retry error",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "invalid OTP produces visible retry error",
+      "pass": true,
+      "detail": ""
     }
   ]
 }

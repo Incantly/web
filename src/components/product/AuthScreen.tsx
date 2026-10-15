@@ -3,159 +3,107 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useState, useEffect } from 'react'
 import { authClient, googleAuthEnabled } from '../../lib/auth-client'
+import { GrowthShader } from '../landing/GrowthShader'
 
-type AuthStep =
-  | { kind: 'email' }
-  | { kind: 'code'; email: string; resendAvailableAt: number }
+type Mode = 'login' | 'signup'
+const titles: Record<Mode, string> = { login: 'Welcome back.', signup: 'Get started.' }
+const actions: Record<Mode, string> = { login: 'Continue with email', signup: 'Create account' }
+const inputClass = 'min-h-12 w-full rounded-xl border border-default bg-surface px-4 text-foreground focus-visible:outline-focus disabled:opacity-60'
 
-const RESEND_DELAY_MS = 30_000
-
-function getSafeNextPath(): string {
-  const next = new URLSearchParams(window.location.search).get('next')
-  return next?.startsWith('/') && !next.startsWith('//') ? next : '/notes'
+function safeNext() {
+  const value = new URLSearchParams(window.location.search).get('next')
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/notes'
+  const url = new URL(value, window.location.origin)
+  return url.origin === window.location.origin ? url.pathname + url.search : '/notes'
 }
 
-export function AuthScreen() {
+export function AuthScreen({ initialMode = 'login' }: { initialMode?: Mode }) {
   const router = useRouter()
-  const [step, setStep] = useState<AuthStep>({ kind: 'email' })
-  const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState('')
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [now, setNow] = useState(() => Date.now())
-  const resendSeconds = useMemo(
-    () => step.kind === 'code' ? Math.max(0, Math.ceil((step.resendAvailableAt - now) / 1000)) : 0,
-    [now, step],
-  )
+  const [email, setEmail] = useState('')
 
+  const [codeSent, setCodeSent] = useState(false)
+  const [name, setName] = useState('')
+  const [cooldown, setCooldown] = useState(0)
   useEffect(() => {
-    if (step.kind !== 'code' || resendSeconds === 0) return
-    const timer = window.setInterval(() => setNow(Date.now()), 1_000)
-    return () => window.clearInterval(timer)
-  }, [resendSeconds, step.kind])
+    if (!cooldown) return
+    const timer = setTimeout(() => setCooldown(value => Math.max(0, value - 1)), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
 
-  const requestCode = async (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault()
-    const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail) {
-      setError('Enter your email address to continue.')
-      return
-    }
+  function changeMode(next: Mode) { setMode(next); setCodeSent(false); setMessage(''); setError('') }
 
-    setPending(true)
-    setError('')
-    setMessage('')
-    const result = await authClient.emailOtp.sendVerificationOtp({
-      email: normalizedEmail,
-      type: 'sign-in',
-    })
-    setPending(false)
-
-    if (result.error) {
-      setError('We could not send a code. Please try again in a moment.')
-      return
-    }
-
-    setEmail(normalizedEmail)
-    setOtp('')
-    setStep({ kind: 'code', email: normalizedEmail, resendAvailableAt: Date.now() + RESEND_DELAY_MS })
-    setMessage('If this email can sign in, a six-digit code is on its way.')
+  async function requestCode() {
+    const result = await authClient.emailOtp.sendVerificationOtp({ email: email.trim().toLowerCase(), type: 'sign-in' })
+    if (result.error) throw new Error('Could not send a code. Please try again shortly.')
+    setCodeSent(true); setCooldown(30)
+    setMessage('Check your email for a six-digit code.')
   }
 
-  const verifyCode = async (event: FormEvent<HTMLFormElement>) => {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (step.kind !== 'code') return
-
-    const code = otp.replace(/\s/g, '')
-    if (code.length !== 6) {
-      setError('Enter the six-digit code from your email.')
-      return
-    }
-
-    setPending(true)
-    setError('')
-    setMessage('')
-    const result = await authClient.signIn.emailOtp({
-      email: step.email,
-      otp: code,
-    })
-    setPending(false)
-
-    if (result.error) {
-      setError('That code could not be verified. Request a new code and try again.')
-      return
-    }
-
-    router.replace(getSafeNextPath())
-    router.refresh()
+    const data = new FormData(event.currentTarget)
+    setPending(true); setError(''); setMessage('')
+    try {
+      if (!codeSent) {
+        if (mode === 'signup') setName(String(data.get('firstName') ?? '').trim() + ' ' + String(data.get('lastName') ?? '').trim())
+        await requestCode()
+      } else {
+        const result = await authClient.signIn.emailOtp({ email: email.trim().toLowerCase(), otp: String(data.get('otp') ?? ''), ...(mode === 'signup' ? { name } : {}) })
+        if (result.error) throw new Error('That code is invalid or expired. Please try again.')
+        router.replace(safeNext()); router.refresh()
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Please try again shortly.') }
+    finally { setPending(false) }
   }
 
-  const signInWithGoogle = async () => {
-    setPending(true)
-    setError('')
-    const result = await authClient.signIn.social({
-      provider: 'google',
-      callbackURL: getSafeNextPath(),
-    })
-    if (result.error) {
-      setPending(false)
-      setError('Google sign-in could not start. Please try again.')
-    }
+  async function google() {
+    setPending(true); setError('')
+    try {
+      const result = await authClient.signIn.social({ provider: 'google', callbackURL: window.location.origin + safeNext(), errorCallbackURL: window.location.origin + '/auth?error=oauth' })
+      if (result.error) throw new Error()
+    } catch { setError('Google sign-in could not start. Please try again.'); setPending(false) }
   }
 
   return (
-    <main className="grid min-h-svh bg-canvas lg:grid-cols-[minmax(0,1.08fr)_minmax(28rem,0.92fr)]">
-      <section className="relative hidden min-h-svh overflow-hidden border-r border-default bg-surface lg:flex lg:flex-col lg:justify-between lg:p-10 xl:p-14" aria-label="Incantly introduction">
-        <div className="absolute inset-0 bg-gradient-to-b from-canvas/10 via-canvas/20 to-canvas/85" />
-        <Link href="/" className="relative z-10 flex w-fit items-center gap-2 font-display text-[1.7rem] tracking-[-0.055em] text-foreground no-underline">
-          <Image src="/incantly-logo.svg" alt="" width={24} height={33} className="h-7 w-auto" /> incantly
-        </Link>
-        <div className="relative z-10 max-w-[38rem]">
-          <h1 className="font-display text-[clamp(3.25rem,6vw,6.25rem)] font-normal leading-[0.9] tracking-[-0.065em] text-foreground">A quiet place for ideas to become more.</h1>
-          <p className="mt-7 max-w-[30rem] text-lg leading-7 text-muted">Write, research, visualize, and follow every question without losing the note that started it.</p>
-        </div>
+    <main className="grid min-h-svh bg-canvas lg:grid-cols-2">
+      <section className="relative hidden flex-col justify-between overflow-hidden border-r border-default bg-surface p-12 lg:flex [&>a]:relative [&>div:last-child]:relative">
+        <GrowthShader />
+        <Link href="/" className="flex items-center gap-2 font-display text-3xl text-foreground"><Image src="/incantly-logo.svg" alt="" width={24} height={33} />incantly</Link>
+        <div><h1 className="font-display text-5xl leading-tight text-foreground">A quiet place for ideas to become more.</h1><p className="mt-6 text-muted">Write, research, and follow every question.</p></div>
       </section>
-
-      <section className="flex min-h-svh items-center justify-center px-5 py-10 sm:px-10" aria-labelledby="auth-heading">
-        <div className="w-full max-w-[28rem]">
-          <Link href="/" className="mb-14 flex w-fit items-center gap-2 font-display text-[1.5rem] tracking-[-0.05em] text-foreground no-underline lg:hidden">
-            <Image src="/incantly-logo.svg" alt="" width={22} height={30} className="h-7 w-auto" /> incantly
-          </Link>
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-button">Private workspace</p>
-          <h2 id="auth-heading" className="mt-3 font-display text-[clamp(2.5rem,6vw,4rem)] font-normal leading-[0.95] tracking-[-0.055em] text-foreground">{step.kind === 'email' ? 'Welcome back.' : 'Check your email.'}</h2>
-          <p className="mt-4 leading-7 text-muted">{step.kind === 'email' ? `Use${googleAuthEnabled ? ' Google or' : ''} a one-time email code to open your notes and documents.` : `We sent a sign-in code to ${step.email}.`}</p>
-
-          {step.kind === 'email' ? (
-            <>
-              <form className="mt-9 space-y-4" onSubmit={requestCode}>
-                <label className="block text-sm font-medium text-foreground" htmlFor="email">Email address</label>
-                <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={pending} required className="min-h-12 w-full rounded-xl border border-default bg-surface px-4 text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60" placeholder="you@example.com" />
-                <button type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-button px-5 font-semibold text-inverse transition hover:bg-button-hover disabled:opacity-60">{pending ? 'Sending code…' : 'Continue with email'}</button>
-              </form>
-              {googleAuthEnabled ? (
-                <>
-                  <div className="my-6 flex items-center gap-3 text-xs text-subtle" aria-hidden="true"><span className="h-px flex-1 bg-default" />or<span className="h-px flex-1 bg-default" /></div>
-                  <button type="button" onClick={signInWithGoogle} disabled={pending} className="min-h-12 w-full rounded-xl border border-default bg-surface px-5 font-semibold text-foreground transition hover:border-strong disabled:opacity-60">Continue with Google</button>
-                </>
-              ) : null}
-            </>
-          ) : (
-            <form className="mt-9 space-y-4" onSubmit={verifyCode}>
-              <label className="block text-sm font-medium text-foreground" htmlFor="otp">Six-digit code</label>
-              <input id="otp" name="otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} disabled={pending} required className="min-h-12 w-full rounded-xl border border-default bg-surface px-4 text-center font-mono text-lg tracking-[0.35em] text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60" placeholder="000000" />
-              <button type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-button px-5 font-semibold text-inverse transition hover:bg-button-hover disabled:opacity-60">{pending ? 'Verifying…' : 'Verify and continue'}</button>
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <button type="button" onClick={() => { setStep({ kind: 'email' }); setError(''); setMessage('') }} disabled={pending} className="min-h-11 text-muted underline hover:text-foreground disabled:opacity-60">Use a different email</button>
-                <button type="button" onClick={() => requestCode()} disabled={pending || resendSeconds > 0} className="min-h-11 text-button underline hover:text-foreground disabled:text-subtle">{resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}</button>
-              </div>
-            </form>
-          )}
-          {message ? <p className="mt-5 text-sm leading-6 text-muted" role="status">{message}</p> : null}
-          {error ? <p className="mt-5 text-sm leading-6 text-foreground" role="alert">{error}</p> : null}
-          <p className="mt-6 text-center text-xs leading-5 text-subtle">We never use a password. A new email code is the account-recovery flow.</p>
+      <section className="flex min-w-0 items-center justify-center px-5 py-10 sm:px-10">
+        <div className="w-full max-w-md">
+          <Link href="/" className="mb-8 block font-display text-2xl text-foreground lg:hidden">incantly</Link>
+          <h2 className="font-display text-4xl text-foreground">{codeSent ? 'Check your email.' : titles[mode]}</h2>
+          {!codeSent && googleAuthEnabled ? <>
+            <button type="button" disabled={pending} onClick={google} className="mt-7 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-default bg-surface px-5 font-semibold text-foreground disabled:opacity-60"><Image src="/google-icon.svg" alt="" width={20} height={20} />Continue with Google</button>
+            <div className="mt-6 flex items-center gap-4 text-sm text-muted"><span className="h-px flex-1 border-t border-default" /><span>or continue with email</span><span className="h-px flex-1 border-t border-default" /></div>
+          </> : null}
+          <form onSubmit={submit} className="mt-7 space-y-4">
+            <fieldset disabled={pending} className="space-y-4">
+              {mode === 'signup' && !codeSent ? <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm text-foreground">First name<input name="firstName" autoComplete="given-name" required maxLength={80} className={inputClass} /></label>
+                <label className="block text-sm text-foreground">Last name<input name="lastName" autoComplete="family-name" required maxLength={80} className={inputClass} /></label>
+              </div> : null}
+              {!codeSent ? <label className="block text-sm text-foreground">Email address<input name="email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} className={inputClass} /></label> : null}
+              {codeSent ? <label className="block text-sm text-foreground">Six-digit code<input name="otp" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required maxLength={6} className={inputClass} /></label> : null}
+              <button className="min-h-12 w-full rounded-xl bg-button px-5 font-semibold text-inverse hover:bg-button-hover disabled:opacity-60" type="submit">{pending ? 'Please wait…' : codeSent ? 'Verify and continue' : actions[mode]}</button>
+            </fieldset>
+          </form>
+          {codeSent ? <button disabled={pending || cooldown > 0} onClick={async () => {
+            setPending(true); setError('')
+            try { await requestCode() } catch { setError('Could not resend the code. Try again shortly.') }
+            finally { setPending(false) }
+          }} className="mt-3 min-h-11 text-sm text-button underline">{cooldown ? 'Resend in ' + cooldown + 's' : 'Resend code'}</button> : null}
+          <button disabled={pending} onClick={() => changeMode(mode === 'login' ? 'signup' : 'login')} className="mt-5 min-h-11 text-sm text-button underline">{mode === 'login' ? 'New here? Create an account' : 'Back to sign in'}</button>
+          {message ? <p role="status" className="mt-4 break-words text-sm text-muted">{message}</p> : null}
+          {error ? <p role="alert" className="mt-4 break-words text-sm text-foreground">{error}</p> : null}
         </div>
       </section>
     </main>

@@ -12,6 +12,7 @@ import { incantlySlashMenuItems } from './slashMenuItems'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
 import { WorkspaceLibrary } from './WorkspaceLibrary'
+import { SignOutButton } from './SignOutButton'
 
 type NoteKind = 'note' | 'paper' | 'journal'
 type WorkspaceView = 'home' | 'search' | 'inbox' | 'library' | 'notes' | 'papers' | 'journals' | 'settings' | `note:${string}`
@@ -130,7 +131,7 @@ function CollectionView({ kind, notes, create, open }: { kind: NoteKind; notes: 
 }
 
 function SettingsView() {
-  return <PageFrame><PageHeading title="Settings" subtitle="Your workspace preferences." /><div className="mt-8 divide-y divide-default border-y border-default"><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Profile</h2><p className="mt-1 text-sm text-muted">Iteoluwakisi</p></div><span className="text-sm text-subtle">Incantly workspace</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Writing</h2><p className="mt-1 text-sm text-muted">Your notes open in the Incantly document editor.</p></div><span className="text-sm text-subtle">Ready to write</span></div></div></PageFrame>
+  return <PageFrame><PageHeading title="Settings" subtitle="Your workspace preferences." /><div className="mt-8 divide-y divide-default border-y border-default"><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Profile</h2><p className="mt-1 text-sm text-muted">Iteoluwakisi</p></div><span className="text-sm text-subtle">Incantly workspace</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Writing</h2><p className="mt-1 text-sm text-muted">Your notes open in the Incantly document editor.</p></div><span className="text-sm text-subtle">Ready to write</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Account</h2><p className="mt-1 text-sm text-muted">Manage Google access or sign out of your account.</p></div><SignOutButton /></div></div></PageFrame>
 }
 
 function NoteView({ note, save, status }: { note: NoteRecord; save: (document: IncantlyDocument) => void; status: string }) {
