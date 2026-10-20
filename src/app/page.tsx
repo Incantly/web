@@ -5,10 +5,11 @@ import { IncantlyThinkingAudience } from '../components/landing/ThinkingAudience
 import { IncantlyFeatureStack } from '../components/landing/FeatureStack'
 import { IncantlyCloser } from '../components/landing/Closer'
 import { IncantlyFooter } from '../components/landing/Footer'
+import ScrollRoot from '../components/ScrollRoot'
 
 export default function Home() {
   return (
-    <>
+    <ScrollRoot>
       <main id="top" className="min-h-svh">
           <IncantlyHero />
           <IncantlyProductShowcase />
@@ -18,6 +19,6 @@ export default function Home() {
           <IncantlyCloser />
       </main>
       <IncantlyFooter />
-    </>
+    </ScrollRoot>
   )
 }

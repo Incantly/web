@@ -8,7 +8,7 @@ export function proxy(request: NextRequest) {
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`),
   )
   // This is only an early navigation check. The API remains responsible for
-  // validating the signed session and authorizing every protected resource.
+  // validating the session and authorizing every protected resource.
   const hasSession = getSessionCookie(request) !== null
 
   if (isProtected && !hasSession) {

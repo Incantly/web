@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-02T17:06:51.793Z",
+  "when": "2026-10-20T16:40:52.769Z",
   "results": [
     {
       "suite": "landing",
@@ -6258,6 +6258,1878 @@
       "name": "menu matches /ordered",
       "pass": false,
       "detail": "[\"Bullet list\",\"Numbered list\"]"
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "reset validates confirmation and removes reset token from URL",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "reset validates confirmation and removes reset token from URL",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "signup submits credentials and requests verification",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "forgot password response does not enumerate users",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "password-auth",
+      "name": "reset validates confirmation and removes reset token from URL",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "invalid OTP produces visible retry error",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "no overflow at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "otp-auth",
+      "name": "invalid OTP produces visible retry error",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "signed-in state offers continue and sign out",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "invalid OTP shows alert and marks the field invalid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "mode switch and legal links render as controls",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "rate limit shows wait time from Retry-After",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "backend outage shows unavailable message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "network failure shows connection message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "OAuth error callback is explained",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "signed-in state offers continue and sign out",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "code field starts empty after email step",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "invalid OTP shows alert and marks the field invalid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "mode switch and legal links render as controls",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "rate limit shows wait time from Retry-After",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "backend outage shows unavailable message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "network failure shows connection message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "OAuth error callback is explained",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "signed-in state offers continue and sign out",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "code field starts empty after email step",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "invalid OTP shows alert and marks the field invalid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "mode switch and legal links render as controls",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "rate limit shows wait time from Retry-After",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "backend outage shows unavailable message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "network failure shows connection message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "OAuth error callback is explained",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "signed-in state offers continue and sign out",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "code field starts empty after email step",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "invalid OTP shows alert and marks the field invalid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "mode switch and legal links render as controls",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "rate limit shows wait time from Retry-After",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "backend outage shows unavailable message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "network failure shows connection message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "OAuth error callback is explained",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "code field starts empty after email step",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1024",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "no overflow on code step at 1440",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "invalid OTP shows alert and marks the field invalid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "mode switch and legal links render as controls",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "rate limit shows wait time from Retry-After",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "backend outage shows unavailable message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "network failure shows connection message",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "OAuth error callback is explained",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "auth-redesign",
+      "name": "signed-in state offers continue and sign out",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it over the content",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving away closes the hovered rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it over the content",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving away closes the hovered rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it over the content",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving away closes the hovered rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it over the content",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving away closes the hovered rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "pin button inside the hovered rail keeps it open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it over the content",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving away closes the hovered rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "pin button inside the hovered rail keeps it open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "pin button inside the hovered rail keeps it open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving from the hovered rail to the existing toggle keeps it open, and clicking pins it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving from the hovered rail to the existing toggle keeps it open, and clicking pins it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving from the hovered rail to the existing toggle keeps it open, and clicking pins it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving from the hovered rail to the existing toggle keeps it open, and clicking pins it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving from the hovered rail to the existing toggle keeps it open, and clicking pins it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "top-bar search icon and sidebar inbox are gone",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "popover drops down right-aligned under the inbox button",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "tabs filter, keyboard arrows switch tabs, empty state per tab",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "outside click and Escape close it; focus returns to the button",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "Make a note opens the note; inbox stays available on the note view",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "popover inside viewport, no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "popover inside viewport, no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-inbox",
+      "name": "popover inside viewport, no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "header shows Incantly logo and name instead of greeting",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "width animates instead of snapping",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "collapsed rail keeps icons in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content expands into freed space",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "rail icons still navigate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard shortcut toggles rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "no overflow at 1024 collapsed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 320",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 375",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "mobile sheet brand and no overflow at 768",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "hovering the collapsed rail opens it and shifts the content aside",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "content shifts back when the pointer leaves",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "moving from the hovered rail to the existing toggle keeps it open, and clicking pins it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "top-bar expand button pins the sidebar open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "workspace-sidebar",
+      "name": "keyboard focus opens the rail and Escape closes it",
+      "pass": true,
+      "detail": ""
     }
   ]
 }

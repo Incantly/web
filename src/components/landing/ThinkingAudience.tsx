@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState, ViewTransition } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const audiences = [
   {
@@ -69,22 +69,43 @@ function MobileSequence() {
   )
 }
 
+const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1)
+const easeInOut = (value: number) => value * value * (3 - 2 * value)
+
+// Share of each audience's scroll segment spent handing off to the next one.
+const HANDOFF = 0.4
+const LIFT_REM = 1.25
+
 function DesktopSequence() {
   const sectionRef = useRef<HTMLDivElement>(null)
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
-  const activeAudience = audiences[activeIndex]
 
   useEffect(() => {
     const section = sectionRef.current
-    if (!section || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!section) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const handoff = reduced ? 0.001 : HANDOFF
 
     let frame: number | undefined
     const updateAudience = () => {
       frame = undefined
       const travelDistance = Math.max(section.offsetHeight - window.innerHeight, 1)
-      const progress = Math.min(Math.max(-section.getBoundingClientRect().top / travelDistance, 0), 0.999)
-      const index = Math.min(audiences.length - 1, Math.floor(progress * audiences.length))
-      setActiveIndex(index)
+      const progress = clamp01(-section.getBoundingClientRect().top / travelDistance) * audiences.length
+      const last = audiences.length - 1
+
+      panelRefs.current.forEach((panel, index) => {
+        if (!panel) return
+        // Leave over the end of this segment; arrive over the end of the previous one, slightly later.
+        const leave = index === last ? 0 : easeInOut(clamp01((progress - (index + 1 - handoff)) / (handoff * 0.6)))
+        const arrive = index === 0 ? 1 : easeInOut(clamp01((progress - (index - handoff * 0.6)) / (handoff * 0.6)))
+        const opacity = Math.min(arrive, 1 - leave)
+        const shift = leave > 0 ? -leave * LIFT_REM : (1 - arrive) * LIFT_REM
+        panel.style.opacity = opacity.toFixed(3)
+        panel.style.transform = reduced ? '' : `translate3d(0, ${shift.toFixed(3)}rem, 0)`
+      })
+
+      setActiveIndex(Math.min(last, Math.floor(Math.min(progress, audiences.length - 0.001) + handoff * 0.3)))
     }
 
     const onScroll = () => {
@@ -104,9 +125,18 @@ function DesktopSequence() {
   return (
     <div ref={sectionRef} className="relative mt-14 hidden min-h-[300svh] lg:block">
       <div className="sticky top-[max(1.5rem,env(safe-area-inset-top))] grid min-h-[min(42rem,calc(100svh-3rem))] place-items-center">
-        <ViewTransition key={activeAudience.slug} default="none" enter="audience-enter" exit="audience-exit">
-          <AudiencePanel audience={activeAudience} />
-        </ViewTransition>
+        {audiences.map((audience, index) => (
+          <div
+            key={audience.slug}
+            ref={(node) => { panelRefs.current[index] = node }}
+            className="col-start-1 row-start-1 w-full will-change-[opacity,transform]"
+            style={{ opacity: index === 0 ? 1 : 0 }}
+            aria-hidden={index !== activeIndex}
+            inert={index !== activeIndex}
+          >
+            <AudiencePanel audience={audience} />
+          </div>
+        ))}
       </div>
     </div>
   )
