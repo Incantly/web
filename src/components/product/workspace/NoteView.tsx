@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Editor } from '@tiptap/core'
 import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu } from '../../../lib/document-editor'
 import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
@@ -16,6 +16,7 @@ import { loadDocument } from '../../../lib/notes/documentGate'
 import type { SyncState } from '../../../lib/notes/noteSync'
 import type { NoteSession } from './useNoteSession'
 import { libraryFollowUp } from './useAssets'
+import { SidePanel } from './sidePanel'
 import { useRevisions } from './useNotes'
 import type { SpaceRecord } from './model'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, buttonPrimary, buttonSecondary, iconButton } from './ui'
@@ -30,15 +31,6 @@ const WorkspaceTableCellMenu = ({ editor, onOpenChange, onResizeStart }: {
   onOpenChange?: (isOpen: boolean) => void
   onResizeStart?: (handle: 'tl' | 'tr' | 'bl' | 'br' | null) => (event: React.MouseEvent) => void
 }) => <TableCellHandleMenu editor={editor} onOpenChange={onOpenChange} onMouseDown={(event) => onResizeStart?.('br')(event)} />
-
-const WIDE = '(min-width: 80rem)'
-function useWideScreen() {
-  return useSyncExternalStore(
-    (onChange) => { const query = window.matchMedia(WIDE); query.addEventListener('change', onChange); return () => query.removeEventListener('change', onChange) },
-    () => window.matchMedia(WIDE).matches,
-    () => false,
-  )
-}
 
 function PanelSection({ icon, title, body }: { icon: IconName; title: string; body: string }) {
   return <section className="border-b border-default px-5 py-5 last:border-b-0">
@@ -117,7 +109,7 @@ function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open:
   }
 
   return <>
-    <Dialog variant="drawer" open={open} onClose={() => { setPreviewId(null); setPreview(null); onClose() }} title="Version history" description="Restoring adds a new version; history is never rewritten."
+    <SidePanel open={open} onClose={() => { setPreviewId(null); setPreview(null); onClose() }} title="Version history" description="Restoring adds a new version; history is never rewritten."
       footer={previewId ? <><button type="button" onClick={() => { setPreviewId(null); setPreview(null) }} className={buttonSecondary}>Back</button><button type="button" disabled={busy} onClick={() => (hasPending ? setConfirm(true) : void restore())} className={buttonPrimary}><AppIcon name="restore" className="size-4" />{busy ? 'Restoring…' : 'Restore this version'}</button></> : undefined}>
       {error ? <div className="mb-4"><ErrorState message={error} /></div> : null}
       {previewId ? (preview?.id === previewId
@@ -136,7 +128,7 @@ function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open:
             </button>
           </li>)}
         </ul>}
-    </Dialog>
+    </SidePanel>
     <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} title="Replace unsaved edits?" confirmLabel="Restore anyway" destructive
       body="This note has edits that haven’t reached the server yet. Restoring this version replaces them." onConfirm={() => void restore()} />
   </>
@@ -177,7 +169,6 @@ export type NoteScreenProps = {
 }
 
 export function NoteScreen({ noteId, title, space, session, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
-  const wide = useWideScreen()
   const [contextOpen, setContextOpen] = useState(false)
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
@@ -212,21 +203,15 @@ export function NoteScreen({ noteId, title, space, session, leading, trailing, o
     {session.document && (session.phase === 'ready' || session.phase === 'cached') && session.sync?.status !== 'gone' ? <>
       {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
-      <div className="flex min-h-full">
-        <div className="min-w-0 flex-1">
+      <div className="min-h-full">
           <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"
             onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
             <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar />
           </DocumentEditor>
-        </div>
-        {contextOpen && wide ? <aside aria-label="Note context" className="sticky top-0 max-h-[calc(100svh-4.5rem)] w-80 shrink-0 self-start overflow-y-auto border-l border-default">
-          <div className="flex min-h-12 items-center justify-between border-b border-default pl-5 pr-2"><h2 className="text-sm font-semibold text-foreground">Context</h2><button type="button" onClick={() => setContextOpen(false)} className={iconButton} aria-label="Close context panel"><AppIcon name="close" className="size-4" /></button></div>
-          <ContextPanelBody />
-        </aside> : null}
       </div>
     </> : null}
 
-    <Dialog variant="drawer" open={contextOpen && !wide} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5"><ContextPanelBody /></div></Dialog>
+    <SidePanel open={contextOpen} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5"><ContextPanelBody /></div></SidePanel>
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />
     <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} />
     <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel="Delete note" title={`Delete “${shownTitle || 'this note'}”?`}

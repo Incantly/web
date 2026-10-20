@@ -11,7 +11,8 @@ import { updatedLabel } from './SpaceViews'
 import { processingSummary, stageLabel } from './sourceStatus'
 import { useLibraryActions, useSource, useSourceProcessing, useSourceSpaces } from './useLibrary'
 import type { ListStatus } from './views'
-import { ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, buttonPrimary, buttonQuiet, buttonSecondary, inputClass, labelClass } from './ui'
+import { SidePanel } from './sidePanel'
+import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, buttonPrimary, buttonQuiet, buttonSecondary, inputClass, labelClass } from './ui'
 
 const statusFilters: { value: SourceStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'All' },
@@ -115,7 +116,7 @@ function SourceDrawer({ userId, sourceId, listed, spaces, navigate, onClose }: {
   const cancelError = actions.cancel.error && isApiError(actions.cancel.error, 'NOT_CANCELLABLE') ? 'This source has already finished processing.' : null
 
   return <>
-    <Dialog variant="drawer" open={Boolean(sourceId)} onClose={onClose} title={title} description={meta.label}
+    <SidePanel open={Boolean(sourceId)} onClose={onClose} title={title} description={meta.label}
       footer={sourceId ? <>
         <button type="button" onClick={() => setConfirmDelete(true)} disabled={actions.remove.isPending} className={`${buttonSecondary} mr-auto text-danger`}><AppIcon name="trash" className="size-4" />Delete</button>
         {archived
@@ -171,7 +172,7 @@ function SourceDrawer({ userId, sourceId, listed, spaces, navigate, onClose }: {
           </ol>
         </section> : null}
       </div> : null}
-    </Dialog>
+    </SidePanel>
     {sourceId ? <ConfirmDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} destructive confirmLabel="Delete source" title={`Delete “${title}”?`}
       body="It’s removed from every Space and note that uses it. The original file stays available in any note that shows it."
       onConfirm={() => actions.remove.mutate(sourceId, { onSuccess: onClose })} /> : null}

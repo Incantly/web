@@ -22,6 +22,7 @@ import { AddSourceDialog, SpaceFormDialog } from './workspace/dialogs'
 import { createSpaceVariables, useSpaceActions, useSpaces } from './workspace/useSpaces'
 import { addSourceToLibrary, libraryKey, useLibrarySources } from './workspace/useLibrary'
 import { EmptyState, OfflineBanner, PageFrame, buttonSecondary } from './workspace/ui'
+import { SIDE_PANEL_WIDTH, SidePanelProvider, useMediaQuery, useSidePanelHost } from './workspace/sidePanel'
 
 const initialInbox: InboxItem[] = [
   { id: 'inbox-1', title: 'A question for later', detail: 'Why do some ideas stay with us long after a conversation?', when: 'Today' },
@@ -132,7 +133,11 @@ function WorkspaceShell() {
     setRailCollapsed((current) => !current)
   }
   useEffect(() => () => window.clearTimeout(peekTimer.current), [])
-  const railExpanded = !railCollapsed || railPeek
+  // A right panel pushes the content box from the right. Below 1280px both sides open at once would
+  // squeeze it too thin, so the sidebar folds to its icon rail while a panel is open (hover still peeks).
+  const panels = useSidePanelHost()
+  const roomy = useMediaQuery('(min-width: 1280px)')
+  const railExpanded = (!railCollapsed && !(panels.open && !roomy)) || railPeek
 
   function navigate(destination: WorkspaceView) { setView(destination); setMobileOpen(false) }
   function openNote(noteId: string, spaceId?: string) {
@@ -187,7 +192,7 @@ function WorkspaceShell() {
   const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource }
   const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'settings' ? 'Settings' : activeSpace ? activeSpace.name : null
 
-  return <main className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
+  return <SidePanelProvider registry={panels.registry} top={panels.top}><main className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
     <div className={`relative hidden h-svh shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:block ${railExpanded ? 'w-[17.5rem]' : 'w-16'}`}>
       <div
         id="workspace-sidebar"
@@ -229,6 +234,10 @@ function WorkspaceShell() {
           onDelete={() => deleteNote(activeNoteId)} onBack={() => navigate('notes')} /> : null}
       </section>
     </div>
+    {/* Right column: docked panels render here and push the content box, mirroring the sidebar. */}
+    <div className={`relative hidden h-svh shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:block ${panels.open ? SIDE_PANEL_WIDTH : 'w-0'}`}>
+      <div ref={panels.setSlot} className={`absolute inset-y-0 left-0 ${SIDE_PANEL_WIDTH} py-2 pr-2`} />
+    </div>
 
     <SpaceFormDialog open={dialog === 'space'} onClose={() => setDialog(null)} onSubmit={async (draft) => { const space = await spaceActions.create.mutateAsync(createSpaceVariables(draft)); navigate(`space:${space.id}`) }} />
     <AddSourceDialog open={dialog === 'source'} onClose={() => setDialog(null)} spaces={spaces} notes={notes} defaultSpaceId={activeSpace?.status === 'ACTIVE' ? activeSpace.id : undefined}
@@ -236,5 +245,5 @@ function WorkspaceShell() {
         await addSourceToLibrary(input, notes, options)
         await Promise.all([client.invalidateQueries({ queryKey: libraryKey(user.id) }), ...input.spaceIds.map((spaceId) => client.invalidateQueries({ queryKey: ['space-sources', spaceId] }))])
       }} />
-  </main>
+  </main></SidePanelProvider>
 }

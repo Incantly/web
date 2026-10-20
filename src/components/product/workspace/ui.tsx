@@ -104,7 +104,7 @@ export function Dialog({ open, onClose, title, description, children, footer, va
   }, [open])
 
   const shape = variant === 'drawer'
-    ? 'ml-auto mr-0 h-dvh max-h-none w-[min(30rem,100vw)] rounded-none sm:rounded-l-[1.15rem]'
+    ? 'ml-auto mr-0 h-dvh max-h-none max-w-none w-[min(30rem,100vw)] rounded-none sm:rounded-l-[1.15rem]'
     : 'm-auto max-h-[min(44rem,calc(100dvh-2rem))] w-[min(34rem,calc(100vw-2rem))] rounded-[1.15rem]'
 
   return <dialog ref={ref} aria-labelledby={titleId} onClose={onClose} onCancel={(event) => { event.preventDefault(); onClose() }}
