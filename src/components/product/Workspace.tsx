@@ -16,12 +16,15 @@ import { WorkspaceLibrary } from './WorkspaceLibrary'
 import { InboxPopover, type InboxItem } from './InboxPopover'
 import { SignOutButton } from './SignOutButton'
 import { AppProviders } from './AppProviders'
+import { SessionGate, useCurrentUser } from './SessionGate'
+import { displayName, firstName, greeting, initial } from '../../lib/identity'
 
 type NoteKind = 'note' | 'paper' | 'journal'
 type WorkspaceView = 'home' | 'search' | 'library' | 'notes' | 'papers' | 'journals' | 'settings' | `note:${string}`
 type NoteRecord = { id: string; title: string; excerpt: string; kind: NoteKind; updatedAt: number; document: IncantlyDocument }
 
-const STORAGE_KEY = 'incantly-workspace-notes-v1'
+// Interim local store, scoped per user until Phase 3 moves notes to the server.
+const storageKey = (userId: string) => `incantly-workspace-notes-v1:${userId}`
 
 const WorkspaceTableCellMenu = ({ editor, onOpenChange, onResizeStart }: {
   editor?: Editor | null
@@ -81,6 +84,7 @@ function SectionHeader({ icon, title, collapsed, onOpen, action }: { icon: IconN
 }
 
 function Sidebar({ view, notes, navigate, create, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; navigate: (view: WorkspaceView) => void; create: (kind: NoteKind) => void; collapsed?: boolean; onClose?: () => void }) {
+  const user = useCurrentUser()
   const items = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt)
   return <aside className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-surface px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3" aria-label="Workspace navigation">
     <div className="flex min-h-11 items-center justify-between gap-2">
@@ -116,7 +120,7 @@ function Sidebar({ view, notes, navigate, create, collapsed = false, onClose }: 
 
     <div className="mt-auto border-t border-default pt-2">
       <RailItem icon="settings" label="Settings" collapsed={collapsed} active={view === 'settings'} onClick={() => navigate('settings')} />
-      <div className="mt-1 flex min-h-11 items-center gap-2 overflow-hidden whitespace-nowrap px-[0.45rem]" title={collapsed ? 'Iteoluwakisi' : undefined}><span className="grid size-7 shrink-0 place-items-center rounded-full bg-button text-xs font-semibold text-inverse">I</span><span className={`min-w-0 flex-1 truncate text-sm font-medium text-foreground ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>Iteoluwakisi</span></div>
+      <div className="mt-1 flex min-h-11 items-center gap-2 overflow-hidden whitespace-nowrap px-[0.45rem]" title={collapsed ? displayName(user) : undefined}><span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-full bg-button text-xs font-semibold text-inverse">{initial(user)}</span><span className={`min-w-0 flex-1 truncate text-sm font-medium text-foreground ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{displayName(user)}</span></div>
     </div>
   </aside>
 }
@@ -130,13 +134,14 @@ function PageHeading({ eyebrow, title, subtitle, action }: { eyebrow?: string; t
 }
 
 function HomeView({ notes, open, navigate }: { notes: NoteRecord[]; open: (id: string) => void; navigate: (view: WorkspaceView) => void }) {
+  const user = useCurrentUser()
   const counts = {
     note: notes.filter((item) => item.kind === 'note').length,
     paper: notes.filter((item) => item.kind === 'paper').length,
     journal: notes.filter((item) => item.kind === 'journal').length,
   }
   const recent = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5)
-  return <PageFrame><PageHeading title="Good morning, Iteoluwakisi." /><section className="mt-10 grid gap-3 sm:grid-cols-3" aria-label="Your work at a glance">{([
+  return <PageFrame><PageHeading title={`${greeting()}, ${firstName(user)}.`} /><section className="mt-10 grid gap-3 sm:grid-cols-3" aria-label="Your work at a glance">{([
     ['My Notes', counts.note, 'notes'],
     ['Your Papers', counts.paper, 'papers'],
     ['Your Journals', counts.journal, 'journals'],
@@ -158,16 +163,17 @@ function CollectionView({ kind, notes, create, open }: { kind: NoteKind; notes: 
 }
 
 function SettingsView() {
-  return <PageFrame><PageHeading title="Settings" subtitle="Your workspace preferences." /><div className="mt-8 divide-y divide-default border-y border-default"><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Profile</h2><p className="mt-1 text-sm text-muted">Iteoluwakisi</p></div><span className="text-sm text-subtle">Incantly workspace</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Writing</h2><p className="mt-1 text-sm text-muted">Your notes open in the Incantly document editor.</p></div><span className="text-sm text-subtle">Ready to write</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Account</h2><p className="mt-1 text-sm text-muted">Manage Google access or sign out of your account.</p></div><SignOutButton /></div></div></PageFrame>
+  const user = useCurrentUser()
+  return <PageFrame><PageHeading title="Settings" subtitle="Your workspace preferences." /><div className="mt-8 divide-y divide-default border-y border-default"><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Profile</h2><p className="mt-1 break-words text-sm text-muted">{displayName(user)}</p></div><span className="min-w-0 break-all text-sm text-subtle">{user.email}</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Writing</h2><p className="mt-1 text-sm text-muted">Your notes open in the Incantly document editor.</p></div><span className="text-sm text-subtle">Ready to write</span></div><div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Account</h2><p className="mt-1 text-sm text-muted">Manage Google access or sign out of your account.</p></div><SignOutButton /></div></div></PageFrame>
 }
 
 function NoteView({ note, save, status }: { note: NoteRecord; save: (document: IncantlyDocument) => void; status: string }) {
   return <div className="flex min-h-full flex-col"><div className="min-h-0 flex-1"><DocumentEditor key={note.id} document={note.document} onChange={save} ui="none" aria-label={`Edit ${note.title}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"><DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads /><DocumentFindBar /></DocumentEditor></div><span role="status" className="sr-only">{status}</span></div>
 }
 
-function readSavedNotes(): NoteRecord[] | null {
+function readSavedNotes(key: string): NoteRecord[] | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(key)
     if (!raw) return null
     const value: unknown = JSON.parse(raw)
     if (!Array.isArray(value) || !value.every((item) => item && typeof item.id === 'string' && typeof item.title === 'string' && ['note', 'paper', 'journal'].includes(item.kind) && item.document?.schemaVersion)) return null
@@ -176,10 +182,11 @@ function readSavedNotes(): NoteRecord[] | null {
 }
 
 export function Workspace() {
-  return <AppProviders><WorkspaceShell /></AppProviders>
+  return <AppProviders><SessionGate><WorkspaceShell /></SessionGate></AppProviders>
 }
 
 function WorkspaceShell() {
+  const user = useCurrentUser()
   const [view, setView] = useState<WorkspaceView>('home')
   const [notes, setNotes] = useState<NoteRecord[]>(initialNotes)
   const [inbox, setInbox] = useState<InboxItem[]>(initialInbox)
@@ -196,20 +203,20 @@ function WorkspaceShell() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const saved = readSavedNotes()
+      const saved = readSavedNotes(storageKey(user.id))
       if (saved) setNotes(saved)
       setHydrated(true)
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [user.id])
   useEffect(() => {
     if (!hydrated) return
     const timer = window.setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); setStatus('Saved on this device') }
+      try { localStorage.setItem(storageKey(user.id), JSON.stringify(notes)); setStatus('Saved on this device') }
       catch { setStatus('Device storage is full. Recent edits may not be saved.') }
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [notes, hydrated])
+  }, [notes, hydrated, user.id])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileOpen(false)
@@ -302,7 +309,7 @@ function WorkspaceShell() {
         </div>
         {view === 'home' ? <HomeView notes={notes} open={(id) => navigate(`note:${id}`)} navigate={navigate} /> : null}
         {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} query={query} setQuery={setQuery} open={(id) => navigate(`note:${id}`)} /></div> : null}
-        {view === 'library' ? <WorkspaceLibrary /> : null}
+        {view === 'library' ? <WorkspaceLibrary userId={user.id} /> : null}
         {view === 'notes' || view === 'papers' || view === 'journals' ? <CollectionView kind={view === 'notes' ? 'note' : view === 'papers' ? 'paper' : 'journal'} notes={notes} create={() => create(view === 'notes' ? 'note' : view === 'papers' ? 'paper' : 'journal')} open={(id) => navigate(`note:${id}`)} /> : null}
         {view === 'settings' ? <SettingsView /> : null}
         {activeNote ? <NoteView note={activeNote} save={(document) => changeActive({ document })} status={status} /> : null}

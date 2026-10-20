@@ -6,12 +6,13 @@ import { AppIcon } from './AppIcon'
 type Folder = { id: string; name: string; parentId: string | null; createdAt: number }
 type Asset = { id: string; name: string; type: string; size: number; folderId: string | null; createdAt: number; blob: Blob }
 
-const DATABASE_NAME = 'incantly-library'
+// Interim local Library, scoped per user until Phase 5 moves it to the server.
+const databaseName = (userId: string) => `incantly-library:${userId}`
 const DATABASE_VERSION = 1
 
-function openLibrary(): Promise<IDBDatabase> {
+function openLibrary(userId: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION)
+    const request = indexedDB.open(databaseName(userId), DATABASE_VERSION)
     request.onupgradeneeded = () => {
       const database = request.result
       if (!database.objectStoreNames.contains('folders')) database.createObjectStore('folders', { keyPath: 'id' })
@@ -55,7 +56,7 @@ function fileKind(type: string, name: string) {
   return 'File'
 }
 
-export function WorkspaceLibrary() {
+export function WorkspaceLibrary({ userId }: { userId: string }) {
   const [database, setDatabase] = useState<IDBDatabase | null>(null)
   const [folders, setFolders] = useState<Folder[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
@@ -71,7 +72,7 @@ export function WorkspaceLibrary() {
   useEffect(() => {
     let live = true
     let connection: IDBDatabase | null = null
-    openLibrary().then(async (db) => {
+    openLibrary(userId).then(async (db) => {
       connection = db
       const [nextFolders, nextAssets] = await Promise.all([
         readAll<Folder>(db, 'folders'),
@@ -84,7 +85,7 @@ export function WorkspaceLibrary() {
       } else db.close()
     }).catch(() => { if (live) setError('This browser could not open local file storage.') })
     return () => { live = false; connection?.close() }
-  }, [])
+  }, [userId])
 
   const currentFolder = folders.find((folder) => folder.id === folderId)
   const visibleFolders = useMemo(() => folders.filter((folder) => folder.parentId === folderId).sort((a, b) => a.name.localeCompare(b.name)), [folders, folderId])

@@ -95,9 +95,11 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 
 ## Phase 1: Session and identity
 
-- [ ] **1.1** Protected pages render only after `GET /api/auth/get-session` confirms a session (the proxy cookie check stays as the early redirect).
-- [ ] **1.2** Replace the hard-coded name in the sidebar footer, Home greeting and Settings with the session user's name or email. Use the initial in the avatar.
-- [ ] **1.3** Sign-out clears in-memory caches. IndexedDB queues are keyed by user ID and never shown to another user.
+- [x] **1.1** Protected pages render only after `GET /api/auth/get-session` confirms a session (the proxy cookie check stays as the early redirect).
+- [x] **1.2** Replace the hard-coded name in the sidebar footer, Home greeting and Settings with the session user's name or email. Use the initial in the avatar.
+- [x] **1.3** Sign-out clears in-memory caches. IndexedDB queues are keyed by user ID and never shown to another user.
+
+**Implemented:** `SessionGate` (loading, retry-on-error, redirect to `/auth?next=` when signed out) + `useCurrentUser()` around `Workspace`; `src/lib/identity.ts` (display name, first name, initial, time-of-day greeting) with unit tests; sign-out does a full reload so no in-memory data survives; the interim local notes (`localStorage`) and local Library (IndexedDB) are keyed by user ID until Phases 3 and 5 replace them. The editor's local asset cache is shared until Phase 4 replaces it with server assets; asset IDs are only reachable through a user's own notes.
 
 **Done when:** no hard-coded identity remains in `src/`; a second user sees none of the first user's data.
 
