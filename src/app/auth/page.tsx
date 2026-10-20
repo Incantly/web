@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { AuthScreen } from '../../components/product/AuthScreen'
 
-export const metadata: Metadata = { title: 'Join Incantly' }
+export const metadata: Metadata = { title: 'Sign in · Incantly' }
 
-export default function AuthPage() {
-  return <AuthScreen />
+export default async function AuthPage({ searchParams }: PageProps<'/auth'>) {
+  const { error } = await searchParams
+  return <AuthScreen oauthFailed={Boolean(error)} />
 }

@@ -44,6 +44,10 @@
   --palette-blue: #2b62d9;
   --palette-blue-deep: #2459c4;
 
+  /* Error red. On --palette-red-soft it is 6.1:1; on white 6.5:1. */
+  --palette-red: #b42318;
+  --palette-red-soft: #fef3f2;
+
   /* Semantic roles */
   --ui-canvas: var(--palette-white);
   --ui-surface: var(--palette-soft);
@@ -73,6 +77,10 @@
   /* Primary buttons + hero side-note arrows */
   --ui-button: var(--palette-blue);
   --ui-button-hover: var(--palette-blue-deep);
+
+  /* Error messages and invalid fields */
+  --ui-danger: var(--palette-red);
+  --ui-danger-surface: var(--palette-red-soft);
 
   /*
    * Code-block syntax tokens. Fixed hues for lowlight `hljs-*` token
@@ -120,6 +128,8 @@
   --color-accent: var(--ui-accent);
   --color-button: var(--ui-button);
   --color-button-hover: var(--ui-button-hover);
+  --color-danger: var(--ui-danger);
+  --color-danger-surface: var(--ui-danger-surface);
 
   --animate-hero-drift: hero-drift 4.5s ease-in-out infinite;
   --animate-hero-drift-slow: hero-drift 5.5s ease-in-out infinite reverse;
@@ -196,26 +206,4 @@ code {
 /* Reading view stays quiet: no inset highlight ring when clicking to write. */
 .incantly-document-editor .ProseMirror:focus-visible {
   box-shadow: none;
-}
-
-@keyframes audience-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(1.25rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(.audience-exit) {
-    animation: 140ms ease-in both audience-fade-up reverse;
-  }
-
-  ::view-transition-new(.audience-enter) {
-    animation: 320ms ease-out 90ms both audience-fade-up;
-  }
 }

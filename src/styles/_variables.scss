@@ -168,6 +168,15 @@
   ::before,
   ::after {
     box-sizing: border-box;
+  }
+}
+
+/* Layered so Tailwind `transition-*` utilities can override this default. */
+@layer base {
+  :root,
+  :root *,
+  ::before,
+  ::after {
     transition: none var(--tt-transition-duration-default)
       var(--tt-transition-easing-default);
   }

@@ -23,5 +23,6 @@ export function SignOutButton() {
       router.refresh()
     } catch { setError(true); setPending(false) }
   }
-  return <div className="ml-auto flex flex-wrap items-center gap-2">{googleAuthEnabled ? <button disabled={pending} onClick={linkGoogle} className="min-h-11 px-3 text-sm text-button underline">Connect Google</button> : null}<button disabled={pending} onClick={signOut} className="min-h-11 px-3 text-sm text-button underline">{pending ? 'Please wait…' : 'Sign out'}</button>{error ? <span role="alert" className="text-sm text-foreground">Try again.</span> : null}</div>
+  const buttonClass = 'inline-flex min-h-11 items-center rounded-lg border border-default bg-canvas px-4 text-sm font-semibold text-foreground transition-colors hover:border-strong hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60'
+  return <div className="ml-auto flex flex-wrap items-center gap-2">{googleAuthEnabled ? <button type="button" disabled={pending} onClick={linkGoogle} className={buttonClass}>Connect Google</button> : null}<button type="button" disabled={pending} onClick={signOut} className={buttonClass}>{pending ? 'Signing out…' : 'Sign out'}</button>{error ? <span role="alert" className="text-sm text-danger">Something went wrong. Try again.</span> : null}</div>
 }

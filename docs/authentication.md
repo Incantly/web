@@ -6,6 +6,8 @@ The frontend uses the official Better Auth client with same-origin `/api/auth/*`
 
 Set `AUTH_BACKEND_URL` on the Next.js server and `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` when the backend's Google client credentials are configured. Backend `BETTER_AUTH_URL` must be the public frontend URL, locally `http://localhost:3000`, and that origin must be in backend `WEB_ORIGINS`. The Google callback is `/api/auth/callback/google` on the frontend origin. Do not use `NEXT_PUBLIC_AUTH_BASE_URL`; it is no longer consumed.
 
+The backend rejects unsigned `/api/auth/*` requests with `403 UNTRUSTED_PROXY`. Run the web app with `npm run dev` / `npm start` (the `server.mjs` entry point), never bare `next dev` / `next start`, and set the same `AUTH_PROXY_SECRET` in web `.env.local` and backend `.env`. See `docs/auth-client-identity.md`.
+
 Get started opens `/auth/signup`. Users enter first name, last name, email, and a password of at least 12 characters, then verify email. `/auth` provides email/password login and Google. Forgot password sends a Resend reset link to `/auth/reset-password`; a completed reset removes the token from the address bar and returns to login. Signup and reset confirmations avoid revealing account existence. Verification resend is available on login. Workspace sign-out invalidates the server session.
 
 Protected-page navigation checks the session with the Nest backend. Every data API must separately authorize the requested resource; a page redirect is not an authorization boundary. Credentials are never persisted in localStorage or IndexedDB.

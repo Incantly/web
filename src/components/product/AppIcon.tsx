@@ -1,11 +1,12 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'archive' | 'check' | 'chevron' | 'code' | 'document' | 'home' | 'inbox' | 'journal' | 'math' | 'menu' | 'minus' | 'panel' | 'paper' | 'plus' | 'quote' | 'search' | 'settings' | 'share' | 'sparkles' | 'table'
+export type IconName = 'archive' | 'check' | 'chevron' | 'close' | 'code' | 'document' | 'home' | 'inbox' | 'journal' | 'math' | 'menu' | 'minus' | 'panel' | 'paper' | 'plus' | 'quote' | 'search' | 'settings' | 'share' | 'sparkles' | 'table'
 
 const paths: Record<IconName, ReactNode> = {
   archive: <><path d="M4 7h16v13H4z"/><path d="M3 4h18v3H3zM9 11h6"/></>,
   check: <path d="m5 13 4 4L19 7"/>,
   chevron: <path d="m9 18 6-6-6-6"/>,
+  close: <path d="M6 6l12 12M18 6 6 18"/>,
   code: <><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/></>,
   document: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></>,
   home: <><path d="m3 11 9-8 9 8"/><path d="M5 10v11h14V10M9 21v-7h6v7"/></>,
