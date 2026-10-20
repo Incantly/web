@@ -1,4 +1,3 @@
-import type { IncantlyDocument } from '@incantly/core/document'
 import type { IconName } from '../AppIcon'
 import type { Schema } from '../../../lib/api/types'
 
@@ -14,15 +13,13 @@ export type WorkspaceView =
 
 export type Navigate = (view: WorkspaceView) => void
 
-/** Interim local note until Phase 3 moves notes to `/v1/notes`. */
+/** A note as listed from `GET /v1/notes`, plus its Space (interim, until Phase 6 reads membership from the server). */
 export type NoteRecord = {
   id: string
   title: string
-  excerpt: string
+  updatedAt: number
   /** Primary Space (backend `Note.spaceId`); null for a standalone note. */
   spaceId: string | null
-  updatedAt: number
-  document: IncantlyDocument
 }
 
 export type SpaceStatus = Exclude<Schema<'SpaceDto'>['status'], 'DELETED'>
@@ -53,7 +50,7 @@ export type SpaceSourceLink = { spaceId: string; sourceId: string; enabledByDefa
 export const sourceKinds: { kind: SourceKind; label: string; icon: IconName }[] = [
   { kind: 'FILE', label: 'File', icon: 'pdf' },
   { kind: 'AUDIO_TRANSCRIPT', label: 'Audio', icon: 'audio' },
-  { kind: 'YOUTUBE_TRANSCRIPT', label: 'YouTube', icon: 'video' },
+  { kind: 'YOUTUBE_TRANSCRIPT', label: 'YouTube', icon: 'play' },
   { kind: 'WEB_PAGE', label: 'Web page', icon: 'globe' },
   { kind: 'PASTED_TEXT', label: 'Pasted text', icon: 'clipboard' },
   { kind: 'NOTE_REVISION', label: 'Note', icon: 'history' },

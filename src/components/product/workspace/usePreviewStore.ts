@@ -15,6 +15,19 @@ export function usePreviewStore() {
   const [spaces, setSpaces] = useState<SpaceRecord[]>([])
   const [sources, setSources] = useState<SourceRecord[]>([])
   const [links, setLinks] = useState<SpaceSourceLink[]>([])
+  // Which Space each note is in. The note list doesn't carry this yet (gap G1); Phase 6 reads it from the Space routes.
+  const [noteSpaces, setNoteSpaces] = useState<Record<string, string>>({})
+
+  const setNoteSpace = useCallback((noteId: string, spaceId: string | null) => {
+    setNoteSpaces((current) => {
+      const next = { ...current }
+      if (spaceId) next[noteId] = spaceId
+      else delete next[noteId]
+      return next
+    })
+    // A note leaving its Space can no longer be that Space's home note.
+    setSpaces((current) => current.map((space) => (space.homeNoteId === noteId && space.id !== spaceId ? { ...space, homeNoteId: null } : space)))
+  }, [])
 
   const createSpace = useCallback((draft: SpaceDraft) => {
     const space: SpaceRecord = { id: crypto.randomUUID(), name: draft.name.trim(), description: draft.description.trim() || null, icon: draft.icon.trim() || null, homeNoteId: null, status: 'ACTIVE', updatedAt: Date.now() }
@@ -28,6 +41,7 @@ export function usePreviewStore() {
 
   const deleteSpace = useCallback((id: string) => {
     setSpaces((current) => current.filter((space) => space.id !== id))
+    setNoteSpaces((current) => Object.fromEntries(Object.entries(current).filter(([, spaceId]) => spaceId !== id)))
     setLinks((current) => current.filter((link) => link.spaceId !== id))
   }, [])
 
@@ -59,7 +73,7 @@ export function usePreviewStore() {
     setLinks((current) => current.filter((link) => !(link.spaceId === spaceId && link.sourceId === sourceId)))
   }, [])
 
-  return { spaces, sources, links, createSpace, updateSpace, deleteSpace, createSource, updateSource, deleteSource, linkSource, updateLink, unlinkSource }
+  return { spaces, sources, links, noteSpaces, setNoteSpace, createSpace, updateSpace, deleteSpace, createSource, updateSource, deleteSource, linkSource, updateLink, unlinkSource }
 }
 
 export type PreviewStore = ReturnType<typeof usePreviewStore>

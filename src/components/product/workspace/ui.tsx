@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { AppIcon, type IconName } from '../AppIcon'
 import type { SourceStatus } from './model'
 
@@ -152,6 +152,17 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
 /** A simple dropdown menu of actions anchored to a trigger. */
 export function ActionMenu({ label, items, align = 'right' }: { label: string; items: { label: string; icon?: IconName; onSelect: () => void; destructive?: boolean; disabled?: boolean; hint?: string }[]; align?: 'left' | 'right' }) {
   const ref = useRef<HTMLDetailsElement>(null)
+  // Prefer the requested side, then nudge the open menu so it stays 8px inside the screen.
+  const [shift, setShift] = useState(0)
+  function onToggle() {
+    if (!ref.current?.open) { setShift(0); return }
+    // `toggle` fires after the open menu is laid out, so it can be measured directly.
+    const menu = ref.current.querySelector('ul')?.getBoundingClientRect()
+    if (!menu) return
+    const overRight = menu.right - (window.innerWidth - 8)
+    const overLeft = 8 - menu.left
+    setShift(overRight > 0 ? -overRight : overLeft > 0 ? overLeft : 0)
+  }
   useEffect(() => {
     const onPointer = (event: PointerEvent) => { if (ref.current?.open && !ref.current.contains(event.target as Node)) ref.current.open = false }
     const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape' && ref.current?.open) { ref.current.open = false; ref.current.querySelector('summary')?.focus() } }
@@ -159,9 +170,9 @@ export function ActionMenu({ label, items, align = 'right' }: { label: string; i
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('pointerdown', onPointer); document.removeEventListener('keydown', onKey) }
   }, [])
-  return <details ref={ref} className="group relative">
+  return <details ref={ref} onToggle={onToggle} className="group relative">
     <summary aria-label={label} className={`${iconButton} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}><AppIcon name="more" className="size-5" /></summary>
-    <ul className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full z-30 mt-1 w-56 rounded-xl border border-default bg-raised p-1 shadow-lg`}>
+    <ul style={shift ? { translate: `${shift}px 0` } : undefined} className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full z-30 mt-1 w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-default bg-raised p-1 shadow-lg`}>
       {items.map((item) => <li key={item.label}>
         <button type="button" disabled={item.disabled} onClick={() => { if (ref.current) ref.current.open = false; item.onSelect() }}
           className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50 ${item.destructive ? 'text-danger' : 'text-foreground'}`}>

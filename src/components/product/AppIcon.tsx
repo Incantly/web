@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'alert' | 'archive' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pdf' | 'pin' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'table' | 'trash' | 'unlink' | 'upload' | 'video'
+export type IconName = 'alert' | 'archive' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'table' | 'trash' | 'unlink' | 'upload' | 'video'
 
 const paths: Record<IconName, ReactNode> = {
   alert: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></>,
@@ -17,9 +17,10 @@ const paths: Record<IconName, ReactNode> = {
   link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></>,
   more: <><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.3" fill="currentColor" stroke="none"/></>,
   pdf: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h4"/></>,
+  play: <path d="M7 4.5v15l12-7.5z"/>,
   pin: <><path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/></>,
   restore: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></>,
-  space: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></>,
+  space: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></>,
   trash: <><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></>,
   unlink: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1M4 4l16 16"/></>,
   upload: <><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></>,

@@ -5,7 +5,8 @@ import { useState, type ReactNode } from 'react'
 import { AppIcon, type IconName } from '../AppIcon'
 import { useCurrentUser } from '../SessionGate'
 import { displayName, initial } from '../../../lib/identity'
-import type { Navigate, NoteRecord, SpaceRecord, WorkspaceView } from './model'
+import type { Navigate, NoteRecord, SourceRecord, SpaceRecord, WorkspaceView } from './model'
+import { sourceKindMeta } from './model'
 import { SpaceGlyph } from './ui'
 
 // Labels fade while the rail narrows; icons keep a fixed left offset so they never move.
@@ -32,14 +33,19 @@ function Foldable({ open, children }: { open: boolean; children: ReactNode }) {
   </div>
 }
 
-function SectionHeader({ icon, title, collapsed, onOpen, active, action }: { icon: IconName; title: string; collapsed: boolean; onOpen: () => void; active: boolean; action?: ReactNode }) {
-  return <div className="flex items-center">
-    <button type="button" onClick={onOpen} title={collapsed ? title : undefined} aria-current={active ? 'page' : undefined}
-      className={`${railButton} ${collapsed ? 'w-10' : 'w-full flex-1'} ${active ? 'bg-raised text-foreground' : 'text-muted'}`}>
-      <AppIcon name={icon} className="size-[1.125rem] shrink-0" />
-      <Label collapsed={collapsed} className="text-xs font-semibold uppercase tracking-[0.1em]">{title}</Label>
-    </button>
-    {action ? <div className={`shrink-0 ${fade} ${collapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`} inert={collapsed}>{action}</div> : null}
+/**
+ * "Spaces ⌄"-style section: the header toggles the list. When the rail is collapsed the header
+ * becomes an icon that opens the section's overview page instead.
+ */
+function Section({ id, icon, title, collapsed, open, onToggle, onOverview, active, children }: { id: string; icon: IconName; title: string; collapsed: boolean; open: boolean; onToggle: () => void; onOverview: () => void; active: boolean; children: ReactNode }) {
+  return <div className="mt-4">
+    {collapsed
+      ? <RailItem icon={icon} label={title} collapsed active={active} onClick={onOverview} />
+      : <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={id} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-raised hover:text-foreground">
+        <span className="truncate">{title}</span>
+        <AppIcon name="chevron" className={`size-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-90' : ''}`} />
+      </button>}
+    <Foldable open={!collapsed && open}><div id={id} className="mt-0.5 grid gap-0.5">{children}</div></Foldable>
   </div>
 }
 
@@ -73,11 +79,12 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
   </div>
 }
 
-export function Sidebar({ view, notes, spaces, navigate, onNew, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; collapsed?: boolean; onClose?: () => void }) {
+export function Sidebar({ view, notes, spaces, sources, navigate, onNew, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; collapsed?: boolean; onClose?: () => void }) {
   const user = useCurrentUser()
-  const [showArchived, setShowArchived] = useState(false)
-  const recent = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6)
-  const listedSpaces = spaces.filter((space) => (showArchived ? space.status === 'ARCHIVED' : space.status === 'ACTIVE'))
+  const [open, setOpen] = useState({ spaces: true, library: true })
+  const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
+  const librarySources = sources.filter((source) => source.status !== 'ARCHIVED' && source.status !== 'DELETED')
+  const LIST_LIMIT = 8
 
   return <aside className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-surface px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3" aria-label="Workspace navigation">
     <div className="flex min-h-11 items-center justify-between gap-2">
@@ -93,38 +100,20 @@ export function Sidebar({ view, notes, spaces, navigate, onNew, collapsed = fals
     <nav className="mt-3 grid gap-0.5" aria-label="Main navigation">
       <RailItem icon="search" label="Search" collapsed={collapsed} active={view === 'search'} onClick={() => navigate('search')}><span className={`hidden shrink-0 rounded bg-canvas px-1.5 py-0.5 text-[0.65rem] text-subtle sm:block ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>⌘ K</span></RailItem>
       <RailItem icon="home" label="Home" collapsed={collapsed} active={view === 'home'} onClick={() => navigate('home')} />
-      <RailItem icon="library" label="Library" collapsed={collapsed} active={view === 'library'} onClick={() => navigate('library')} />
+      <RailItem icon="document" label="All notes" collapsed={collapsed} active={view === 'notes'} onClick={() => navigate('notes')}>{notes.length ? <span className={`shrink-0 text-xs text-subtle ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{notes.length}</span> : null}</RailItem>
     </nav>
 
-    <div className="mt-5">
-      <SectionHeader icon="space" title="Spaces" collapsed={collapsed} active={view === 'spaces'} onOpen={() => navigate('spaces')}
-        action={<button type="button" onClick={() => onNew('space')} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-raised hover:text-foreground" aria-label="New Space"><AppIcon name="plus" className="size-4" /></button>} />
-      <Foldable open={!collapsed}>
-        <div className="pl-3">
-          <div role="group" aria-label="Spaces filter" className="mb-1 flex gap-1 px-1">
-            {([['Active', false], ['Archived', true]] as const).map(([label, archived]) => <button key={label} type="button" aria-pressed={showArchived === archived} onClick={() => setShowArchived(archived)}
-              className={`min-h-9 rounded-md px-2 text-xs transition-colors ${showArchived === archived ? 'bg-raised font-medium text-foreground' : 'text-muted hover:text-foreground'}`}>{label}</button>)}
-          </div>
-          <nav className="max-h-[12rem] overflow-y-auto" aria-label="Spaces">
-            {listedSpaces.map((space) => <RailItem key={space.id} leading={<SpaceGlyph icon={space.icon} size="sm" />} label={space.name} collapsed={false} active={view === `space:${space.id}`} onClick={() => navigate(`space:${space.id}`)} />)}
-            {listedSpaces.length === 0 ? (showArchived
-              ? <p className="px-3 py-2 text-xs text-muted">No archived Spaces.</p>
-              : <button type="button" onClick={() => onNew('space')} className="min-h-11 px-3 text-left text-xs text-muted hover:text-foreground">+ Create your first Space</button>) : null}
-          </nav>
-        </div>
-      </Foldable>
-    </div>
+    <Section id="sidebar-spaces" icon="space" title="Spaces" collapsed={collapsed} open={open.spaces} onToggle={() => setOpen((current) => ({ ...current, spaces: !current.spaces }))} onOverview={() => navigate('spaces')} active={view === 'spaces' || view.startsWith('space:')}>
+      <RailItem icon="plus" label="New Space" collapsed={false} active={false} onClick={() => onNew('space')} />
+      {activeSpaces.slice(0, LIST_LIMIT).map((space) => <RailItem key={space.id} leading={space.icon ? <SpaceGlyph icon={space.icon} size="sm" /> : undefined} icon="space" label={space.name} collapsed={false} active={view === `space:${space.id}`} onClick={() => navigate(`space:${space.id}`)} />)}
+      {spaces.length > 0 ? <RailItem icon="chevron" label={activeSpaces.length > LIST_LIMIT ? `All Spaces (${activeSpaces.length})` : 'All Spaces'} collapsed={false} active={view === 'spaces'} onClick={() => navigate('spaces')} /> : null}
+    </Section>
 
-    <div className="mt-3">
-      <SectionHeader icon="document" title="Notes" collapsed={collapsed} active={view === 'notes'} onOpen={() => navigate('notes')}
-        action={<button type="button" onClick={() => onNew('note')} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-raised hover:text-foreground" aria-label="New note"><AppIcon name="plus" className="size-4" /></button>} />
-      <Foldable open={!collapsed}>
-        <nav className="max-h-[14rem] overflow-y-auto pl-3" aria-label="Recent notes">
-          {recent.map((note) => <RailItem key={note.id} icon="document" label={note.title || 'Untitled note'} collapsed={false} active={view === `note:${note.id}`} onClick={() => navigate(`note:${note.id}`)} />)}
-          {recent.length === 0 ? <button type="button" onClick={() => onNew('note')} className="min-h-11 px-3 text-left text-xs text-muted hover:text-foreground">+ Write your first note</button> : null}
-        </nav>
-      </Foldable>
-    </div>
+    <Section id="sidebar-library" icon="library" title="My Library" collapsed={collapsed} open={open.library} onToggle={() => setOpen((current) => ({ ...current, library: !current.library }))} onOverview={() => navigate('library')} active={view === 'library'}>
+      <RailItem icon="upload" label="Add to Library" collapsed={false} active={false} onClick={() => onNew('source')} />
+      {librarySources.slice(0, LIST_LIMIT).map((source) => <RailItem key={source.id} icon={sourceKindMeta(source.kind).icon} label={source.title} collapsed={false} active={false} onClick={() => navigate('library')} />)}
+      {sources.length > 0 ? <RailItem icon="chevron" label={librarySources.length > LIST_LIMIT ? `Open Library (${librarySources.length})` : 'Open Library'} collapsed={false} active={view === 'library'} onClick={() => navigate('library')} /> : null}
+    </Section>
 
     <div className="mt-auto border-t border-default pt-2">
       <RailItem icon="settings" label="Settings" collapsed={collapsed} active={view === 'settings'} onClick={() => navigate('settings')} />

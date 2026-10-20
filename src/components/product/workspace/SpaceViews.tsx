@@ -29,8 +29,8 @@ export function SpacesView({ spaces, notes, navigate, onNewSpace }: { spaces: Sp
       {listed.length ? <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {listed.map((space) => {
           const count = notes.filter((note) => note.spaceId === space.id).length
-          return <li key={space.id}><button type="button" onClick={() => navigate(`space:${space.id}`)} className="flex h-full min-h-[8.5rem] w-full flex-col gap-3 rounded-[1.15rem] border border-default bg-raised p-5 text-left transition-colors hover:border-strong">
-            <span className="flex items-center gap-3"><SpaceGlyph icon={space.icon} /><span className="min-w-0 truncate font-display text-xl text-foreground">{space.name}</span></span>
+          return <li key={space.id} className="min-w-0"><button type="button" onClick={() => navigate(`space:${space.id}`)} className="flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-3 rounded-[1.15rem] border border-default bg-raised p-5 text-left transition-colors hover:border-strong">
+            <span className="flex min-w-0 items-center gap-3"><SpaceGlyph icon={space.icon} /><span className="min-w-0 truncate font-display text-xl text-foreground">{space.name}</span></span>
             {space.description ? <span className="line-clamp-2 text-sm leading-6 text-muted">{space.description}</span> : null}
             <span className="mt-auto text-xs text-subtle">{count} {count === 1 ? 'note' : 'notes'} · Updated {updatedLabel(space.updatedAt)}</span>
           </button></li>
@@ -115,7 +115,7 @@ export function SpaceView({ space, notes, sources, links, store, navigate, onCre
               <input type="checkbox" disabled={archived} checked={link.enabledByDefault} onChange={(event) => store.updateLink(space.id, source.id, { enabledByDefault: event.target.checked })} className="size-5 accent-[var(--ui-button)]" />Use by default
             </label>
             <label className="flex min-h-11 items-center gap-2 text-xs text-muted">Priority
-              <select disabled={archived} value={priorityPresets.find((preset) => preset.label === priorityLabel(link.priority))?.value ?? 0} onChange={(event) => store.updateLink(space.id, source.id, { priority: Number(event.target.value) })} className="min-h-9 rounded-lg border border-default bg-surface px-2 text-sm text-foreground">
+              <select disabled={archived} value={priorityPresets.find((preset) => preset.label === priorityLabel(link.priority))?.value ?? 0} onChange={(event) => store.updateLink(space.id, source.id, { priority: Number(event.target.value) })} className="min-h-11 rounded-lg border border-default bg-surface px-2 text-sm text-foreground">
                 {priorityPresets.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
               </select>
             </label>

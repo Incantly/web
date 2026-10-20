@@ -25,7 +25,7 @@ function matchesStatus(source: SourceRecord, filter: SourceStatus | 'ALL') {
 }
 
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" aria-pressed={selected} onClick={onClick} className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors ${selected ? 'border-foreground bg-foreground text-inverse' : 'border-default text-muted hover:border-strong hover:text-foreground'}`}>{children}</button>
+  return <button type="button" aria-pressed={selected} onClick={onClick} className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-sm transition-colors ${selected ? 'border-foreground bg-foreground text-inverse' : 'border-default text-muted hover:border-strong hover:text-foreground'}`}>{children}</button>
 }
 
 export function LibraryView({ sources, spaces, links, store, onAdd }: { sources: SourceRecord[]; spaces: SpaceRecord[]; links: SpaceSourceLink[]; store: PreviewStore; onAdd: () => void }) {

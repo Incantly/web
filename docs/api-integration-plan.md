@@ -107,41 +107,61 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 
 Build the shell the later phases fill. Use clean layouts, consistent icons, design-system tokens, and mobile-first responsive design.
 
-- [x] **2.1 Sidebar.** Search · Home · **Library** · **Spaces** (the user's Spaces, a "New Space" button, Active/Archived toggle) · **Notes** (recent notes, "New note") · Settings. Remove the Papers/Journals sections and their `NoteKind` type. Keep the collapsible rail behaviour.
+- [x] **2.1 Sidebar.** _(Updated to the owner's mockup: collapsible "Spaces ⌄" with + New Space and cube icons, and "My Library ⌄" listing sources with type icons.)_ Search · Home · **Library** · **Spaces** (the user's Spaces, a "New Space" button, Active/Archived toggle) · **Notes** (recent notes, "New note") · Settings. Remove the Papers/Journals sections and their `NoteKind` type. Keep the collapsible rail behaviour.
 - [x] **2.2 Icons.** Add the missing icons (Space, Source kinds: PDF/file, audio, YouTube, web, pasted text, note revision; status: processing, ready, failed; archive, restore, link, unlink, pin, import, upload) to `AppIcon`, sharing one stroke style.
 - [x] **2.3 Space page.** A header with icon, name, description and actions (edit, archive/restore, delete); tabs **Notes** · **Sources**; a home Note shown first when set.
 - [x] **2.4 Note page.** Editor plus a collapsible right **Context panel** ("Sources for this note", searchable badge, "What would the AI see?" preview). Breadcrumb `Space › Note` when opened from a Space.
 - [x] **2.5 Library page.** Kind and status filters, a list or grid of Sources with status chips, "Add to Library", and a Source detail drawer.
 - [x] **2.6 New menu.** One "New" entry offering New note · New Space · Add to Library · Import file as note · Import from URL.
 - [x] **2.7** Every view has loading (skeleton), empty, error-with-retry and offline states. _(Empty, offline and not-found states are live. `ListSkeleton` and `ErrorState` are built and attach to each list as it moves to server data in Phases 3–6.)_
-- [ ] **2.8** _(open: needs a signed-in session in the browser to measure the workspace)_ Every new view passes 320, 375, 768, 1024 and 1440 with no horizontal scroll, 44px targets and safe areas. Verify with DOM assertions or manually (no screenshots per `AGENTS.md`).
+- [x] **2.8** Every new view passes 320, 375, 768, 1024 and 1440 with no horizontal scroll, 44px targets and safe areas. _(Verified 2026-10-20 while signed in to the local backend: 15 screens × 5 widths, measured in the DOM, with no page overflow, no clipped controls and no target under 44px. Fixes made: 44px section headers, filter chips, priority select, title and search fields; long Space names truncate in cards; the action menu stays on screen at 320px.)_
 
 **Implemented:** `src/components/product/workspace/` (`Sidebar`, `SpaceViews`, `LibraryView`, `NoteView` with Context panel, `views` for Home/Notes/Search/Settings, `dialogs`, shared `ui` primitives built on native `<dialog>`, `model` types from the OpenAPI schema, `sourceInput` validation with unit tests). Spaces and Library run on an in-memory `usePreviewStore` until Phases 5–6; notes stay local until Phase 3. The old local folders/files `WorkspaceLibrary` is removed.
 
 ## Phase 3: Notes and editor sync
 
-- [ ] **3.1 Notes repository** (`src/lib/api/notes.ts`): list (cursor paging), create (with key), get, checkpoint get/put, revisions, revision get, restore, delete, transactions.
-- [ ] **3.2 Remove the mock notes and `localStorage` store.** "All notes" uses `GET /v1/notes` with infinite scroll that stops at `nextCursor: null`.
-- [ ] **3.3 Create.** `POST /v1/notes { title }` with a key, then open the note. When created inside a Space, follow with `PUT /v1/spaces/{id}/notes/{noteId}`.
-- [ ] **3.4 Open.** Show the IndexedDB cache immediately (marked syncing) while `GET /v1/notes/{id}/checkpoint` loads in parallel; the server wins. On `404 NOTE_NOT_FOUND`, drop the cache and show "Note not found".
-- [ ] **3.5 Transaction queue** (per note, in IndexedDB, behind core's `DocumentRepository`):
+- [x] **3.1 Notes repository** (`src/lib/api/notes.ts`): list (cursor paging), create (with key), get, checkpoint get/put, revisions, revision get, restore, delete, transactions.
+- [x] **3.2 Remove the mock notes and `localStorage` store.** "All notes" uses `GET /v1/notes` with infinite scroll that stops at `nextCursor: null`.
+- [x] **3.3 Create.** `POST /v1/notes { title }` with a key, then open the note. When created inside a Space, follow with `PUT /v1/spaces/{id}/notes/{noteId}`.
+- [x] **3.4 Open.** Show the IndexedDB cache immediately (marked syncing) while `GET /v1/notes/{id}/checkpoint` loads in parallel; the server wins. On `404 NOTE_NOT_FOUND`, drop the cache and show "Note not found".
+- [x] **3.5 Transaction queue** (per note, in IndexedDB, behind core's `DocumentRepository`):
   - one persistent `clientId`;
   - a monotonic `localSequence` per (note, client);
   - batch `DocumentOperation`s after 1–2 s idle or 200 operations, at most 1,000 per request;
   - persist before sending, send serially per note, drop only on `201 applied`.
-- [ ] **3.6 Recovery by code.**
+- [x] **3.6 Recovery by code.**
   - `NOTE_TRANSACTION_CONFLICT`: fetch the checkpoint, rebase by node ID, resend with a new ID and the next sequence.
   - `TRANSACTION_ID_REUSED` or `CLIENT_SEQUENCE_*`: stop the queue and report.
   - `TRANSACTION_IN_PROGRESS` or `503 NOTE_TRANSACTION_RETRYABLE`: resend the identical payload after `Retry-After`.
   - `422 INVALID_NOTE_TRANSACTION`: mark the batch rejected and show an editor error.
-- [ ] **3.7 Sync indicator** replacing "Saved on this device": Saved · Saving · Offline (n pending) · Conflict, announced with `aria-live`.
-- [ ] **3.8 Rename (G2).** Flush the queue, then `PUT` the checkpoint with the new `metadata.title`. On `409 STALE_NOTE_REVISION`, refetch and retry once, never overwriting newer content.
-- [ ] **3.9 Reconnect.** Check the session, fetch the checkpoint, replay or rebase pending work, resume.
-- [ ] **3.10 History.** List revisions, open a read-only preview, restore (warn before discarding local edits based on the old head).
-- [ ] **3.11 Delete.** Confirm, `DELETE`, then remove the note from lists, Space pages and the home Note.
-- [ ] **3.12 Unit tests:** persist-before-send, ack removal, each recovery code, sequence monotonicity, a stale response never overwriting newer content.
+- [x] **3.7 Sync indicator** replacing "Saved on this device": Saved · Saving · Offline (n pending) · Conflict, announced with `aria-live`.
+- [x] **3.8 Rename (G2).** Flush the queue, then `PUT` the checkpoint with the new `metadata.title`. On `409 STALE_NOTE_REVISION`, refetch and retry once, never overwriting newer content.
+- [x] **3.9 Reconnect.** Check the session, fetch the checkpoint, replay or rebase pending work, resume.
+- [x] **3.10 History.** List revisions, open a read-only preview, restore (warn before discarding local edits based on the old head).
+- [x] **3.11 Delete.** Confirm, `DELETE`, then remove the note from lists, Space pages and the home Note.
+- [x] **3.12 Unit tests:** persist-before-send, ack removal, each recovery code, sequence monotonicity, a stale response never overwriting newer content.
 
 **Done when:** notes persist across reloads; offline edits sync on reconnect; two tabs converge without lost text; rename, restore and delete work; no `localStorage` note storage remains.
+
+**Implemented:** `src/lib/api/notes.ts`, `src/lib/notes/{documentGate,syncStore,noteSync}.ts` (16 unit tests), `useNotes` (TanStack Query list, create, delete, revisions) and `useNoteSession` in `src/components/product/workspace/`, and `NoteScreen` (sync indicator, conflict dialog, history drawer, delete).
+
+**Verified live 2026-10-20** against the local backend (test account `claude-test@incantly.test` via Mailpit):
+- create, then type: Saving… → Saved, with the text on the server;
+- rename, then the server title updates;
+- reload, and the content and title persist;
+- another device's overlapping edit → Conflict, then "Keep my version" saves the local copy;
+- history preview (read-only) → restore creates a `restore` revision;
+- simulated offline → "Offline · 1 pending" → reload sends it;
+- delete removes the note.
+
+**Design adjustments:**
+- **3.6 Conflicts.** The backend already rebases edits to different nodes, so `409 NOTE_TRANSACTION_CONFLICT` means a true overlap. The client keeps the local copy and asks the user: Keep my version (full save on the latest revision) or Use the latest version. It never auto-merges or overwrites silently.
+- **3.5 `DocumentRepository`.** Core's interface speaks binary update blobs, not typed operations. The typed-operation queue (`NoteSync`) sits beside it.
+- **3.4 Opening a note.** The cached copy is shown read-only until the server answers, so no keystrokes can be lost when the authoritative copy loads.
+
+**Known limitation until Phase 4:**
+- **Images and files in notes.** These still use the local IndexedDB asset store, so a note containing a newly inserted image will not pass server validation until Phase 4 switches uploads to `/v1/assets`.
+- **Old local notes.** Interim local notes in `localStorage` are no longer read. They stay in the browser and aren't migrated.
 
 ## Phase 4: Assets
 
