@@ -1,5 +1,6 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { authClient } from '../../lib/auth-client'
 import { syncKey } from '../../lib/notes/syncStore'
@@ -8,7 +9,6 @@ import { InboxPopover, type InboxItem } from './InboxPopover'
 import { AppProviders } from './AppProviders'
 import { SessionGate, useCurrentUser } from './SessionGate'
 import type { NoteRecord, WorkspaceView } from './workspace/model'
-import { usePreviewStore } from './workspace/usePreviewStore'
 import { Sidebar, type NewAction } from './workspace/Sidebar'
 import { HomeView, NotesView, SearchView, SettingsView } from './workspace/views'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
@@ -19,6 +19,8 @@ import { noteSyncStore, resumePendingNotes, useNoteSession } from './workspace/u
 import { useAbandonedUploadCleanup, useServerAssetHost } from './workspace/useAssets'
 import { DocumentAssetsProvider } from '../../lib/document-editor/assetHost'
 import { AddSourceDialog, SpaceFormDialog } from './workspace/dialogs'
+import { createSpaceVariables, useSpaceActions, useSpaces } from './workspace/useSpaces'
+import { addSourceToLibrary, libraryKey, useLibrarySources } from './workspace/useLibrary'
 import { EmptyState, OfflineBanner, PageFrame, buttonSecondary } from './workspace/ui'
 
 const initialInbox: InboxItem[] = [
@@ -54,14 +56,24 @@ export function Workspace() {
 
 function WorkspaceShell() {
   const user = useCurrentUser()
-  const store = usePreviewStore()
+  const client = useQueryClient()
   const online = useOnline()
+  const spacesQuery = useSpaces(user.id)
+  const libraryQuery = useLibrarySources(user.id)
+  const spaceActions = useSpaceActions(user.id)
+  const spaces = spacesQuery.spaces
+  const sources = libraryQuery.sources
+  // The notes list has no Space field (gap G1): a note opened from a Space remembers it here.
+  const [noteContext, setNoteContext] = useState<{ noteId: string; spaceId: string } | null>(null)
+  const [openSourceId, setOpenSourceId] = useState<string | null>(null)
   const [view, setView] = useState<WorkspaceView>('home')
   const notesQuery = useNotesList(user.id)
   const createNoteMutation = useCreateNote(user.id)
   const deleteNoteMutation = useDeleteNote(user.id)
-  const notes = useMemo<NoteRecord[]>(() => notesQuery.notes.map((note) => ({ id: note.id, title: note.title, updatedAt: Date.parse(note.updatedAt) || 0, spaceId: store.noteSpaces[note.id] ?? null })), [notesQuery.notes, store.noteSpaces])
+  const notes = useMemo<NoteRecord[]>(() => notesQuery.notes.map((note) => ({ id: note.id, title: note.title, updatedAt: Date.parse(note.updatedAt) || 0, spaceId: noteContext?.noteId === note.id ? noteContext.spaceId : null, currentRevisionId: note.currentRevisionId ?? null })), [notesQuery.notes, noteContext])
   const notesStatus = { loading: notesQuery.isPending, error: notesQuery.isError ? notesQuery.error : null, retry: () => void notesQuery.refetch(), hasMore: notesQuery.hasNextPage, loadMore: () => void notesQuery.fetchNextPage(), loadingMore: notesQuery.isFetchingNextPage }
+  const spacesStatus = { loading: spacesQuery.isPending, error: spacesQuery.isError ? spacesQuery.error : null, retry: () => void spacesQuery.refetch() }
+  const libraryStatus = { loading: libraryQuery.isPending, error: libraryQuery.isError ? libraryQuery.error : null, retry: () => void libraryQuery.refetch() }
   const [inbox, setInbox] = useState<InboxItem[]>(initialInbox)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [railCollapsed, setRailCollapsed] = useState(false)
@@ -75,8 +87,8 @@ function WorkspaceShell() {
   useEffect(() => { activeNoteIdRef.current = activeNoteId }, [activeNoteId])
   const activeNote = notes.find((note) => note.id === activeNoteId)
   const activeSpaceId = view.startsWith('space:') ? view.slice(6) : null
-  const activeSpace = store.spaces.find((space) => space.id === activeSpaceId)
-  const noteSpace = activeNote?.spaceId ? store.spaces.find((space) => space.id === activeNote.spaceId) : undefined
+  const activeSpace = spaces.find((space) => space.id === activeSpaceId)
+  const noteSpace = activeNote?.spaceId ? spaces.find((space) => space.id === activeNote.spaceId) : undefined
 
   useAbandonedUploadCleanup(user.id)
   // Send edits still waiting on this device: once on load, and again whenever the connection returns.
@@ -123,21 +135,30 @@ function WorkspaceShell() {
   const railExpanded = !railCollapsed || railPeek
 
   function navigate(destination: WorkspaceView) { setView(destination); setMobileOpen(false) }
+  function openNote(noteId: string, spaceId?: string) {
+    setNoteContext(spaceId ? { noteId, spaceId } : null)
+    navigate(`note:${noteId}`)
+  }
+  function openSource(sourceId: string | null) {
+    setOpenSourceId(sourceId)
+    if (sourceId && view !== 'library') navigate('library')
+  }
   function createNote(options: { title?: string; spaceId?: string | null } = {}) {
     if (createNoteMutation.isPending) return
     createNoteMutation.mutate(createNoteVariables(options.title), {
-      onSuccess: (note) => {
-        if (options.spaceId) store.setNoteSpace(note.id, options.spaceId)
-        navigate(`note:${note.id}`)
+      onSuccess: async (note) => {
+        // Create directly in the Space: the note exists either way, so a failed move still opens it.
+        if (options.spaceId) await spaceActions.addNote.mutateAsync({ spaceId: options.spaceId, noteId: note.id }).catch(() => {})
+        openNote(note.id, options.spaceId ?? undefined)
       },
     })
   }
-  function moveNote(noteId: string, spaceId: string | null) { store.setNoteSpace(noteId, spaceId) }
   async function deleteNote(noteId: string) {
     await deleteNoteMutation.mutateAsync(noteId)
-    store.setNoteSpace(noteId, null)
     await noteSyncStore().remove(syncKey(user.id, noteId)).catch(() => {})
-    navigate('notes')
+    void client.invalidateQueries({ queryKey: ['space-notes'] })
+    void client.invalidateQueries({ queryKey: ['spaces', user.id] })
+    navigate(noteContext?.noteId === noteId ? `space:${noteContext.spaceId}` : 'notes')
   }
   function shareNote(title: string) {
     const text = title || 'Untitled note'
@@ -163,7 +184,7 @@ function WorkspaceShell() {
     createFrom={(item) => { createNote({ title: item.title }); setInbox((current) => current.filter((candidate) => candidate.id !== item.id)) }}
     dismiss={(id) => setInbox((current) => current.filter((item) => item.id !== id))} />
 
-  const sidebarProps = { view, notes, spaces: store.spaces, sources: store.sources, navigate, onNew }
+  const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource }
   const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'settings' ? 'Settings' : activeSpace ? activeSpace.name : null
 
   return <main className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
@@ -193,23 +214,27 @@ function WorkspaceShell() {
           <div className="ml-auto flex shrink-0 items-center gap-1">{barTrailing}</div>
         </div>}
 
-        {view === 'home' ? <HomeView notes={notes} notesStatus={notesStatus} spaces={store.spaces} sources={store.sources} navigate={navigate} onNewNote={() => createNote()} /> : null}
-        {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} spaces={store.spaces} sources={store.sources} query={query} setQuery={setQuery} navigate={navigate} /></div> : null}
-        {view === 'notes' ? <NotesView notes={notes} notesStatus={notesStatus} spaces={store.spaces} navigate={navigate} onNewNote={() => createNote()} /> : null}
-        {view === 'spaces' ? <SpacesView spaces={store.spaces} notes={notes} navigate={navigate} onNewSpace={() => setDialog('space')} /> : null}
-        {view === 'library' ? <LibraryView sources={store.sources} spaces={store.spaces} links={store.links} store={store} onAdd={() => setDialog('source')} /> : null}
+        {view === 'home' ? <HomeView notes={notes} notesStatus={notesStatus} spaces={spaces} sources={sources} navigate={navigate} onNewNote={() => createNote()} /> : null}
+        {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} spaces={spaces} sources={sources} query={query} setQuery={setQuery} navigate={navigate} onOpenSource={openSource} /></div> : null}
+        {view === 'notes' ? <NotesView notes={notes} notesStatus={notesStatus} spaces={spaces} navigate={navigate} onNewNote={() => createNote()} /> : null}
+        {view === 'spaces' ? <SpacesView spaces={spaces} status={spacesStatus} navigate={navigate} onNewSpace={() => setDialog('space')} /> : null}
+        {view === 'library' ? <LibraryView userId={user.id} sources={sources} status={libraryStatus} spaces={spaces} navigate={navigate} openSourceId={openSourceId} onOpenSource={setOpenSourceId} onAdd={() => setDialog('source')} /> : null}
         {view === 'settings' ? <SettingsView /> : null}
-        {activeSpace ? <SpaceView key={activeSpace.id} space={activeSpace} notes={notes} sources={store.sources} links={store.links} store={store} navigate={navigate}
-          onCreateNote={(spaceId) => createNote({ spaceId })} onMoveNote={moveNote} onAddSource={() => setDialog('source')} /> : null}
-        {activeSpaceId && !activeSpace ? <PageFrame><EmptyState icon="space" title="Space not found" body="It may have been deleted." action={<button type="button" onClick={() => navigate('spaces')} className={buttonSecondary}>All Spaces</button>} /></PageFrame> : null}
+        {activeSpace ? <SpaceView key={activeSpace.id} userId={user.id} space={activeSpace} notes={notes} sources={sources} navigate={navigate}
+          onOpenNote={openNote} onCreateNote={(spaceId) => createNote({ spaceId })} onAddSource={() => setDialog('source')} /> : null}
+        {activeSpaceId && !activeSpace && spacesQuery.isPending ? <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame> : null}
+        {activeSpaceId && !activeSpace && !spacesQuery.isPending ? <PageFrame><EmptyState icon="space" title="Space not found" body="It may have been deleted." action={<button type="button" onClick={() => navigate('spaces')} className={buttonSecondary}>All Spaces</button>} /></PageFrame> : null}
         {activeNoteId ? <NoteRoute key={activeNoteId} userId={user.id} noteId={activeNoteId} title={activeNote?.title ?? ''} space={noteSpace}
           leading={barLeading} trailing={barTrailing} onOpenSpace={(spaceId) => navigate(`space:${spaceId}`)} onShare={() => shareNote(activeNote?.title ?? '')}
           onDelete={() => deleteNote(activeNoteId)} onBack={() => navigate('notes')} /> : null}
       </section>
     </div>
 
-    <SpaceFormDialog open={dialog === 'space'} onClose={() => setDialog(null)} onSubmit={(draft) => { const space = store.createSpace(draft); navigate(`space:${space.id}`) }} />
-    <AddSourceDialog open={dialog === 'source'} onClose={() => setDialog(null)} spaces={store.spaces} notes={notes} defaultSpaceId={activeSpace?.status === 'ACTIVE' ? activeSpace.id : undefined}
-      onSubmit={(input) => { store.createSource({ kind: input.kind, title: input.title || 'Untitled source', sensitivity: input.sensitivity, spaceIds: input.spaceIds }) }} />
+    <SpaceFormDialog open={dialog === 'space'} onClose={() => setDialog(null)} onSubmit={async (draft) => { const space = await spaceActions.create.mutateAsync(createSpaceVariables(draft)); navigate(`space:${space.id}`) }} />
+    <AddSourceDialog open={dialog === 'source'} onClose={() => setDialog(null)} spaces={spaces} notes={notes} defaultSpaceId={activeSpace?.status === 'ACTIVE' ? activeSpace.id : undefined}
+      onSubmit={async (input, options) => {
+        await addSourceToLibrary(input, notes, options)
+        await Promise.all([client.invalidateQueries({ queryKey: libraryKey(user.id) }), ...input.spaceIds.map((spaceId) => client.invalidateQueries({ queryKey: ['space-sources', spaceId] }))])
+      }} />
   </main>
 }

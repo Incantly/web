@@ -1,6 +1,6 @@
 import type { Sensitivity, SourceKind } from './model'
 
-/** Everything the "Add to Library" form collects. Phase 5 turns this into upload + `POST /v1/library/sources`. */
+/** Everything the "Add to Library" form collects; `addSourceToLibrary` uploads any file and calls `POST /v1/library/sources`. */
 export type AddSourceInput = {
   kind: SourceKind
   title: string

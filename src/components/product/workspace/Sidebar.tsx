@@ -79,7 +79,7 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
   </div>
 }
 
-export function Sidebar({ view, notes, spaces, sources, navigate, onNew, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; collapsed?: boolean; onClose?: () => void }) {
+export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; collapsed?: boolean; onClose?: () => void }) {
   const user = useCurrentUser()
   const [open, setOpen] = useState({ spaces: true, library: true })
   const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
@@ -111,7 +111,7 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, collaps
 
     <Section id="sidebar-library" icon="library" title="My Library" collapsed={collapsed} open={open.library} onToggle={() => setOpen((current) => ({ ...current, library: !current.library }))} onOverview={() => navigate('library')} active={view === 'library'}>
       <RailItem icon="upload" label="Add to Library" collapsed={false} active={false} onClick={() => onNew('source')} />
-      {librarySources.slice(0, LIST_LIMIT).map((source) => <RailItem key={source.id} icon={sourceKindMeta(source.kind).icon} label={source.title} collapsed={false} active={false} onClick={() => navigate('library')} />)}
+      {librarySources.slice(0, LIST_LIMIT).map((source) => <RailItem key={source.id} icon={sourceKindMeta(source.kind).icon} label={source.title} collapsed={false} active={false} onClick={() => onOpenSource(source.id)} />)}
       {sources.length > 0 ? <RailItem icon="chevron" label={librarySources.length > LIST_LIMIT ? `Open Library (${librarySources.length})` : 'Open Library'} collapsed={false} active={view === 'library'} onClick={() => navigate('library')} /> : null}
     </Section>
 

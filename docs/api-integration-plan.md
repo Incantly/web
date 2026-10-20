@@ -52,7 +52,7 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 
 | # | Gap | Effect on the UI | Workaround in this plan |
 | --- | --- | --- | --- |
-| G1 | `NoteDto` has no `spaceId`, and `GET /v1/notes` has no Space or standalone filter | Cannot cheaply show "Unsorted notes" or label a note with its Space | Space pages use `GET /v1/spaces/{id}/notes`. "All notes" lists everything without Space labels. The open note shows its Space only when entered from that Space. Ask the backend to add `spaceId` to `NoteDto` and `?spaceId=` / `?standalone=true` |
+| G1 | `NoteDto` has no `spaceId`, and `GET /v1/notes` has no Space or standalone filter | Cannot cheaply show "Unsorted notes" or label a note with its Space | **Built in Phase 6:** Space pages use `GET /v1/spaces/{id}/notes`. "All notes" lists everything without Space labels. The open note shows its Space only when entered from that Space. Ask the backend to add `spaceId` to `NoteDto` and `?spaceId=` / `?standalone=true` |
 | G2 | No note rename endpoint; title follows `document.metadata.title`, and no typed operation sets metadata | Renaming needs a full save | Rename = `PUT /v1/notes/{id}/checkpoint` with the updated `metadata.title` and `baseRevisionNumber`; handle `409 STALE_NOTE_REVISION`. Ask for a `setTitle` operation or `PATCH /v1/notes/{id}` |
 | G3 | No Folder API | Folders inside Spaces cannot be stored | Do not build folders (client-only folders would not persist or sync). Ask the backend for folder metadata if folders are wanted |
 | G4 | No search endpoint | — | Title filter over the loaded Notes, Spaces and Sources lists |
@@ -219,8 +219,8 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
 
 ## Phase 5: Library (Sources)
 
-- [ ] **5.1** Replace `WorkspaceLibrary.tsx`'s local IndexedDB with `GET /v1/library/sources` (kind and status filters, cursor paging).
-- [ ] **5.2 "Add to Library" dialog, one tab per kind:**
+- [x] **5.1** Replace `WorkspaceLibrary.tsx`'s local IndexedDB with `GET /v1/library/sources` (kind and status filters, cursor paging).
+- [x] **5.2 "Add to Library" dialog, one tab per kind:**
   - File: PDF, text, Markdown.
   - Audio: with the required consent checkbox "I have permission to record and transcribe this audio".
   - YouTube: URL plus a `.vtt`/`.srt` caption file, with help saying captions come from YouTube Studio and the app never scrapes YouTube.
@@ -228,7 +228,7 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
   - Paste: at most 512 KiB.
   - Note revision: pick a Note; uses its `currentRevisionId`.
   - Plus optional title, sensitivity, and "Also add to Spaces" (up to 20). Re-adding the same Asset or revision returns the existing Source; treat it as success.
-- [ ] **5.3 Processing.** Poll `/processing` and show the stage (Validating, Queued, Fetching, Parsing, Transcribing, Normalizing) and the states:
+- [x] **5.3 Processing.** Poll `/processing` and show the stage (Validating, Queued, Fetching, Parsing, Transcribing, Normalizing) and the states:
   - `READY`;
   - `PARTIALLY_READY` with its `partialReason` in words;
   - `FAILED` with its `failureCode` in words;
@@ -236,20 +236,86 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
   - images (`AWAITING_PROCESSOR`) show "Added, not searchable".
 
   Show Retry only when `canRetry` and Cancel only when `canCancel`; handle `409 NOTHING_TO_RETRY` and `NOT_CANCELLABLE`.
-- [ ] **5.4 Source detail drawer.** Versions (up to 25), provenance (pages parsed, duration, host, untrusted `documentTitle` as text), rename, sensitivity with help ("Restricted material is never sent to external AI"), archive/restore, delete (confirm: removes its Space links and Note bindings; the file stays), and "Open file" via the asset download.
-- [ ] **5.5** Show where a Source is used: Spaces it's linked to, from the Space pages' data when available.
+- [x] **5.4 Source detail drawer.** Versions (up to 25), provenance (pages parsed, duration, host, untrusted `documentTitle` as text), rename, sensitivity with help ("Restricted material is never sent to external AI"), archive/restore, delete (confirm: removes its Space links and Note bindings; the file stays), and "Open file" via the asset download.
+- [x] **5.5** Show where a Source is used: Spaces it's linked to, from the Space pages' data when available.
 
 **Done when:** every Source kind can be added, shows live progress, ends in a clear state, and can be retried, cancelled, renamed, archived, restored and deleted.
 
+**Implemented (Phases 5 and 6 landed together):**
+- **API clients:** `src/lib/api/library.ts` (list, get, create, update, archive, restore, delete, processing, retry, cancel) and `src/lib/api/spaces.ts` (Spaces, membership, home note, Source links).
+- **Library data (`workspace/useLibrary.ts`):**
+  - `useLibrarySources` reads every cursor page, 100 at a time.
+  - **Filters are client-side:** they run over the full list, because the API's `status` filter takes one status while the UI chips group two (for example Ready plus Partly ready).
+  - While anything is processing, the list refetches with backoff.
+  - `useSourceProcessing` polls `/processing` from 1 second to 5 seconds until it settles.
+  - `addSourceToLibrary` uploads the file (Phase 4 uploader), then sends `POST /v1/library/sources` with a new key per attempt.
+- **Words for every state (`workspace/sourceStatus.ts`):** stage names, `partialReason`, `failureCode`, quarantine, and images awaiting a processor ("Added, not searchable"), with unit tests.
+- **Add to Library dialog:**
+  - Uploads with a progress bar, and Cancel stops the upload.
+  - Errors appear inline, and the dialog stays open on failure.
+  - A web page that answers 409 shows "Web pages aren’t available here yet".
+  - "Also add to Spaces" sends `spaceIds`.
+  - A note is added as its `currentRevisionId`.
+- **Source drawer:**
+  - Live status and stage, with Retry and Cancel shown only when `canRetry` / `canCancel`, and `NOTHING_TO_RETRY` / `NOT_CANCELLABLE` handled.
+  - Search-index readiness, "Open file" through the asset download, rename (on blur or Enter), and sensitivity with help text.
+  - Used in: the Spaces that link the Source, from each Space's link list.
+  - Versions with provenance; `documentTitle` is shown as text.
+  - Archive, restore, and delete behind a confirmation.
+- **Sidebar and Search:** sources open their drawer.
+
+**Live-verified:**
+- **All six kinds:** each was created on the server: File (PDF), Audio (consent required before sending), YouTube (caption file plus link), Pasted text, Note revision, and Web page (409 shown in words).
+- **Pasted text over 512 KB** is caught before sending.
+- **Rename and sensitivity** are saved.
+- **Cancel and retry:** cancel moves to `FAILED` / `CANCELED_BY_USER` ("You cancelled processing."), Retry appears, and retry goes back to `PENDING`.
+- **Archive and restore:** archive makes the Source read-only, and restore brings it back.
+- **Delete:** the Source is removed, and the PDF still shows in the note that embeds it.
+- **Used in:** shows the linked Space.
+
+**Not verifiable on this machine yet:**
+- **Stage progression to READY.** The local backend isn't processing Sources: its `.env` has no `OUTBOX_RELAY_ENABLED` / `QUEUE_PUBLISHER_URL`, and the queue worker (`npm run worker`) isn't running.
+  - Every Source therefore stays `PENDING`. That is why the user saw "Waiting".
+  - The polling, stage names and final-state wording are implemented and unit-tested, but the live run from Parsing to Ready needs that worker.
+
 ## Phase 6: Spaces
 
-- [ ] **6.1** Spaces list in the sidebar and a Spaces overview: Active/Archived filter (`status`), create (name ≤ 120, description ≤ 1000, icon ≤ 64 characters, e.g. an emoji or icon key) with a key, and edit through `PATCH` (an empty description or icon clears it).
-- [ ] **6.2 Notes tab.** `GET /v1/spaces/{id}/notes` (paged). Add an existing note or move it from another Space (`PUT`), remove it to make it standalone (`DELETE`), create a note directly in the Space (3.3).
-- [ ] **6.3 Home Note.** Set it (`PUT .../home-note/{noteId}`, active notes in this Space only) and clear it (`DELETE .../home-note`). Show it first on the Space page.
-- [ ] **6.4 Sources tab.** List linked Sources; link from the Library picker (`PUT`, where `created: false` means already linked); toggle "Use by default" (`enabledByDefault`); priority (−100 to 100, as Low/Normal/High presets with the exact value behind them); unlink (`DELETE`, keeps the Source). The 200-link cap is shown when reached.
-- [ ] **6.5 Lifecycle.** Archive/restore, where an archived Space is read-only (actions hidden; `409 SPACE_NOT_ACTIVE` handled). Delete with confirmation "Notes become standalone; nothing else is deleted". Handle `409 SPACE_RETENTION_HOLD`.
+- [x] **6.1** Spaces list in the sidebar and a Spaces overview: Active/Archived filter (`status`), create (name ≤ 120, description ≤ 1000, icon ≤ 64 characters, e.g. an emoji or icon key) with a key, and edit through `PATCH` (an empty description or icon clears it).
+- [x] **6.2 Notes tab.** `GET /v1/spaces/{id}/notes` (paged). Add an existing note or move it from another Space (`PUT`), remove it to make it standalone (`DELETE`), create a note directly in the Space (3.3).
+- [x] **6.3 Home Note.** Set it (`PUT .../home-note/{noteId}`, active notes in this Space only) and clear it (`DELETE .../home-note`). Show it first on the Space page.
+- [x] **6.4 Sources tab.** List linked Sources; link from the Library picker (`PUT`, where `created: false` means already linked); toggle "Use by default" (`enabledByDefault`); priority (−100 to 100, as Low/Normal/High presets with the exact value behind them); unlink (`DELETE`, keeps the Source). The 200-link cap is shown when reached.
+- [x] **6.5 Lifecycle.** Archive/restore, where an archived Space is read-only (actions hidden; `409 SPACE_NOT_ACTIVE` handled). Delete with confirmation "Notes become standalone; nothing else is deleted". Handle `409 SPACE_RETENTION_HOLD`.
 
 **Done when:** a Space can be created, given notes and Sources, a home note set, archived, restored and deleted without losing notes or Sources.
+
+**Implemented:**
+- **Data (`workspace/useSpaces.ts`):** every Space (all pages), each Space's notes (paged, with "Load more"), each Space's Source links, and all the mutations.
+  - **Create** uses a key per attempt.
+  - **Edit** sends only the changed fields; a cleared description or icon is sent as `''`.
+  - **Move:** a note moved in refreshes every Space's note list, since it leaves its old Space.
+- **The in-memory preview store is removed.** Spaces and Sources survive a reload.
+- **G1 workaround:**
+  - A note opened from a Space carries that Space, for the header and for returning after delete.
+  - "New note" inside a Space creates the note and then adds it to the Space.
+  - "Add existing note" lists the notes not in this Space; picking one moves it.
+- **Archived Spaces are read-only:** actions are hidden, a Restore banner shows, and they drop out of the sidebar.
+- **Delete** confirms "Notes become standalone; nothing else is deleted" and is disabled under a retention hold. `SPACE_NOT_ACTIVE`, `SPACE_RETENTION_HOLD` and `SPACE_SOURCE_LIMIT_REACHED` show as toasts.
+- **Sources tab:** "Use by default", Low/Normal/High priority (an exact value off the presets shows as "Normal (12)"), unlink, link from the Library, and the 200-link cap shown and enforced.
+
+**Live-verified:**
+- **Persistence:** the Space was created and was still in the sidebar after a reload, which was the user's bug.
+- **Notes:** a note created inside the Space and an existing note added were both in the server's list.
+- **Home note:** it was set on the server and listed first. Removing that note from the Space cleared the home pointer.
+- **Edit:** the description and icon were saved, and clearing the description sent `''`, which became `null`.
+- **Archive and restore:** archiving made the Space read-only and removed it from the sidebar; restore brought it back.
+- **Source links:** "Use by default" went true → false and priority 0 → 50. Unlink and relink worked, and the server restored the earlier settings.
+- **Delete:** the Space was removed, the notes stayed, and the Sources stayed in the Library.
+
+**Responsive (Phases 5 and 6):**
+- **Coverage:** the Spaces list, Space notes, Space sources, Library, the Source drawer, Add to Library (File and YouTube tabs) and New Space, at 320, 375, 768, 1024 and 1440 px.
+- **Result:** no overflow and no target under 44 px, using a 120-character Space name and a long description.
+- **Fixed:** the "Also add to Spaces" list overflowed at 320 and 375 px, because `<fieldset>` and grid items default to `min-width: min-content`. Adding `min-w-0` fixed it.
+- **Checks:** typecheck, lint, and 81 unit tests pass.
 
 ## Phase 7: Note context (bindings)
 

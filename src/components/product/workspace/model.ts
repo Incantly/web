@@ -1,5 +1,7 @@
 import type { IconName } from '../AppIcon'
 import type { Schema } from '../../../lib/api/types'
+import type { SourceDto } from '../../../lib/api/library'
+import type { SpaceDto } from '../../../lib/api/spaces'
 
 export type WorkspaceView =
   | 'home'
@@ -13,13 +15,18 @@ export type WorkspaceView =
 
 export type Navigate = (view: WorkspaceView) => void
 
-/** A note as listed from `GET /v1/notes`, plus its Space (interim, until Phase 6 reads membership from the server). */
+/** A note as listed from `GET /v1/notes`. */
 export type NoteRecord = {
   id: string
   title: string
   updatedAt: number
-  /** Primary Space (backend `Note.spaceId`); null for a standalone note. */
+  /**
+   * The note's Space when this screen knows it (opened from that Space). The notes list has no
+   * Space field yet (gap G1), so this is null elsewhere.
+   */
   spaceId: string | null
+  /** For adding the note to the Library as a fixed revision. */
+  currentRevisionId: string | null
 }
 
 export type SpaceStatus = Exclude<Schema<'SpaceDto'>['status'], 'DELETED'>
@@ -30,7 +37,12 @@ export type SpaceRecord = {
   icon: string | null
   homeNoteId: string | null
   status: SpaceStatus
+  retentionHold: boolean
   updatedAt: number
+}
+
+export function toSpaceRecord(space: SpaceDto): SpaceRecord {
+  return { id: space.id, name: space.name, description: space.description, icon: space.icon, homeNoteId: space.homeNoteId, status: space.status === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE', retentionHold: space.retentionHold, updatedAt: Date.parse(space.updatedAt) || 0 }
 }
 
 export type SourceKind = Schema<'SourceDto'>['kind']
@@ -43,6 +55,19 @@ export type SourceRecord = {
   status: SourceStatus
   sensitivity: Sensitivity
   updatedAt: number
+  /** The newest version's processing facts (lists return only the latest version). */
+  stage: string | null
+  failureCode: string | null
+  partialReason: string | null
+  assetId: string | null
+}
+
+export function toSourceRecord(source: SourceDto): SourceRecord {
+  const latest = source.versions[0]
+  return {
+    id: source.id, kind: source.kind, title: source.title, status: source.status, sensitivity: source.sensitivity, updatedAt: Date.parse(source.updatedAt) || 0,
+    stage: latest?.processingStage ?? null, failureCode: latest?.failureCode ?? null, partialReason: latest?.partialReason ?? null, assetId: latest?.assetId ?? null,
+  }
 }
 
 export type SpaceSourceLink = { spaceId: string; sourceId: string; enabledByDefault: boolean; priority: number }

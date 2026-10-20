@@ -75,7 +75,7 @@ export function NotesView({ notes, notesStatus, spaces, navigate, onNewNote }: {
   </PageFrame>
 }
 
-export function SearchView({ notes, spaces, sources, query, setQuery, navigate }: { notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; query: string; setQuery: (value: string) => void; navigate: Navigate }) {
+export function SearchView({ notes, spaces, sources, query, setQuery, navigate, onOpenSource }: { notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; query: string; setQuery: (value: string) => void; navigate: Navigate; onOpenSource: (sourceId: string) => void }) {
   const term = query.trim().toLowerCase()
   const results = useMemo(() => (term ? {
     notes: notes.filter((note) => note.title.toLowerCase().includes(term)),
@@ -94,7 +94,7 @@ export function SearchView({ notes, spaces, sources, query, setQuery, navigate }
       {results && total === 0 ? <p className="py-10 text-center text-sm text-muted">No titles match “{query.trim()}”.</p> : null}
       {results?.spaces.length ? <section aria-label="Spaces"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Spaces</h2><div className="mt-1 divide-y divide-default">{results.spaces.map((space) => <Row key={space.id} leading={<SpaceGlyph icon={space.icon} />} title={space.name} meta={space.status === 'ARCHIVED' ? 'Archived' : undefined} onClick={() => navigate(`space:${space.id}`)} />)}</div></section> : null}
       {results?.notes.length ? <section aria-label="Notes"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Notes</h2><div className="mt-1 divide-y divide-default">{results.notes.map((note) => <Row key={note.id} title={note.title || 'Untitled note'} meta={spaceName(spaces, note.spaceId)} onClick={() => navigate(`note:${note.id}`)} />)}</div></section> : null}
-      {results?.sources.length ? <section aria-label="Library sources"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Library</h2><div className="mt-1 divide-y divide-default">{results.sources.map((source) => <Row key={source.id} icon={sourceKindMeta(source.kind).icon} title={source.title} meta={sourceKindMeta(source.kind).label} trailing={<StatusChip status={source.status} />} onClick={() => navigate('library')} />)}</div></section> : null}
+      {results?.sources.length ? <section aria-label="Library sources"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Library</h2><div className="mt-1 divide-y divide-default">{results.sources.map((source) => <Row key={source.id} icon={sourceKindMeta(source.kind).icon} title={source.title} meta={sourceKindMeta(source.kind).label} trailing={<StatusChip status={source.status} stage={source.stage} />} onClick={() => onOpenSource(source.id)} />)}</div></section> : null}
     </div>
   </PageFrame>
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { stageLabel } from './sourceStatus'
 import { AppIcon, type IconName } from '../AppIcon'
 import type { SourceStatus } from './model'
 
@@ -81,9 +82,11 @@ const statusStyles: Record<SourceStatus, { label: string; className: string; ico
   DELETED: { label: 'Deleted', className: 'bg-surface text-subtle', icon: 'trash' },
 }
 
-export function StatusChip({ status }: { status: SourceStatus }) {
-  const style = statusStyles[status]
-  return <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${style.className}`}><AppIcon name={style.icon} className="size-3.5" />{style.label}</span>
+/** Source status; while processing it names the stage, and images parked without a processor read "Not searchable". */
+export function StatusChip({ status, stage }: { status: SourceStatus; stage?: string | null }) {
+  const style = statusStyles[status] ?? statusStyles.PENDING
+  const label = stage === 'AWAITING_PROCESSOR' ? 'Not searchable' : status === 'PROCESSING' ? stageLabel(stage) ?? style.label : style.label
+  return <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${stage === 'AWAITING_PROCESSOR' ? 'bg-surface text-muted' : style.className}`}><AppIcon name={stage === 'AWAITING_PROCESSOR' ? 'checkCircle' : style.icon} className="size-3.5" />{label}</span>
 }
 
 /**
