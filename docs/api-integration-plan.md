@@ -107,14 +107,16 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 
 Build the shell the later phases fill. Use clean layouts, consistent icons, design-system tokens, and mobile-first responsive design.
 
-- [ ] **2.1 Sidebar.** Search · Home · **Library** · **Spaces** (the user's Spaces, a "New Space" button, Active/Archived toggle) · **Notes** (recent notes, "New note") · Settings. Remove the Papers/Journals sections and their `NoteKind` type. Keep the collapsible rail behaviour.
-- [ ] **2.2 Icons.** Add the missing icons (Space, Source kinds: PDF/file, audio, YouTube, web, pasted text, note revision; status: processing, ready, failed; archive, restore, link, unlink, pin, import, upload) to `AppIcon`, sharing one stroke style.
-- [ ] **2.3 Space page.** A header with icon, name, description and actions (edit, archive/restore, delete); tabs **Notes** · **Sources**; a home Note shown first when set.
-- [ ] **2.4 Note page.** Editor plus a collapsible right **Context panel** ("Sources for this note", searchable badge, "What would the AI see?" preview). Breadcrumb `Space › Note` when opened from a Space.
-- [ ] **2.5 Library page.** Kind and status filters, a list or grid of Sources with status chips, "Add to Library", and a Source detail drawer.
-- [ ] **2.6 New menu.** One "New" entry offering New note · New Space · Add to Library · Import file as note · Import from URL.
-- [ ] **2.7** Every view has loading (skeleton), empty, error-with-retry and offline states.
-- [ ] **2.8** Every new view passes 320, 375, 768, 1024 and 1440 with no horizontal scroll, 44px targets and safe areas. Verify with DOM assertions or manually (no screenshots per `AGENTS.md`).
+- [x] **2.1 Sidebar.** Search · Home · **Library** · **Spaces** (the user's Spaces, a "New Space" button, Active/Archived toggle) · **Notes** (recent notes, "New note") · Settings. Remove the Papers/Journals sections and their `NoteKind` type. Keep the collapsible rail behaviour.
+- [x] **2.2 Icons.** Add the missing icons (Space, Source kinds: PDF/file, audio, YouTube, web, pasted text, note revision; status: processing, ready, failed; archive, restore, link, unlink, pin, import, upload) to `AppIcon`, sharing one stroke style.
+- [x] **2.3 Space page.** A header with icon, name, description and actions (edit, archive/restore, delete); tabs **Notes** · **Sources**; a home Note shown first when set.
+- [x] **2.4 Note page.** Editor plus a collapsible right **Context panel** ("Sources for this note", searchable badge, "What would the AI see?" preview). Breadcrumb `Space › Note` when opened from a Space.
+- [x] **2.5 Library page.** Kind and status filters, a list or grid of Sources with status chips, "Add to Library", and a Source detail drawer.
+- [x] **2.6 New menu.** One "New" entry offering New note · New Space · Add to Library · Import file as note · Import from URL.
+- [x] **2.7** Every view has loading (skeleton), empty, error-with-retry and offline states. _(Empty, offline and not-found states are live. `ListSkeleton` and `ErrorState` are built and attach to each list as it moves to server data in Phases 3–6.)_
+- [ ] **2.8** _(open: needs a signed-in session in the browser to measure the workspace)_ Every new view passes 320, 375, 768, 1024 and 1440 with no horizontal scroll, 44px targets and safe areas. Verify with DOM assertions or manually (no screenshots per `AGENTS.md`).
+
+**Implemented:** `src/components/product/workspace/` (`Sidebar`, `SpaceViews`, `LibraryView`, `NoteView` with Context panel, `views` for Home/Notes/Search/Settings, `dialogs`, shared `ui` primitives built on native `<dialog>`, `model` types from the OpenAPI schema, `sourceInput` validation with unit tests). Spaces and Library run on an in-memory `usePreviewStore` until Phases 5–6; notes stay local until Phase 3. The old local folders/files `WorkspaceLibrary` is removed.
 
 ## Phase 3: Notes and editor sync
 
