@@ -15,6 +15,7 @@ import { notesApi } from '../../../lib/api/notes'
 import { loadDocument } from '../../../lib/notes/documentGate'
 import type { SyncState } from '../../../lib/notes/noteSync'
 import type { NoteSession } from './useNoteSession'
+import { libraryFollowUp } from './useAssets'
 import { useRevisions } from './useNotes'
 import type { SpaceRecord } from './model'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, buttonPrimary, buttonSecondary, iconButton } from './ui'
@@ -215,7 +216,7 @@ export function NoteScreen({ noteId, title, space, session, leading, trailing, o
         <div className="min-w-0 flex-1">
           <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"
             onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
-            <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads /><DocumentFindBar />
+            <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar />
           </DocumentEditor>
         </div>
         {contextOpen && wide ? <aside aria-label="Note context" className="sticky top-0 max-h-[calc(100svh-4.5rem)] w-80 shrink-0 self-start overflow-y-auto border-l border-default">

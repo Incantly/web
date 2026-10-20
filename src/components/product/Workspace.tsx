@@ -16,6 +16,8 @@ import { LibraryView } from './workspace/LibraryView'
 import { NoteScreen } from './workspace/NoteView'
 import { createNoteVariables, useCreateNote, useDeleteNote, useNotesCache, useNotesList } from './workspace/useNotes'
 import { noteSyncStore, resumePendingNotes, useNoteSession } from './workspace/useNoteSession'
+import { useAbandonedUploadCleanup, useServerAssetHost } from './workspace/useAssets'
+import { DocumentAssetsProvider } from '../../lib/document-editor/assetHost'
 import { AddSourceDialog, SpaceFormDialog } from './workspace/dialogs'
 import { EmptyState, OfflineBanner, PageFrame, buttonSecondary } from './workspace/ui'
 
@@ -42,7 +44,8 @@ function NoteRoute({ userId, noteId, ...props }: { userId: string; noteId: strin
   const session = useNoteSession(userId, noteId, {
     onAck: (_revision, title) => cache.upsert({ id: noteId, updatedAt: new Date().toISOString(), ...(title ? { title } : {}) }),
   })
-  return <NoteScreen noteId={noteId} session={session} {...props} />
+  const assets = useServerAssetHost(userId)
+  return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} {...props} /></DocumentAssetsProvider>
 }
 
 export function Workspace() {
@@ -75,6 +78,7 @@ function WorkspaceShell() {
   const activeSpace = store.spaces.find((space) => space.id === activeSpaceId)
   const noteSpace = activeNote?.spaceId ? store.spaces.find((space) => space.id === activeNote.spaceId) : undefined
 
+  useAbandonedUploadCleanup(user.id)
   // Send edits still waiting on this device: once on load, and again whenever the connection returns.
   useEffect(() => {
     const resume = () => { void authClient.getSession().then((result) => { if (result.data?.user) void resumePendingNotes(user.id, activeNoteIdRef.current ?? undefined) }) }

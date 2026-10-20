@@ -1,6 +1,12 @@
 import type { Editor } from '@tiptap/core'
 import type { SlashMenuItem } from '../../lib/document-editor'
 import { documentRichCommands } from '../../lib/document-editor/richCommands'
+import { pickFilesForEditor } from '../../lib/document-editor/fileUploads'
+import { ASSET_CONTENT_TYPES } from '../../lib/assets/upload'
+
+const imageTypes = ASSET_CONTENT_TYPES.filter((type) => type.startsWith('image/')).join(',')
+// Extensions too: browsers report no type for Markdown and caption files.
+const anyAssetType = [...ASSET_CONTENT_TYPES, '.md', '.markdown', '.vtt', '.srt'].join(',')
 
 type Command = (editor: Editor) => boolean
 
@@ -46,5 +52,7 @@ export const incantlySlashMenuItems: readonly SlashMenuItem[] = [
   { id: 'details', label: 'Details', description: 'Collapsible section with a summary', keywords: ['details', 'detail', 'disclosure', 'collapsible', 'collapse', 'toggle', 'summary', 'fold', 'accordion'], group: 'Blocks', command: insertDetails },
   { id: 'code-block', label: 'Code block', description: 'Monospace snippet', keywords: ['code', 'codeblock', 'code block', 'snippet'], group: 'Blocks', command: setCodeBlock },
   { id: 'divider', label: 'Divider', description: 'A rule across the page', keywords: ['rule', 'line', 'divider', 'horizontal rule', 'separator'], group: 'Blocks', command: insertDivider },
+  { id: 'image', label: 'Image', description: 'Upload a picture from your device', keywords: ['image', 'images', 'picture', 'photo', 'photos', 'upload', 'img'], group: 'Insert', command: (editor) => pickFilesForEditor(editor, imageTypes) },
+  { id: 'upload', label: 'Upload file', description: 'PDF, audio, text or Markdown', keywords: ['file', 'files', 'upload', 'attach', 'attachment', 'pdf', 'audio', 'document'], group: 'Insert', command: (editor) => pickFilesForEditor(editor, anyAssetType) },
   { id: 'table', label: 'Table', description: 'Organize observations in rows and columns', keywords: ['table', 'tables', 'grid', 'columns'], group: 'Insert', command: () => false, isAvailable: (editor) => !inTable(editor), grid: { maxRows: 6, maxCols: 6, defaultRows: 3, defaultCols: 3, command: (editor, rows, columns) => documentRichCommands.insertTable(editor, { rows, columns }) } },
 ]

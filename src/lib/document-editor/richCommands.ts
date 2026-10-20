@@ -120,8 +120,8 @@ export const documentRichCommands = {
   addTableColumn: (editor: Editor): boolean => runTableCommand(editor, addColumnAfter),
   deleteTableRow: (editor: Editor): boolean => runTableCommand(editor, deleteRow),
   deleteTableColumn: (editor: Editor): boolean => runTableCommand(editor, deleteColumn),
-  insertImage: (editor: Editor, options: AssetCardOptions & { alt?: string }): boolean => editor.chain().focus().insertContent({
-    type: 'image', attrs: { assetId: options.assetId, alt: options.alt ?? null, caption: options.caption ?? null },
+  insertImage: (editor: Editor, options: AssetCardOptions & { alt?: string; width?: number; height?: number }): boolean => editor.chain().focus().insertContent({
+    type: 'image', attrs: { assetId: options.assetId, alt: options.alt ?? null, caption: options.caption ?? null, width: options.width ?? null, height: options.height ?? null },
   }).run(),
   insertFileAttachment: (editor: Editor, options: AssetCardOptions & { filename?: string; mimeType?: string }): boolean => editor.chain().focus().insertContent({
     type: 'fileAttachment', attrs: { assetId: options.assetId, filename: options.filename ?? options.title ?? null, mimeType: options.mimeType ?? null },

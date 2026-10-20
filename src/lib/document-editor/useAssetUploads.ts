@@ -1,26 +1,56 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AssetRecord, AssetRepository } from '@incantly/core/document'
+import type { AssetRecord } from '@incantly/core/document'
+import type { AssetUploadProgress, DocumentAssetHost } from './assetHost'
 
-export interface AssetUploadState { id: string; file: File; previewUrl?: string; status: 'pending' | 'uploading' | 'ready' | 'error'; record?: AssetRecord; error?: unknown }
-export function useAssetUploads(repository: AssetRepository) {
+export interface AssetUploadState {
+  id: string
+  file: File
+  previewUrl?: string
+  status: 'pending' | 'uploading' | 'ready' | 'error'
+  progress?: AssetUploadProgress
+  record?: AssetRecord
+  error?: unknown
+}
+
+/** Transient upload state. It never enters document JSON; only the finished `assetId` does. */
+export function useAssetUploads(host: DocumentAssetHost) {
   const [uploads, setUploads] = useState<AssetUploadState[]>([])
   const live = useRef<AssetUploadState[]>([])
-  live.current = uploads
+  const controllers = useRef(new Map<string, AbortController>())
+  useEffect(() => { live.current = uploads })
+  const patch = useCallback((id: string, change: Partial<AssetUploadState>) => setUploads((items) => items.map((item) => item.id === id ? { ...item, ...change } : item)), [])
   const upload = useCallback(async (entry: AssetUploadState) => {
-    setUploads((items) => items.map((item) => item.id === entry.id ? { ...item, status: 'uploading', error: undefined } : item))
+    const controller = new AbortController()
+    controllers.current.set(entry.id, controller)
+    patch(entry.id, { status: 'uploading', error: undefined, progress: { loaded: 0, total: entry.file.size } })
     try {
-      const record = await repository.put(await entry.file.arrayBuffer(), { filename: entry.file.name, mimeType: entry.file.type || 'application/octet-stream', byteLength: entry.file.size })
-      setUploads((items) => items.map((item) => item.id === entry.id ? { ...item, status: 'ready', record } : item))
-    } catch (error) { setUploads((items) => items.map((item) => item.id === entry.id ? { ...item, status: 'error', error } : item)) }
-  }, [repository])
+      const record = await host.upload(entry.file, { signal: controller.signal, onProgress: (progress) => patch(entry.id, { progress }) })
+      if (!controller.signal.aborted) patch(entry.id, { status: 'ready', record })
+    } catch (error) {
+      if (!controller.signal.aborted) patch(entry.id, { status: 'error', error })
+    } finally {
+      controllers.current.delete(entry.id)
+    }
+  }, [host, patch])
   const add = useCallback((files: readonly File[]) => {
     const entries = files.map((file) => ({ id: crypto.randomUUID(), file, previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined, status: 'pending' as const }))
     setUploads((items) => [...items, ...entries])
     entries.forEach((entry) => void upload(entry))
     return entries
   }, [upload])
-  const remove = useCallback((id: string) => setUploads((items) => { const item = items.find((value) => value.id === id); if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl); return items.filter((value) => value.id !== id) }), [])
+  /** Dismisses an entry; an upload still in flight is cancelled (the host aborts its reservation). */
+  const remove = useCallback((id: string) => {
+    controllers.current.get(id)?.abort()
+    controllers.current.delete(id)
+    setUploads((items) => { const item = items.find((value) => value.id === id); if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl); return items.filter((value) => value.id !== id) })
+  }, [])
   const retry = useCallback((id: string) => { const entry = live.current.find((item) => item.id === id); if (entry) void upload(entry) }, [upload])
-  useEffect(() => () => { live.current.forEach((item) => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl) }) }, [])
+  useEffect(() => {
+    const pending = controllers.current
+    return () => {
+      pending.forEach((controller) => controller.abort())
+      live.current.forEach((item) => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl) })
+    }
+  }, [])
   return { uploads, add, retry, remove }
 }

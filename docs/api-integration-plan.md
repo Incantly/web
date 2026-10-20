@@ -56,6 +56,7 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 | G2 | No note rename endpoint; title follows `document.metadata.title`, and no typed operation sets metadata | Renaming needs a full save | Rename = `PUT /v1/notes/{id}/checkpoint` with the updated `metadata.title` and `baseRevisionNumber`; handle `409 STALE_NOTE_REVISION`. Ask for a `setTitle` operation or `PATCH /v1/notes/{id}` |
 | G3 | No Folder API | Folders inside Spaces cannot be stored | Do not build folders (client-only folders would not persist or sync). Ask the backend for folder metadata if folders are wanted |
 | G4 | No search endpoint | — | Title filter over the loaded Notes, Spaces and Sources lists |
+| G5 | Upload verification compares size, the declared `Content-Type` and the checksum, but never the bytes themselves | A text file named `fake.png` with type `image/png` becomes a READY image asset | The editor shows "This image couldn’t be loaded" with Retry when such a file fails to render. Ask the backend to sniff file signatures (magic bytes) before marking an asset READY |
 
 ---
 
@@ -160,19 +161,61 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
 - **3.4 Opening a note.** The cached copy is shown read-only until the server answers, so no keystrokes can be lost when the authoritative copy loads.
 
 **Known limitation until Phase 4:**
-- **Images and files in notes.** These still use the local IndexedDB asset store, so a note containing a newly inserted image will not pass server validation until Phase 4 switches uploads to `/v1/assets`.
+- ~~**Images and files in notes.**~~ Resolved in Phase 4: uploads now go to `/v1/assets`, so notes with images and files save to the server.
 - **Old local notes.** Interim local notes in `localStorage` are no longer read. They stay in the browser and aren't migrated.
 
 ## Phase 4: Assets
 
-- [ ] **4.1 Server `AssetRepository`.** Reserve with `POST /v1/assets/uploads` + key. `PUT` each part directly to the returned URL with exactly the returned headers and no cookies (multipart concurrency 3, keep ETags). Then complete. The IndexedDB asset store stays only as an offline preview cache.
-- [ ] **4.2** Client-side type and size checks (types from the schema, 250 MiB limit) for friendly errors; the server decides.
-- [ ] **4.3** Progress, cancel (`DELETE /v1/assets/uploads/{id}`), and `409 UPLOAD_EXPIRED` (abort, reserve again with a new key). A reload mid-upload resumes or restarts cleanly.
-- [ ] **4.4** Media nodes store `assetId` only. Call `GET /v1/assets/{id}/download` just before display or download; never persist the URL; re-request after expiry.
-- [ ] **4.5** Quarantine or `422 UPLOAD_VERIFICATION_FAILED` shows "This file could not be verified". `409 ASSET_IN_USE` on delete shows "Still used in a note or the Library".
-- [ ] **4.6 Post-upload choice.** After an upload in the editor, offer "Also add to Library" (creates a `FILE` / `AUDIO_TRANSCRIPT` Source from the same `assetId`, no second upload).
+- [x] **4.1 Server `AssetRepository`.** Reserve with `POST /v1/assets/uploads` + key. `PUT` each part directly to the returned URL with exactly the returned headers and no cookies (multipart concurrency 3, keep ETags). Then complete. The IndexedDB asset store stays only as an offline preview cache.
+- [x] **4.2** Client-side type and size checks (types from the schema, 250 MiB limit) for friendly errors; the server decides.
+- [x] **4.3** Progress, cancel (`DELETE /v1/assets/uploads/{id}`), and `409 UPLOAD_EXPIRED` (abort, reserve again with a new key). A reload mid-upload resumes or restarts cleanly.
+- [x] **4.4** Media nodes store `assetId` only. Call `GET /v1/assets/{id}/download` just before display or download; never persist the URL; re-request after expiry.
+- [x] **4.5** Quarantine or `422 UPLOAD_VERIFICATION_FAILED` shows "This file could not be verified". `409 ASSET_IN_USE` on delete shows "Still used in a note or the Library".
+- [x] **4.6 Post-upload choice.** After an upload in the editor, offer "Also add to Library" (creates a `FILE` / `AUDIO_TRANSCRIPT` Source from the same `assetId`, no second upload).
 
 **Done when:** a 1 MB image and a 100 MB PDF upload with progress; cancel works mid-upload; images still render after URL expiry; one uploaded PDF can be in a Note and in the Library without uploading twice.
+
+**Implemented:**
+- `src/lib/api/assets.ts`: `assetsApi` (reserve, complete, abort, download, remove).
+- `src/lib/assets/upload.ts`: `uploadAsset`, which does the following.
+  - **Checks:** the allowlisted type (with aliases, and the extension when the browser reports no type), the 250 MiB limit, and empty files.
+  - **Checksum:** SHA-256 for single uploads.
+  - **Parts:** each `PUT` goes over XHR (for progress), without credentials, three at a time, with ETags kept.
+  - **Retries:** a transient storage error retries the part. An expired reservation (`UPLOAD_EXPIRED` or a storage 403) is aborted and reserved again once with a new key.
+  - **Cancel:** aborts both the requests and the reservation.
+- `src/lib/assets/serverAssetHost.ts`: `ServerAssetHost` implements core's `AssetRepository` and the editor's `DocumentAssetHost`.
+  - **URLs:** download URLs are kept in memory only, until 30 seconds before they expire. `refresh` asks again.
+  - **Offline previews:** uploaded images up to 16 MiB are kept in IndexedDB (`incantly-asset-previews`, keyed by user and asset).
+  - **Pending uploads:** each upload in flight is recorded in the pending-command store and holds a Web Lock. `abortAbandonedUploads` frees reservations whose tab is gone.
+- **Editor (backend-agnostic):**
+  - `assetHost.tsx`: the `DocumentAssetHost` interface and `DocumentAssetsProvider`, with IndexedDB as the fallback.
+  - `AssetNodeViews.tsx`: image, audio, PDF and file views resolve URLs just in time. A media error asks once for a fresh URL; repeated errors show Retry. "Open" is a link whose URL is fetched as the pointer or focus arrives.
+  - `DocumentFileUploads`: progress bar, cancel, error copy, and an `afterUpload` follow-up.
+  - Image width and height are stored on the node to avoid layout shift.
+  - Slash items "Image" and "Upload file" open the system picker, for touch and keyboard users.
+  - Uploads are inserted after a selected block instead of replacing it.
+- **Product:** `workspace/useAssets.tsx` holds one host per user, abandoned-upload cleanup on load, and the "Also add to Library" offer: `FILE` for PDF, text and Markdown; `AUDIO_TRANSCRIPT` with a required consent checkbox. Images are not offered, since the Library doesn't accept them.
+- **Unit tests:** `upload.test.ts` (11) and `serverAssetHost.test.ts` (5).
+
+**Live-verified (local backend + MinIO, test account):**
+- **1.4 MB PNG:** uploaded and rendered at its real size. The note saved with only `assetId`, `width` and `height`.
+- **Another device:** with the local preview cleared, the image loads from a 5-minute MinIO URL. Breaking the image's URL made it request a new one and load again.
+- **100 MB PDF:** 13 parts uploaded with progress (24% → 100%) in about 4 seconds, and the ETags were readable across origins.
+- **Cancel:** cancelling at 20% sent `DELETE` (204), inserted nothing and cleared the card.
+- **Reload mid-upload:** the reservation was freed and no pending record was left.
+- **Library:** "Also add to Library" created a `FILE` Source with the same `assetId` as the note's PDF embed, so nothing uploaded twice.
+- **`ASSET_IN_USE`:** the server answered `409 ASSET_IN_USE` for a referenced asset.
+- **Audio:** the audio player renders, and the Library button stays disabled until consent is given.
+- **Several uploads in a row:** all of them stay in the note.
+- **Responsive:** 320, 375, 768, 1024 and 1440 px showed no overflow and no target under 44 px, for the upload panel and the media views.
+- **Checks:** typecheck, lint, and 77 unit tests pass.
+
+**Known limitations:**
+- **PDF names after a reload:** PDF embeds store no filename in the canonical model, so after a reload the card says "PDF document". The name shows only during the session that uploaded it.
+- **Asset deletion:** there is no delete-asset UI yet. The `ASSET_IN_USE` copy is in place for Phase 5, when Library management can delete Sources and their assets.
+- **Sources in the Library page:** Sources added from a note appear on the Library page once Phase 5 replaces the preview store.
+- **Opening files in the pane:** the in-app browser pane blocks new tabs, so "Open" was verified by checking that the link's URL serves the PDF (200, `application/pdf`), not by watching a tab open.
+- **G5:** see the backend gaps table.
 
 ## Phase 5: Library (Sources)
 
