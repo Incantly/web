@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-20T16:40:52.769Z",
+  "when": "2026-10-20T17:51:27.450Z",
   "results": [
     {
       "suite": "landing",
@@ -8130,6 +8130,150 @@
       "name": "keyboard focus opens the rail and Escape closes it",
       "pass": true,
       "detail": ""
+    },
+    {
+      "suite": "not-found",
+      "name": "responds with HTTP 404",
+      "pass": true,
+      "detail": "status 404"
+    },
+    {
+      "suite": "not-found",
+      "name": "heading and title render",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "not-found",
+      "name": "recovery links point home and to workspace",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "not-found",
+      "name": "no console/page/http errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "not-found",
+      "name": "no horizontal scroll at 320px",
+      "pass": true,
+      "detail": "overflow 0px"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Incantly home\" target ≥44px at 320px",
+      "pass": true,
+      "detail": "100×44"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Back to home\" target ≥44px at 320px",
+      "pass": true,
+      "detail": "280×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Open workspace\" target ≥44px at 320px",
+      "pass": true,
+      "detail": "280×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "no horizontal scroll at 375px",
+      "pass": true,
+      "detail": "overflow 0px"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Incantly home\" target ≥44px at 375px",
+      "pass": true,
+      "detail": "100×44"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Back to home\" target ≥44px at 375px",
+      "pass": true,
+      "detail": "335×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Open workspace\" target ≥44px at 375px",
+      "pass": true,
+      "detail": "335×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "no horizontal scroll at 768px",
+      "pass": true,
+      "detail": "overflow 0px"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Incantly home\" target ≥44px at 768px",
+      "pass": true,
+      "detail": "100×44"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Back to home\" target ≥44px at 768px",
+      "pass": true,
+      "detail": "164×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Open workspace\" target ≥44px at 768px",
+      "pass": true,
+      "detail": "164×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "no horizontal scroll at 1024px",
+      "pass": true,
+      "detail": "overflow 0px"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Incantly home\" target ≥44px at 1024px",
+      "pass": true,
+      "detail": "100×44"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Back to home\" target ≥44px at 1024px",
+      "pass": true,
+      "detail": "164×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Open workspace\" target ≥44px at 1024px",
+      "pass": true,
+      "detail": "164×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "no horizontal scroll at 1440px",
+      "pass": true,
+      "detail": "overflow 0px"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Incantly home\" target ≥44px at 1440px",
+      "pass": true,
+      "detail": "118×44"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Back to home\" target ≥44px at 1440px",
+      "pass": true,
+      "detail": "164×48"
+    },
+    {
+      "suite": "not-found",
+      "name": "\"Open workspace\" target ≥44px at 1440px",
+      "pass": true,
+      "detail": "164×48"
     }
   ]
 }
