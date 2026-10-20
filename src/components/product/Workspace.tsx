@@ -15,6 +15,7 @@ import { AppIcon, type IconName } from './AppIcon'
 import { WorkspaceLibrary } from './WorkspaceLibrary'
 import { InboxPopover, type InboxItem } from './InboxPopover'
 import { SignOutButton } from './SignOutButton'
+import { AppProviders } from './AppProviders'
 
 type NoteKind = 'note' | 'paper' | 'journal'
 type WorkspaceView = 'home' | 'search' | 'library' | 'notes' | 'papers' | 'journals' | 'settings' | `note:${string}`
@@ -175,6 +176,10 @@ function readSavedNotes(): NoteRecord[] | null {
 }
 
 export function Workspace() {
+  return <AppProviders><WorkspaceShell /></AppProviders>
+}
+
+function WorkspaceShell() {
   const [view, setView] = useState<WorkspaceView>('home')
   const [notes, setNotes] = useState<NoteRecord[]>(initialNotes)
   const [inbox, setInbox] = useState<InboxItem[]>(initialInbox)

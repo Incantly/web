@@ -78,16 +78,18 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 
 ## Phase 0: Foundation (API client)
 
-- [ ] **0.1 Same-origin proxy.** Add a `next.config.ts` rewrite from `/v1/:path*` to `AUTH_BACKEND_URL`, forwarding cookies and `Origin` unchanged. Confirm the backend `WEB_ORIGINS` includes `http://localhost:3000`. Presigned storage URLs are never proxied.
-- [ ] **0.2 Generated types.** Add the `openapi-typescript` dev dependency. Commit `src/lib/api/openapi.json` (no secrets inside) and the generated `src/lib/api/schema.d.ts`. Add an `npm run api:types` script. Never fetch the schema at runtime or embed docs credentials.
-- [ ] **0.3 `apiFetch` + `ApiError`** (`src/lib/api/client.ts`). Use the JSON body, `credentials: 'include'` and the `Idempotency-Key` header. `ApiError` carries `status`, `code`, `requestId` and `retryAfterSeconds`. Branch only on `code`.
-- [ ] **0.4 Retries.** Retry `429` and retryable `503` after `Retry-After` with the identical request and key, capped at 5 attempts with exponential backoff. Never retry `400/401/403/404/422`. Handle `409` per code at the call site.
-- [ ] **0.5 Session.** A `401` stops background work, keeps unsynced edits, and sends the user to `/auth?next=<path>`.
-- [ ] **0.6 Idempotency.** `newIdempotencyKey()` uses `crypto.randomUUID()`: one per user action, reused for that action's retries. It is persisted with pending uploads and imports in IndexedDB. `409 IDEMPOTENCY_KEY_REUSED` means log and stop.
-- [ ] **0.7 `poll()`.** 1 s growing by 1.5× to a 5 s cap, honours `AbortSignal`, pauses while the tab is hidden, stops on unmount.
-- [ ] **0.8 Error copy** (`src/lib/api/errors.ts`). Map stable codes to friendly text. Error toasts carry a copyable request ID and use the `--ui-danger` tokens. Never log bodies, document text, presigned URLs or cookies.
-- [ ] **0.9 Data layer.** One cache and mutation pattern for lists, details and invalidation (e.g. a small store or `useSyncExternalStore`-based hooks). Decide and document it in this plan before Phase 2.
-- [ ] **0.10 Unit tests (vitest).** Cover error mapping, retry with key reuse, codes that must not retry, the 401 redirect, and `poll()` backoff, abort and pause.
+- [x] **0.1 Same-origin proxy.** Add a `next.config.ts` rewrite from `/v1/:path*` to `AUTH_BACKEND_URL`, forwarding cookies and `Origin` unchanged. Confirm the backend `WEB_ORIGINS` includes `http://localhost:3000`. Presigned storage URLs are never proxied.
+- [x] **0.2 Generated types.** Add the `openapi-typescript` dev dependency. Commit `src/lib/api/openapi.json` (no secrets inside) and the generated `src/lib/api/schema.d.ts`. Add an `npm run api:types` script. Never fetch the schema at runtime or embed docs credentials.
+- [x] **0.3 `apiFetch` + `ApiError`** (`src/lib/api/client.ts`). Use the JSON body, `credentials: 'include'` and the `Idempotency-Key` header. `ApiError` carries `status`, `code`, `requestId` and `retryAfterSeconds`. Branch only on `code`.
+- [x] **0.4 Retries.** Retry `429` and retryable `503` after `Retry-After` with the identical request and key, capped at 5 attempts with exponential backoff. Never retry `400/401/403/404/422`. Handle `409` per code at the call site.
+- [x] **0.5 Session.** A `401` stops background work, keeps unsynced edits, and sends the user to `/auth?next=<path>`.
+- [x] **0.6 Idempotency.** `newIdempotencyKey()` uses `crypto.randomUUID()`: one per user action, reused for that action's retries. It is persisted with pending uploads and imports in IndexedDB. `409 IDEMPOTENCY_KEY_REUSED` means log and stop.
+- [x] **0.7 `poll()`.** 1 s growing by 1.5× to a 5 s cap, honours `AbortSignal`, pauses while the tab is hidden, stops on unmount.
+- [x] **0.8 Error copy** (`src/lib/api/errors.ts`). Map stable codes to friendly text. Error toasts carry a copyable request ID and use the `--ui-danger` tokens. Never log bodies, document text, presigned URLs or cookies.
+- [x] **0.9 Data layer.** One cache and mutation pattern for lists, details and invalidation. **Decision:** TanStack Query v5 (`AppProviders.tsx`), chosen for cursor-paged infinite lists, request de-duplication and mutation invalidation. Its own retries are off because `apiFetch` owns retry policy. Errors toast through `ApiErrorToaster` unless a query or mutation sets `meta: { silentErrors: true }` and renders its own error state.
+- [x] **0.10 Unit tests (vitest).** Cover error mapping, retry with key reuse, codes that must not retry, the 401 redirect, and `poll()` backoff, abort and pause.
+
+**Implemented:** `src/lib/api/{client,errors,diagnostics,idempotency,poll,types}.ts`, generated `schema.d.ts` from the committed `openapi.json` (`npm run api:fetch` with docs credentials from the environment, then `npm run api:types`), `AppProviders` + `ApiErrorToaster` around `Workspace`, the `/v1/:path*` rewrite, and 26 vitest unit tests (`npm test`).
 
 **Done when:** a `/v1` call reaches the backend with the session cookie; a forced `401` returns to sign-in and back; a `429` retries after `Retry-After` with the same key; unit tests pass.
 

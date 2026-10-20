@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored playground editor: owned upstream, keep behavior identical.
     "src/lib/document-editor/**",
+    // Generated from the backend OpenAPI schema (npm run api:types).
+    "src/lib/api/schema.d.ts",
   ]),
 ]);
 
