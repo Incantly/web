@@ -1,8 +1,30 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'archive' | 'check' | 'chevron' | 'close' | 'code' | 'document' | 'home' | 'inbox' | 'journal' | 'math' | 'menu' | 'minus' | 'panel' | 'paper' | 'plus' | 'quote' | 'search' | 'settings' | 'share' | 'sparkles' | 'table'
+export type IconName = 'alert' | 'archive' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'table' | 'trash' | 'unlink' | 'upload' | 'video'
 
 const paths: Record<IconName, ReactNode> = {
+  alert: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></>,
+  audio: <path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>,
+  checkCircle: <><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
+  clipboard: <><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></>,
+  clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+  edit: <><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></>,
+  file: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></>,
+  globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
+  history: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></>,
+  import: <><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 16v4h16v-4"/></>,
+  library: <><path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16 5 3.5-1 2.5 15.5-3.5 1z"/></>,
+  link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></>,
+  more: <><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.3" fill="currentColor" stroke="none"/></>,
+  pdf: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h4"/></>,
+  play: <path d="M7 4.5v15l12-7.5z"/>,
+  pin: <><path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/></>,
+  restore: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></>,
+  space: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></>,
+  trash: <><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></>,
+  unlink: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1M4 4l16 16"/></>,
+  upload: <><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></>,
+  video: <><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></>,
   archive: <><path d="M4 7h16v13H4z"/><path d="M3 4h18v3H3zM9 11h6"/></>,
   check: <path d="m5 13 4 4L19 7"/>,
   chevron: <path d="m9 18 6-6-6-6"/>,

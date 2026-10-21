@@ -20,6 +20,8 @@ import { BlockquoteIcon } from '@/components/tiptap-icons/blockquote-icon'
 import { ChevronRightIcon } from '@/components/tiptap-icons/chevron-right-icon'
 import { CodeBlockIcon } from '@/components/tiptap-icons/code-block-icon'
 import { MinusIcon } from '@/components/tiptap-icons/minus-icon'
+import { ImageIcon } from '@/components/tiptap-icons/image-icon'
+import { PaperclipIcon } from '@/components/tiptap-icons/paperclip-icon'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
@@ -453,6 +455,8 @@ const slashItemIcons = {
   details: ChevronRightIcon,
   'code-block': CodeBlockIcon,
   divider: MinusIcon,
+  image: ImageIcon,
+  upload: PaperclipIcon,
 } as const
 
 export const defaultSlashMenuItems: readonly SlashMenuItem[] = [

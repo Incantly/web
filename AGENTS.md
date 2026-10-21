@@ -42,7 +42,26 @@ Skills in `.claude/skills/` are mandatory for the tasks they describe — read t
 
 Async document jobs follow `docs/inngest.md` (contract; Inngest is not installed yet).
 
+## Finishing work and testing (mandatory)
+
+- **Finish every to-do you are given.** When the user or a plan (for example
+  `docs/api-integration-plan.md`) gives you to-dos, complete all of them before
+  calling the work done. Do not stop after a subset, silently drop items, or
+  leave `[ ]` boxes behind. Mark each item `[x]` as it lands. If an item is
+  truly blocked, say exactly what blocks it and what is needed. Then keep
+  going with everything that is not blocked.
+- **No end-to-end tests until the user asks for them.** Do not write new
+  Playwright/E2E specs, and do not run (`npx playwright test`,
+  `npm run test:e2e`) any E2E test, even when a to-do lists one. Mark such
+  items `[~]` deferred, citing this rule, until the user explicitly says to
+  write or run E2E tests. Typecheck, lint and unit tests are still required.
+- **No screenshots unless the user asks.** Verify with code-level checks,
+  unit tests and DOM/state assertions instead. This rule overrides the
+  screenshot requirement in the next section until the user lifts it.
+
 ## Screenshots & recordings
+
+_Applies only when the user has asked for screenshots or E2E tests (see above)._
 
 - Every implementation task owns one artifact folder. Screenshots go in
   `e2e-artifacts/screenshots/<task-slug>/`, recordings in

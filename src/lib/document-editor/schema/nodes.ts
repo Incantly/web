@@ -5,6 +5,8 @@ import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-detai
 import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list'
 import { BlockMath as TiptapBlockMath, InlineMath } from '@tiptap/extension-mathematics'
 import { TableNode as TiptapTable } from '@/components/tiptap-node/table-node/extensions/table-node-extension'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import { AudioAssetView, FileAssetView, ImageAssetView, PdfAssetView } from '../components/AssetNodeViews'
 import { incantlyLowlight } from './codeHighlight'
 
 const nodeIdAttribute = {
@@ -242,19 +244,21 @@ const Image = Node.create({
         : {}),
     })]
   },
+  // Display only: resolves a short-lived URL from the asset host. renderHTML stays the export/clipboard form.
+  addNodeView: () => ReactNodeViewRenderer(ImageAssetView),
 })
 const FileAttachment = leaf('fileAttachment', 'aside', {
   assetId: { default: null }, filename: { default: null }, mimeType: { default: null }, display: { default: 'card' },
-})
+}).extend({ addNodeView: () => ReactNodeViewRenderer(FileAssetView) })
 const Audio = leaf('audio', 'figure', {
   assetId: { default: null }, title: { default: null }, caption: { default: null },
-})
+}).extend({ addNodeView: () => ReactNodeViewRenderer(AudioAssetView) })
 const VideoEmbed = leaf('videoEmbed', 'figure', {
   provider: { default: 'youtube' }, videoId: { default: null }, title: { default: null }, caption: { default: null },
 })
 const PdfEmbed = leaf('pdfEmbed', 'figure', {
   assetId: { default: null }, page: { default: null }, display: { default: 'card' }, extractedDocumentId: { default: null },
-})
+}).extend({ addNodeView: () => ReactNodeViewRenderer(PdfAssetView) })
 const CanvasEmbed = leaf('canvasEmbed', 'figure', {
   canvasId: { default: null }, previewAssetId: { default: null }, caption: { default: null }, display: { default: 'card' },
 })
