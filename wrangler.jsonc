@@ -16,9 +16,9 @@
     { "binding": "WORKER_SELF_REFERENCE", "service": "incantly-web" }
   ],
   "images": { "binding": "IMAGES" },
-  // Served at the apex once its DNS record no longer points at Vercel.
-  // wrangler refuses to attach while a conflicting record exists.
-  "routes": [{ "pattern": "incantly.xyz", "custom_domain": true }],
+  // A route, not a custom domain: it runs in front of the apex's existing
+  // proxied DNS record, which a custom domain would require deleting.
+  "routes": [{ "pattern": "incantly.xyz/*", "zone_name": "incantly.xyz" }],
   "vars": {
     // Runtime copy only. The rewrite destination is fixed at build time, so
     // `npm run build:cf` also sets AUTH_BACKEND_URL for `next build`.

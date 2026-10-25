@@ -48,7 +48,7 @@ With Cloudflare Workers Builds (Git integration), use build command `npm run bui
 
 ## Custom domain
 
-`wrangler.jsonc` routes the apex `incantly.xyz` to the Worker as a custom domain. The apex currently points at the old Vercel landing page. Remove that DNS record (and the domain from the Vercel project) before the first deploy: wrangler refuses to attach a custom domain over an existing record, and on success creates the proxied record and certificate itself. `api.incantly.xyz` stays a proxied A record to the VPS.
+`wrangler.jsonc` sends `incantly.xyz/*` to the Worker with a route, not a custom domain. A route runs in front of the apex's existing proxied DNS record, so that record stays (its origin is never reached). A custom domain would require deleting the record first. The record must stay proxied (orange cloud) for the route to apply. `api.incantly.xyz` stays a proxied A record to the VPS.
 
 ## Backend settings
 
