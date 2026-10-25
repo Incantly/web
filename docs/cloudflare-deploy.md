@@ -20,6 +20,7 @@ Without a valid `AUTH_PROXY_SECRET` of at least 32 characters the middleware ans
 | `AUTH_PROXY_SECRET` | Worker secret | Exactly the backend's `AUTH_PROXY_SECRET`. Set with `npx wrangler secret put AUTH_PROXY_SECRET`. Never a `NEXT_PUBLIC_` variable, never in `wrangler.jsonc`. |
 | `AUTH_BACKEND_URL` | `wrangler.jsonc` var and build env | `https://api.incantly.xyz`. Next fixes rewrite destinations at build time, so `npm run build:cf` sets it for the build (override by exporting it first). |
 | `GITHUB_PACKAGES_TOKEN` | Build env only | A read-only GitHub token (`read:packages`) so `npm ci` can install `@incantly/canvas-*` through the committed `.npmrc`. Never commit it. |
+| `NEXT_PUBLIC_SIGN_IN_OPEN` | Build env | `false` (the `build:cf` default) closes sign-in while the waitlist is on: `/auth*` and protected pages redirect to `/`, sign-in endpoints answer `403 SIGN_IN_CLOSED`, and the landing page shows no sign-in link. Session checks, sign-out and `/v1/waitlist` keep working. Set `true` and rebuild to reopen. Unset (local `npm run dev`) means open. |
 | `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | Build env | `true` when the backend has Google credentials. It is inlined at build time. |
 
 ## Deploy

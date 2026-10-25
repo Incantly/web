@@ -1,9 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSessionCookie } from 'better-auth/cookies'
 import { hasValidStamp, stampClientIdentity, validSecret } from './lib/auth/clientIdentity'
+import { signInOpen } from './lib/signIn'
 
 const protectedPaths = ['/notes', '/workspace', '/dashboard', '/pro']
 const backendPaths = ['/api/auth', '/v1']
+// Endpoints that start or finish a sign-in; refused while sign-in is closed.
+const signInPaths = ['/api/auth/sign-in', '/api/auth/email-otp', '/api/auth/callback']
 
 const matches = (pathname: string, paths: string[]) =>
   paths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
@@ -52,6 +55,15 @@ async function forward(request: NextRequest, headers: Headers, backend: string) 
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  if (!signInOpen()) {
+    if (matches(pathname, ['/auth'])) return NextResponse.redirect(new URL('/', request.url))
+    if (matches(pathname, signInPaths)) {
+      return request.method === 'GET'
+        ? NextResponse.redirect(new URL('/', request.url))
+        : NextResponse.json({ code: 'SIGN_IN_CLOSED' }, { status: 403 })
+    }
+  }
   // Better Auth's own error page fails on the backend; the sign-in screen
   // explains OAuth errors instead (and moves a signed-in user on).
   if (request.nextUrl.pathname === '/api/auth/error') {
@@ -67,6 +79,7 @@ export async function middleware(request: NextRequest) {
   const hasSession = getSessionCookie(request) !== null
 
   if (isProtected && !hasSession) {
+    if (!signInOpen()) return NextResponse.redirect(new URL('/', request.url))
     const login = new URL('/auth', request.url)
     login.searchParams.set('next', request.nextUrl.pathname)
     return NextResponse.redirect(login)
@@ -77,7 +90,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/notes/:path*', '/workspace/:path*', '/dashboard/:path*', '/pro/:path*',
+    '/notes/:path*', '/workspace/:path*', '/dashboard/:path*', '/pro/:path*', '/auth/:path*',
     '/api/auth/:path*', '/v1/:path*',
   ],
 }

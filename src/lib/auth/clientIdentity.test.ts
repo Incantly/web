@@ -144,6 +144,57 @@ describe('proxy on Cloudflare Workers with AUTH_BACKEND_URL', () => {
   })
 })
 
+describe('sign-in closed (NEXT_PUBLIC_SIGN_IN_OPEN=false)', () => {
+  function onWorkers(path: string, init: { method?: string; cookie?: string } = {}) {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' })
+    vi.stubEnv('NEXT_PUBLIC_SIGN_IN_OPEN', 'false')
+    vi.stubEnv('AUTH_PROXY_SECRET', secret)
+    vi.stubEnv('AUTH_BACKEND_URL', 'https://api.incantly.xyz')
+    return proxy(new NextRequest(`https://www.incantly.xyz${path}`, {
+      method: init.method ?? 'GET',
+      headers: { 'cf-connecting-ip': '203.0.113.7', ...(init.cookie ? { cookie: init.cookie } : {}) },
+    }))
+  }
+
+  it.each(['/auth', '/auth/signup', '/auth?next=%2Fworkspace', '/workspace'])('sends %s to the landing page', async (path) => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const response = await onWorkers(path)
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://www.incantly.xyz/')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each(['/api/auth/sign-in/social', '/api/auth/email-otp/send-verification-otp', '/api/auth/sign-in/email-otp'])('refuses POST %s before the backend', async (path) => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const response = await onWorkers(path, { method: 'POST' })
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ code: 'SIGN_IN_CLOSED' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends an OAuth callback to the landing page', async () => {
+    const response = await onWorkers('/api/auth/callback/google?code=c&state=s')
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://www.incantly.xyz/')
+  })
+
+  it.each(['/api/auth/get-session', '/v1/waitlist'])('still forwards %s', async (path) => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('null', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const response = await onWorkers(path)
+    expect(response.status).toBe(200)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays open when the switch is not set (local development)', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SIGN_IN_OPEN', '')
+    const response = await proxy(new NextRequest('http://localhost:3000/auth'))
+    expect(response.headers.get('x-middleware-next')).toBe('1')
+  })
+})
+
 describe('Better Auth error page', () => {
   it('sends OAuth errors to the sign-in screen instead of the backend', async () => {
     const fetchMock = vi.fn()
