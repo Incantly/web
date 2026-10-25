@@ -46,3 +46,8 @@ next-env.d.ts
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
 
+
+# OpenNext / Cloudflare
+/.open-next/
+/.wrangler/
+.dev.vars*

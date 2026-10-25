@@ -8,6 +8,6 @@ Set an independent random `AUTH_PROXY_SECRET` of at least 32 characters in web `
 
 `BIND_ADDRESS` defaults to `127.0.0.1`; containers must explicitly bind an appropriate interface behind restricted ingress. Keep backend traffic private/encrypted and clocks within 30 seconds. Signed assertions are internal request credentials, not browser responses or log fields. The backend rejects unsigned auth requests and configures both Redis and Better Auth limits to use the same verified IP. An assertion can be replayed for that same IP within 30 seconds, so do not expose it.
 
-Deployment requires a Node process. Next standalone output and managed entry points that bypass `server.mjs` require an equivalent trusted ingress before use. Docker Compose was not changed.
+A Node deployment requires `server.mjs`. Cloudflare Workers never run it; there `src/middleware.ts` discards client-sent stamps and signs `CF-Connecting-IP` instead (see `docs/cloudflare-deploy.md`). Other managed entry points that bypass `server.mjs` need an equivalent trusted ingress before use; under Node the middleware rejects backend requests that lack a valid `server.mjs` stamp. Docker Compose was not changed.
 
 Run `node --test server/client-identity.test.mjs` for spoofing, trusted chains, canonicalization and configuration checks. Backend `auth-client-identity.spec.ts` covers HTTP isolation and forgery. The backend k6 auth scenario now targets the web entry point; the isolated backend scenario signs synthetic clients using a test-only secret.
