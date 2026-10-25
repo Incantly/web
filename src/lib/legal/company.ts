@@ -19,4 +19,6 @@ export const legalEntity = {
   courts: 'the courts of Lagos State, Nigeria',
   minimumAge: 13,
   lastUpdated: '25 October 2026',
+  /** The same date for machines (sitemap). */
+  lastUpdatedIso: '2026-10-25',
 }
