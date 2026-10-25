@@ -1,5 +1,5 @@
-import type { IncantlyDocument } from '@incantly/core/document'
-import type { DocumentOperation } from '@incantly/core/document'
+import type { IncantlyDocument } from '@incantly/canvas-core/document'
+import type { DocumentOperation } from '@incantly/canvas-core/document'
 import { apiFetch } from './client'
 import type { Page, Schema } from './types'
 

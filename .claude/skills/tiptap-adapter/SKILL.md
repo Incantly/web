@@ -10,7 +10,7 @@ This app owns its Tiptap editor. The SDK does not ship one. The editor is an inp
 ## Must
 
 - Declare the editor schema explicitly (`Node.create` / `Mark.create` lists). Disable every StarterKit piece you replace with a custom definition — a Tiptap-default node must never exist beside its canonical twin.
-- Mirror core content rules in the editor schema (nesting, mark combinations, limits from `@incantly/core`).
+- Mirror core content rules in the editor schema (nesting, mark combinations, limits from `@incantly/canvas-core/document`).
 - Implement both mapping directions (canonical → ProseMirror JSON, ProseMirror JSON → canonical) with stable node IDs and an adapter report for repaired/dropped content.
 - Keep ProseMirror numeric positions inside the adapter. Toolbars, AI ops, and cross-surface code use core commands/transactions and the portable selection contract.
 - Prove compliance with the conformance suite: `Incantly → ProseMirror → Incantly` semantic equality, reverse direction, stable IDs, hostile inputs, unsupported-content reporting. Green suite or non-compliant — no exceptions. (Playwright is already a devDependency: cover mount, type, format, slash menu, paste, read-only, unmount, and export-preview flows end to end.)

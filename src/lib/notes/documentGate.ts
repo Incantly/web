@@ -1,4 +1,4 @@
-import { normalizeDocument, parseIncantlyDocument, validateDocument, type IncantlyDocument } from '@incantly/core/document'
+import { normalizeDocument, parseIncantlyDocument, validateDocument, type IncantlyDocument } from '@incantly/canvas-core/document'
 
 export type GateResult = { ok: true; document: IncantlyDocument; repaired: boolean } | { ok: false; issues: string[] }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import type { AssetRecord } from '@incantly/core/document'
+import type { AssetRecord } from '@incantly/canvas-core/document'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState } from 'react'
 import { apiErrorMessage } from '../../../lib/api/errors'

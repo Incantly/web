@@ -1,4 +1,4 @@
-import type { AppendDocumentUpdatesOptions, AppendDocumentUpdatesResult, DocumentCheckpoint, DocumentId, DocumentRepository } from '@incantly/core/document'
+import type { AppendDocumentUpdatesOptions, AppendDocumentUpdatesResult, DocumentCheckpoint, DocumentId, DocumentRepository } from '@incantly/canvas-core/document'
 
 const request = <T,>(value: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => { value.onsuccess = () => resolve(value.result); value.onerror = () => reject(value.error) })
 export class IndexedDbDocumentRepository implements DocumentRepository {

@@ -10,7 +10,7 @@ Reusable or oversized scenes may use a referenced simulation source. The UI must
 
 ## Canonical node
 
-The actual types must be added to `@incantly/core` before the editor extension is implemented.
+The actual types must be added to `@incantly/canvas-core` before the editor extension is implemented.
 
 ```ts
 type FormulaSceneNode = {

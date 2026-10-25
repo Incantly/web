@@ -7,7 +7,7 @@ import {
   type AssetMetadata,
   type AssetRecord,
   type AssetRepository,
-} from '@incantly/core/document'
+} from '@incantly/canvas-core/document'
 
 const request = <T,>(value: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => {
   value.onsuccess = () => resolve(value.result)

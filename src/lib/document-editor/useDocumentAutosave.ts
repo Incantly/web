@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { IncantlyDocument } from '@incantly/core/document'
+import type { IncantlyDocument } from '@incantly/canvas-core/document'
 
 export interface DocumentSaveEnvelope { document: IncantlyDocument; revision: number; schemaVersion: number }
 export interface UseDocumentAutosaveOptions { document: IncantlyDocument; save: (value: DocumentSaveEnvelope) => Promise<void>; delay?: number; onError?: (error: unknown) => void }

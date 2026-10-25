@@ -1,4 +1,4 @@
-import type { DocumentOperation, IncantlyDocument } from '@incantly/core/document'
+import type { DocumentOperation, IncantlyDocument } from '@incantly/canvas-core/document'
 import { ApiError, NETWORK_ERROR } from '../api/errors'
 import type { NoteCheckpoint, NoteTransaction, NoteTransactionAck, NoteRevisionDto } from '../api/notes'
 import { checkDocumentForSave, loadDocument, withTitle } from './documentGate'

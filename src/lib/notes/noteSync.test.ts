@@ -1,4 +1,4 @@
-import { createDocument, type DocumentOperation, type IncantlyDocument } from '@incantly/core/document'
+import { createDocument, type DocumentOperation, type IncantlyDocument } from '@incantly/canvas-core/document'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, NETWORK_ERROR } from '../api/errors'
 import type { NoteTransaction } from '../api/notes'

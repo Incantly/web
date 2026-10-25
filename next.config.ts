@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
       { source: '/v1/:path*', destination: `${backend}/v1/:path*` },
     ];
   },
-  transpilePackages: ['@incantly/core', '@incantly/canvas-react', 'three', 'gsap'],
+  transpilePackages: ['@incantly/canvas-core', '@incantly/canvas-react', 'three', 'gsap'],
   turbopack: { root: path.resolve(process.cwd(), '../..') },
 };
 

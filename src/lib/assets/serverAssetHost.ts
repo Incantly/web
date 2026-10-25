@@ -1,4 +1,4 @@
-import { assetId as toAssetId, type AssetBinary, type AssetHash, type AssetId, type AssetMetadata, type AssetRecord, type AssetRepository } from '@incantly/core/document'
+import { assetId as toAssetId, type AssetBinary, type AssetHash, type AssetId, type AssetMetadata, type AssetRecord, type AssetRepository } from '@incantly/canvas-core/document'
 import { assetsApi, type AssetDto } from '../api/assets'
 import { ApiError, apiErrorMessage } from '../api/errors'
 import { IndexedDbPendingCommandStore, newIdempotencyKey, type PendingCommandStore } from '../api/idempotency'
