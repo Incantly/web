@@ -2,6 +2,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "incantly-web",
+  // Account that owns the incantly.xyz zone; keeps deploys off other signed-in accounts.
+  "account_id": "79b6b8de858c7b48ada76dc9bd7415ba",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
