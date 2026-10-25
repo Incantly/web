@@ -55,7 +55,8 @@ Raise these with the backend owner. The workaround is what this plan builds unti
 | G1 | `NoteDto` has no `spaceId`, and `GET /v1/notes` has no Space or standalone filter | Cannot cheaply show "Unsorted notes" or label a note with its Space | **Built in Phase 6:** Space pages use `GET /v1/spaces/{id}/notes`. "All notes" lists everything without Space labels. The open note shows its Space only when entered from that Space. Ask the backend to add `spaceId` to `NoteDto` and `?spaceId=` / `?standalone=true` |
 | G2 | No note rename endpoint; title follows `document.metadata.title`, and no typed operation sets metadata | Renaming needs a full save | Rename = `PUT /v1/notes/{id}/checkpoint` with the updated `metadata.title` and `baseRevisionNumber`; handle `409 STALE_NOTE_REVISION`. Ask for a `setTitle` operation or `PATCH /v1/notes/{id}` |
 | G3 | No Folder API | Folders inside Spaces cannot be stored | Do not build folders (client-only folders would not persist or sync). Ask the backend for folder metadata if folders are wanted |
-| G4 | No search endpoint | — | Title filter over the loaded Notes, Spaces and Sources lists |
+| G4 | No search endpoint | — | **Built in Phase 8:** titles filter as you type over the loaded lists; Enter runs a content search through `POST /v1/context/preview` (LIBRARY, or one Space), which returns cited passages rather than a ranked list of documents. A dedicated search endpoint would still help (document-level results, paging, no evidence manifest per search) |
+| G6 | File import keeps Markdown syntax as plain text (`# Heading` stays literal) and starts the note with empty paragraphs | A Markdown import doesn't look like the file | Shown as imported. Ask the backend to parse Markdown into headings and lists, and to skip leading blank paragraphs |
 | G5 | Upload verification compares size, the declared `Content-Type` and the checksum, but never the bytes themselves | A text file named `fake.png` with type `image/png` becomes a READY image asset | The editor shows "This image couldn’t be loaded" with Retry when such a file fails to render. Ask the backend to sniff file signatures (magic bytes) before marking an asset READY |
 
 ---
@@ -319,38 +320,92 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
 
 ## Phase 7: Note context (bindings)
 
-- [ ] **7.1 Context panel list:** `GET /v1/notes/{id}/context-bindings` (up to 50), showing each Source with kind, status and binding type.
-- [ ] **7.2 Add a Source to this note:** a picker from the Library or the note's Space Sources, then `PUT .../context-bindings/{sourceId}` with type (default `AVAILABLE`; "Always include" = `PINNED`; "Show only" = `RELATED`) and revision policy (default `TRACK_LATEST`; "Keep this version" = `PINNED_VERSION` with a READY/PARTIALLY_READY `pinnedSourceVersionId`).
-- [ ] **7.3** Change the type or policy (the same `PUT` replaces it) and remove it (`DELETE`).
-- [ ] **7.4** Plain-language explanations of Latest vs Pinned version and of the binding types, shown as help text.
-- [ ] **7.5** Archived or deleted Sources disappear from pickers; a binding to a Source that is no longer usable shows a warning.
+> **Deferred (user, 2026-10-21):** “Leave 7 … until it is implemented.” The Context panel keeps a “Sources for this note — Coming soon” placeholder. The backend routes exist (`/v1/notes/{id}/context-bindings`); build this when asked. “This note” searches already include any bindings the server has.
+
+- [~] **7.1 Context panel list:** `GET /v1/notes/{id}/context-bindings` (up to 50), showing each Source with kind, status and binding type.
+- [~] **7.2 Add a Source to this note:** a picker from the Library or the note's Space Sources, then `PUT .../context-bindings/{sourceId}` with type (default `AVAILABLE`; "Always include" = `PINNED`; "Show only" = `RELATED`) and revision policy (default `TRACK_LATEST`; "Keep this version" = `PINNED_VERSION` with a READY/PARTIALLY_READY `pinnedSourceVersionId`).
+- [~] **7.3** Change the type or policy (the same `PUT` replaces it) and remove it (`DELETE`).
+- [~] **7.4** Plain-language explanations of Latest vs Pinned version and of the binding types, shown as help text.
+- [~] **7.5** Archived or deleted Sources disappear from pickers; a binding to a Source that is no longer usable shows a warning.
 
 ## Phase 8: Context (index status and evidence preview)
 
-- [ ] **8.1 Searchable badge** on notes (`GET /v1/notes/{id}/index-status`) and Sources (`GET /v1/library/sources/{id}/index-status`): Indexing (`building`), Keyword-ready (`lexicalReady`), Ready (`vectorReady`), Failed (`failureCode`). Poll only while visible and building.
-- [ ] **8.2 "Index now"** on a note (`POST /v1/notes/{id}/reindex`, `202`; rate limited, shown in the Context panel only).
-- [ ] **8.3 "What would the AI see?" preview** (`POST /v1/context/preview`):
+- [x] **8.1 Searchable badge** on notes (`GET /v1/notes/{id}/index-status`) and Sources (`GET /v1/library/sources/{id}/index-status`): Indexing (`building`), Keyword-ready (`lexicalReady`), Ready (`vectorReady`), Failed (`failureCode`). Poll only while visible and building.
+- [x] **8.2 "Index now"** on a note (`POST /v1/notes/{id}/reindex`, `202`; rate limited, shown in the Context panel only).
+- [x] **8.3 "What would the AI see?" preview** (`POST /v1/context/preview`):
   - a query box and scope (This note, This selection, This Space with an include-notes toggle, Selected Sources, Custom, and Library only on explicit choice);
   - passages as plain text with locator links (PDF `#page=N` via asset download, audio seek, YouTube `t=`, note block scroll);
   - `sufficiency`, `degraded`, `stale` and `sensitivity` banners, with `NOT_FOUND` shown honestly;
   - `429` respects `Retry-After`.
 
+**Implementation (Phase 8):**
+- **API:** `src/lib/api/context.ts` (`contextApi`). Preview and reindex use `maxAttempts: 1`, so a `429` reaches the UI as a countdown instead of being retried silently.
+- **Logic:** `workspace/contextModel.ts` (+ test) covers the badge, banners, grouping by note or Source, locator labels, YouTube links built only from a bare video ID, and `Retry-After`.
+- **Hooks:** `workspace/useContextSearch.ts`. Index status polls 1 s → 5 s only while building; TanStack pauses it when the tab is hidden or offline. `useContentSearch` runs on submit only, aborts the previous search, and stores nothing.
+- **UI:** `workspace/ContextSearch.tsx` (`IndexStatusView`, `EvidenceResults` and the opener) and `workspace/NoteContextPanel.tsx`.
+  - **Where results show:** the Search page searches content on Enter (all notes and sources, or one Space). The note's Context panel has Searchable with "Index now", and "What would the AI see?" with scopes This note, Selected text, This Space (+ notes toggle), Notes and sources I choose (`SELECTED_SOURCES`, or `CUSTOM` once a note is picked, max 50), and All.
+  - **Opening a result:** a PDF opens at `#page=N` and audio at `#t=s` (download URL fetched just in time), YouTube at `t=`; a note opens with the cited block range selected and scrolled into view. A passage starting at the note's title starts at the top. Anything else opens the Source drawer.
+- **Library:** the Source drawer reads `/index-status` for its badge.
+- **Editor fix:** `DocumentEditor` built its ref API inside `useImperativeHandle`, so `onReady` never fired without a `ref`. The API is now built outside it. Block helpers live in `src/lib/document-editor/blockNavigation.ts`, which keeps ProseMirror positions inside the editor library.
+
+**Live-verified (local backend):**
+- **Search page:** "osmosis water" found the pasted-text Source. "Calvin cycle glucose" found the new note, and clicking it opened the note with both paragraphs selected.
+- **Context panel:** the badge read "Searchable · 1 passage", and "Index now" returned 202 and showed "Indexing scheduled". "This note" and "Selected text" previews returned the cited passages.
+- **Responsive:** the Search page and Context panel (docked at 1024 and 1440 px, a sheet at 320, 375 and 768 px, including the 10-item picker) have no overflow and no target under 44 px.
+
 ## Phase 9: Imports
 
-- [ ] **9.1 Import file as note:** a `.txt`/`.md` file (at most 10 MiB) goes through Phase 4 upload, then `POST /v1/imports/files { sourceAssetId, targetNoteId? }` with a key. Poll `GET /v1/imports/{id}` until `completed` (open `targetNoteId`), `failed` (show `errorCode` in words) or `cancelled`. Offer it both as "new note" and "into this note".
-- [ ] **9.2 Import from URL:** `POST /v1/imports/urls`. `409 REMOTE_IMPORT_UNAVAILABLE` shows "URL import isn't available here yet"; also handle `INVALID_IMPORT_URL` and `IMPORT_URL_BLOCKED`.
-- [ ] **9.3** Cancel while queued (`DELETE`); hide Cancel once `running` (`409 IMPORT_NOT_CANCELLABLE`). Import IDs are persisted so a reload resumes polling.
+- [x] **9.1 Import file as note:** a `.txt`/`.md` file (at most 10 MiB) goes through Phase 4 upload, then `POST /v1/imports/files { sourceAssetId, targetNoteId? }` with a key. Poll `GET /v1/imports/{id}` until `completed` (open `targetNoteId`), `failed` (show `errorCode` in words) or `cancelled`. Offer it both as "new note" and "into this note".
+- [x] **9.2 Import from URL:** `POST /v1/imports/urls`. `409 REMOTE_IMPORT_UNAVAILABLE` shows "URL import isn't available here yet"; also handle `INVALID_IMPORT_URL` and `IMPORT_URL_BLOCKED`.
+- [x] **9.3** Cancel while queued (`DELETE`); hide Cancel once `running` (`409 IMPORT_NOT_CANCELLABLE`). Import IDs are persisted so a reload resumes polling.
+
+**Implementation (Phase 9):**
+- **API:** `src/lib/api/imports.ts` (`importsApi`; cancel answers 204).
+- **Logic:** `workspace/importModel.ts` (+ test) validates `.txt`/`.md` up to 10 MiB and https only, parses stored records defensively (dropped after 24 h, at most 20), and sets the 2 → 5 s poll.
+- **UI:** `workspace/imports.tsx`.
+  - **Dialog:** `ImportDialog` handles file or web address, as a new note or into the open note. It shows upload progress, Cancel aborts the upload, and errors appear inline.
+  - **Tray:** `ImportTray` is fixed bottom-left with safe-area insets and `aria-live`. It shows status, Cancel while `queued`, Open note when completed, the failure `errorCode` in words, and Dismiss.
+  - **Tracker:** `useImportTracker` stores only `{id, file name or host, intoNoteId, startedAt}` under `incantly-imports:{userId}`. On completion it refreshes the notes list and reloads the open note if it has no unsent edits.
+- **Entry points:** New → Import file as note / Import from web address, and Note actions → Import file into note / Import web page into note.
+
+**Live-verified:**
+- **New note:** `krebs-cycle.md` was imported as a new note, then Open note.
+- **Into a note:** `pyruvate.txt` was imported into the open note, which reloaded with the text appended.
+- **Reload:** after a reload, the tray still showed the finished import.
+- **Web address:** `http://` was refused inline. `https://` returned 409 `REMOTE_IMPORT_UNAVAILABLE`, shown as "Importing from a web address isn’t available here yet."
+- **Responsive:** the import dialog and tray are clean at 320 px.
 
 ## Phase 10: Hardening
 
-- [ ] **10.1** An offline banner; polling pauses when hidden or offline and resumes on reconnect.
-- [ ] **10.2** `aria-live` for uploads, processing, sync and imports. All dialogs, drawers and tabs work by keyboard with focus return.
-- [ ] **10.3** Security sweep: no tokens, presigned URLs or document text in storage, URLs, logs or analytics. All server text (titles, filenames, passages, `documentTitle`) is rendered as text.
-- [ ] **10.4** Update `docs/authentication.md`, this plan's statuses, and a Maintenance note (regenerate types when the backend changes; re-copy `frontend-api-integration.md`).
+- [x] **10.1** An offline banner; polling pauses when hidden or offline and resumes on reconnect.
+- [x] **10.2** `aria-live` for uploads, processing, sync and imports. All dialogs, drawers and tabs work by keyboard with focus return.
+- [x] **10.3** Security sweep: no tokens, presigned URLs or document text in storage, URLs, logs or analytics. All server text (titles, filenames, passages, `documentTitle`) is rendered as text.
+- [x] **10.4** Update `docs/authentication.md`, this plan's statuses, and a Maintenance note (regenerate types when the backend changes; re-copy `frontend-api-integration.md`).
+
+**Implementation (Phase 10):**
+- **10.1:** `OfflineBanner` is sticky and announced politely; reconnecting shows "Back online. Syncing your changes…" for 4 s. All polling uses TanStack Query intervals, which pause while the tab is hidden (`refetchIntervalInBackground` is off) or offline (online manager) and refetch on reconnect. Note sync flushes on `online`.
+- **10.2:**
+  - **Announcements:** live regions cover uploads (`role=status` card), processing (drawer), sync (indicator), imports (tray), search results (count) and the offline banner.
+  - **Keyboard:** dialogs are native `<dialog>`. Docked panels take focus, close on Escape and return focus. Tabs use arrow keys.
+- **10.3:** the sweep found no tokens, presigned URLs or passages in storage, URLs or logs.
+  - **Logging:** diagnostics keep only path templates and codes.
+  - **Rendering:** server text is rendered as text (no `dangerouslySetInnerHTML` in product code). The E2E test proves `<b>` in a passage stays literal.
+  - **New storage:** only import IDs. Search queries never go in a URL.
+- **10.4:** `docs/authentication.md` covers `/v1/*` signing, 401 handling and what is stored on the device. The statuses here are updated, and the maintenance note is below.
+
+**Maintenance:**
+- **Backend API changes:** run `npm run api:fetch` (needs `API_DOCS_USERNAME`/`API_DOCS_PASSWORD` in the environment, never in the repo), then `npm run api:types`, then `npx tsc --noEmit`. Commit `openapi.json` and `schema.d.ts` together.
+- **Integration guide changes:** re-copy `frontend-api-integration.md` from the backend repo.
+- **Generated types:** they mark server-defaulted fields as required (see `ContextPreviewRequest`). Loosen them at the API module, never at call sites.
 
 ## Deferred until the product owner asks
 
-- [~] **E2E tests** for these flows. `AGENTS.md` (2026-10-20): do not write or run E2E tests until told.
+- [x] **E2E tests (focused).** The user (2026-10-21) asked for a few straightforward Playwright specs, with mocked `/v1/*` (`tests/e2e/workspace-mocks.ts`):
+  - `content-search.spec.ts`: passages grouped with page locators and rendered as text; a 429 counts down.
+  - `imports.spec.ts`: queued → cancelled; only the ID and host are stored; tracking resumes after reload.
+  - `offline-banner.spec.ts`: offline, then back online.
+
+  All three pass with `PLAYWRIGHT_CHROME_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'`.
 - [~] **AI agent** (`/v1/ai/*`: ask, quiz, jobs, citations, allowance). Named in the first request but not in the scope confirmed on 2026-10-20. Planned separately when asked.
 - [~] **Inbox / notifications.** No backend support (D2).
 
@@ -375,7 +430,7 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
    - import a Markdown file as a note;
    - archive and restore the Space;
    - delete the note.
-8. Gaps G1–G4 are raised with the backend owner, and each workaround is in place.
+8. Gaps G1–G6 are raised with the backend owner, and each workaround is in place.
 9. Every new view passes the responsive check (2.8).
 
 ### Intentionally unused operations

@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-20T17:51:27.450Z",
+  "when": "2026-10-21T13:10:05.570Z",
   "results": [
     {
       "suite": "landing",
@@ -8274,6 +8274,24 @@
       "name": "\"Open workspace\" target ≥44px at 1440px",
       "pass": true,
       "detail": "164×48"
+    },
+    {
+      "suite": "imports",
+      "name": "only the import ID and host are stored on the device",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "imports",
+      "name": "cancel while queued, then Cancel disappears",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "suite": "imports",
+      "name": "a reload resumes tracking the import",
+      "pass": true,
+      "detail": ""
     }
   ]
 }

@@ -75,6 +75,20 @@ const messages: Record<string, string> = {
   INVALID_IMPORT_URL: 'Enter a valid https:// web address.',
   IMPORT_URL_BLOCKED: 'That web address can’t be imported.',
   IMPORT_NOT_CANCELLABLE: 'This import has already started and can’t be cancelled.',
+  IMPORT_NOT_FOUND: 'This import no longer exists.',
+  IMPORT_TYPE_NOT_SUPPORTED: 'Only plain text (.txt) and Markdown (.md) files can be imported as a note.',
+  IMPORT_TOO_LARGE: 'Files imported as a note can be up to 10 MB.',
+  IMPORT_OBJECT_TOO_LARGE: 'Files imported as a note can be up to 10 MB.',
+  IMPORT_CONTENT_LIMIT: 'This file has more content than a note can hold. Split it and import the parts.',
+  IMPORT_SOURCE_MISSING: 'The uploaded file is no longer available. Upload it again.',
+  IMPORT_OBJECT_REPOSITORY: 'The uploaded file couldn’t be read. Try again shortly.',
+  IMPORT_PROCESSING_FAILED: 'The file couldn’t be turned into a note. Check it’s UTF-8 text and try again.',
+  ASSET_NOT_FOUND: 'The uploaded file is no longer available. Upload it again.',
+
+  SELECTION_NODE_NOT_FOUND: 'Part of your selection changed. Select the text again.',
+  CONTEXT_SCOPE_INVALID: 'Choose what to search first.',
+  CONTEXT_SCOPE_TOO_LARGE: 'That’s too much to search at once. Narrow it down.',
+  CONTEXT_QUERY_INVALID: 'Type what you’re looking for (up to 1,000 characters).',
 }
 
 export function apiErrorMessage(error: unknown): string {

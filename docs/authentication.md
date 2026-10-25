@@ -10,6 +10,8 @@ The backend rejects unsigned `/api/auth/*` requests with `403 UNTRUSTED_PROXY`. 
 
 Get started opens `/auth/signup`. Users enter first name, last name, email, and a password of at least 12 characters, then verify email. `/auth` provides email/password login and Google. Forgot password sends a Resend reset link to `/auth/reset-password`; a completed reset removes the token from the address bar and returns to login. Signup and reset confirmations avoid revealing account existence. Verification resend is available on login. Workspace sign-out invalidates the server session.
 
+Data requests (`/v1/*`) take the same path: `server.mjs` signs them and proxies them to the backend, so the browser never holds a backend token. A `401` from any `/v1/*` call stops background queries and sends the user to `/auth?next=…`; unsent note edits stay on the device and resume after sign-in. On the device, the app keeps only unsent note edits and cached note copies (IndexedDB), cached image previews, pending-command records, and the IDs of running imports (localStorage). Session cookies, presigned file URLs, search queries and passages are never stored or put in a URL.
+
 Protected-page navigation checks the session with the Nest backend. Every data API must separately authorize the requested resource; a page redirect is not an authorization boundary. Credentials are never persisted in localStorage or IndexedDB.
 
 Run `PLAYWRIGHT_CHROME_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npx playwright test tests/e2e/auth.spec.ts` to test form behavior and all required viewport widths. Tests mock the auth HTTP responses and are not a substitute for the backend PostgreSQL integration tests or live OAuth/provider tests.

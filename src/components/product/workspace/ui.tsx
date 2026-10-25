@@ -65,9 +65,10 @@ export function ListSkeleton({ rows = 4, label = 'Loading' }: { rows?: number; l
   </div>
 }
 
-export function OfflineBanner() {
-  return <div role="status" className="flex items-center gap-2 border-b border-default bg-surface px-4 py-2 text-xs text-muted sm:px-5">
-    <AppIcon name="alert" className="size-4 shrink-0" />You’re offline. Changes will sync when you reconnect.
+/** Offline notice, and a brief "back online" confirmation after reconnecting. */
+export function OfflineBanner({ reconnected = false }: { reconnected?: boolean }) {
+  return <div role="status" aria-live="polite" className="sticky top-0 z-20 flex items-center gap-2 border-b border-default bg-surface px-4 py-2 text-xs text-muted sm:px-5">
+    <AppIcon name={reconnected ? 'checkCircle' : 'alert'} className="size-4 shrink-0" />{reconnected ? 'Back online. Syncing your changes…' : 'You’re offline. Changes are saved on this device and sync when you reconnect.'}
   </div>
 }
 
