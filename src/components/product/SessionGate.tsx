@@ -14,6 +14,11 @@ export function useCurrentUser(): CurrentUser {
   return user
 }
 
+/** Supplies a fixed user without a session check, for read-only previews like the landing showcase. */
+export function CurrentUserProvider({ user, children }: { user: CurrentUser; children: ReactNode }) {
+  return <CurrentUserContext.Provider value={user}>{children}</CurrentUserContext.Provider>
+}
+
 function signInUrl() {
   const next = window.location.pathname + window.location.search
   return new URL(`/auth?next=${encodeURIComponent(next)}`, window.location.origin).href
