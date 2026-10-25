@@ -1,3 +1,4 @@
+import { WaitlistButton } from '../WaitlistButton'
 import { GrowthShader } from './GrowthShader'
 import { eyebrowClass } from '../../lib/ui'
 
@@ -17,7 +18,7 @@ export function IncantlyCloser() {
           <div>
             <h2 id="closer-band-heading" className="m-0 font-display text-[clamp(2.25rem,7vw,4rem)] font-normal leading-[1.05] tracking-[-0.04em] text-balance">Your ideas deserve a place to grow.</h2>
             <p className="mt-5 max-w-[32rem] text-base leading-[1.6] text-muted">Start with a note. See what becomes possible when you can ask, make, and explore in the same space.</p>
-            <a className="mt-7 inline-flex min-h-11 items-center rounded-xl bg-raised px-8 py-2.5 font-medium text-foreground no-underline hover:underline" href="/auth/signup">Get started</a>
+            <WaitlistButton className="mt-7 inline-flex min-h-11 items-center rounded-xl bg-raised px-8 py-2.5 font-medium text-foreground hover:underline">Join waitlist</WaitlistButton>
           </div>
           <span className="self-end justify-self-end text-[clamp(7rem,24vw,10rem)] leading-[0.8] text-button lg:self-center lg:justify-self-center lg:text-[clamp(10rem,18vw,15rem)]" aria-hidden="true">✳</span>
         </div>

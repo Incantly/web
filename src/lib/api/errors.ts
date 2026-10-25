@@ -27,6 +27,8 @@ const messages: Record<string, string> = {
   SESSION_REQUIRED: 'Your session has ended. Please sign in again.',
   RATE_LIMITED: 'Too many requests. Please wait a moment and try again.',
   UNTRUSTED_ORIGIN: 'This request was blocked for security. Reload the page and try again.',
+  UNTRUSTED_PROXY: 'This request was blocked for security. Reload the page and try again.',
+  WAITLIST_UNAVAILABLE: 'We couldn’t add you just now. Please try again in a few minutes.',
   INVALID_RESOURCE_ID: 'That link doesn’t look right.',
   INVALID_CURSOR: 'The list changed while loading. Refresh to continue.',
   INVALID_IDEMPOTENCY_KEY: 'Something went wrong sending that request. Please try again.',

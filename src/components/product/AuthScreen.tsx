@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { authClient, googleAuthEnabled } from '../../lib/auth-client'
-import { type AuthClientError, type AuthProblem, describeAuthError, describeNetworkError, retryAfterSeconds } from '../../lib/auth-errors'
+import { type AuthClientError, type AuthProblem, describeAuthError, describeNetworkError, retryAfterSeconds, WAITLIST_ONLY_PROBLEM } from '../../lib/auth-errors'
+import { WaitlistButton } from '../WaitlistButton'
 import { GrowthShader } from '../landing/GrowthShader'
 
 type Mode = 'login' | 'signup'
@@ -50,13 +51,14 @@ function ErrorIcon() {
   )
 }
 
-export function AuthScreen({ initialMode = 'login', oauthFailed = false }: { initialMode?: Mode; oauthFailed?: boolean }) {
+/** `oauthError`: the `error` code Better Auth put on the URL after a failed Google sign-in. */
+export function AuthScreen({ initialMode = 'login', oauthError }: { initialMode?: Mode; oauthError?: string }) {
   const router = useRouter()
   const session = authClient.useSession()
   const [mode, setMode] = useState<Mode>(initialMode)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState('')
-  const [problem, setProblem] = useState<AuthProblem | null>(oauthFailed ? { message: 'Google sign-in was cancelled or didn’t finish. Please try again or use email.' } : null)
+  const [problem, setProblem] = useState<AuthProblem | null>(oauthError === 'WAITLIST_ONLY' ? WAITLIST_ONLY_PROBLEM : oauthError ? { message: 'Google sign-in was cancelled or didn’t finish. Please try again or use email.' } : null)
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [codeSent, setCodeSent] = useState(false)
@@ -192,7 +194,8 @@ export function AuthScreen({ initialMode = 'login', oauthFailed = false }: { ini
 
                   {problem ? (
                     <div ref={errorRef} id="auth-error" role="alert" tabIndex={-1} className="flex gap-3 rounded-xl border border-danger bg-danger-surface px-4 py-3 text-sm text-danger focus:outline-none">
-                      <ErrorIcon /><p className="m-0 min-w-0 break-words">{problem.message}</p>
+                      <ErrorIcon /><div className="min-w-0"><p className="m-0 break-words">{problem.message}</p>
+                        {problem.waitlist ? <WaitlistButton className="mt-1 inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4">Join the waitlist</WaitlistButton> : null}</div>
                     </div>
                   ) : null}
 

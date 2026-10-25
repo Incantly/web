@@ -1,5 +1,11 @@
 export type AuthField = 'email' | 'otp'
-export type AuthProblem = { message: string; field?: AuthField }
+/** `waitlist`: sign-up is invite-only and this email is not approved yet. */
+export type AuthProblem = { message: string; field?: AuthField; waitlist?: boolean }
+
+export const WAITLIST_ONLY_PROBLEM: AuthProblem = {
+  waitlist: true,
+  message: 'Incantly is invite-only for now. Join the waitlist and we’ll email you when your spot opens.',
+}
 type AuthStep = 'send' | 'verify' | 'google'
 
 /** Shape of `result.error` returned by the Better Auth client. */
@@ -32,6 +38,8 @@ export function describeAuthError(error: AuthClientError, step: AuthStep, retryA
       return { field: 'email', message: 'Enter a valid email address, like name@example.com.' }
     case 'RATE_LIMITED':
       return { message: `Too many attempts. Please wait ${waitText(retryAfter)} and try again.` }
+    case 'WAITLIST_ONLY':
+      return WAITLIST_ONLY_PROBLEM
     case 'INVALID_REDIRECT':
       return { message: 'That sign-in link isn’t allowed. Start again from this page.' }
     case 'AUTH_UNAVAILABLE':
