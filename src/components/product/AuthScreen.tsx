@@ -226,6 +226,7 @@ export function AuthScreen({ initialMode = 'login', oauthFailed = false }: { ini
             <span aria-hidden="true">·</span>
             <Link href="/privacy" className={navLink}>Privacy</Link>
             <Link href="/terms" className={navLink}>Terms</Link>
+            <Link href="/cookies" className={navLink}>Cookies</Link>
           </nav>
         </footer>
       </section>
