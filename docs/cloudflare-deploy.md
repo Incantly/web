@@ -6,7 +6,7 @@ Production runs on Cloudflare Workers through the OpenNext adapter (`@opennextjs
 
 Workers never run `server.mjs`, so `src/middleware.ts` signs every request that the `next.config.ts` rewrites send to the backend (`/api/auth/*` and `/v1/*`). The middleware picks its behavior from the runtime, not from anything in the request:
 
-- On Workers (`navigator.userAgent === 'Cloudflare-Workers'`), it deletes every incoming `x-incantly-*` identity header, reads the client IP from `CF-Connecting-IP` (set and overwritten by Cloudflare at the edge), and signs it with Web Crypto. A missing or invalid IP gets 403.
+- On Workers (`navigator.userAgent === 'Cloudflare-Workers'`), it deletes every incoming `x-incantly-*` identity header, reads the client IP from `CF-Connecting-IP` (set and overwritten by Cloudflare at the edge), and signs it with Web Crypto. A missing or invalid IP gets 403. It then forwards the request to `AUTH_BACKEND_URL` itself with `redirect: "manual"` and returns the backend's response unchanged. OpenNext's rewrite proxy follows redirects inside the Worker, which would swallow the backend's 302s (the Google callback) and their cookies.
 - On Node, `server.mjs` has already stamped the request from the socket. The middleware only checks that stamp (fresh, correctly signed) and passes it through unchanged; anything else gets 403. This also closes the gap if someone runs bare `next start`.
 
 This is the edge-runtime `middleware.ts`, not Next 16's `proxy.ts`: `proxy.ts` always runs on the Node runtime, which OpenNext for Cloudflare does not support yet (the build fails and its docs list Node middleware as unsupported). Next 16 still supports `middleware.ts` but prints a deprecation notice; move to `proxy.ts` once OpenNext supports it.

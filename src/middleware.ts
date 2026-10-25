@@ -25,7 +25,30 @@ async function signForBackend(request: NextRequest) {
     return (await hasValidStamp(request.headers, secret)) ? NextResponse.next() : refuse(403)
   }
   const headers = await stampClientIdentity(request.headers, request.headers.get('cf-connecting-ip'), secret)
-  return headers ? NextResponse.next({ request: { headers } }) : refuse(403)
+  if (!headers) return refuse(403)
+  const backend = process.env.AUTH_BACKEND_URL
+  return backend ? forward(request, headers, backend) : NextResponse.next({ request: { headers } })
+}
+
+// OpenNext's rewrite proxy follows redirects inside the Worker, which swallows
+// the backend's 302s (the OAuth callback) and their cookies. Forward here
+// instead and hand the backend's response to the browser unchanged.
+async function forward(request: NextRequest, headers: Headers, backend: string) {
+  headers.delete('cf-connecting-ip')
+  headers.delete('host')
+  const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
+  const response = await fetch(new URL(request.nextUrl.pathname + request.nextUrl.search, backend), {
+    method: request.method,
+    headers,
+    body: hasBody ? request.body : undefined,
+    redirect: 'manual',
+    ...(hasBody ? { duplex: 'half' } : {}),
+  } as RequestInit)
+  const responseHeaders = new Headers(response.headers)
+  // workerd has already decoded the body.
+  responseHeaders.delete('content-encoding')
+  responseHeaders.delete('content-length')
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers: responseHeaders })
 }
 
 export async function middleware(request: NextRequest) {
