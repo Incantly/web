@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { pageMetadata } from '../../lib/brand/siteMetadata'
 import { Detail, Email, InShort, LegalDocument, LegalTable, type LegalSection } from '../../components/legal/LegalDocument'
 import { legalEntity as e } from '../../lib/legal/company'
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy · Incantly',
-  description: 'How Genesis HQ collects, uses, shares and protects personal data when you use Incantly.',
-}
+export const metadata: Metadata = pageMetadata({ title: 'Privacy Policy · Incantly', description: 'How Genesis HQ collects, uses, shares and protects personal data when you use Incantly.', path: '/privacy' })
 
 const privacy = <Email value={e.privacyEmail} missing="privacy email" />
 
