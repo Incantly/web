@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
     ];
   },
   transpilePackages: ['@incantly/canvas-core', '@incantly/canvas-react', 'three', 'gsap'],
-  turbopack: { root: path.resolve(process.cwd(), '../..') },
+  // The project is its own root: tracing outside it nests the standalone output and breaks OpenNext.
+  turbopack: { root: path.resolve(process.cwd()) },
 };
 
 export default nextConfig;

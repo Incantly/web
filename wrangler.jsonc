@@ -1,0 +1,26 @@
+// Cloudflare Workers deployment through OpenNext. See docs/cloudflare-deploy.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "incantly-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    // Self-reference required by OpenNext; must match "name".
+    { "binding": "WORKER_SELF_REFERENCE", "service": "incantly-web" }
+  ],
+  "images": { "binding": "IMAGES" },
+  // Served at the apex once its DNS record no longer points at Vercel.
+  // wrangler refuses to attach while a conflicting record exists.
+  "routes": [{ "pattern": "incantly.xyz", "custom_domain": true }],
+  "vars": {
+    // Runtime copy only. The rewrite destination is fixed at build time, so
+    // `npm run build:cf` also sets AUTH_BACKEND_URL for `next build`.
+    "AUTH_BACKEND_URL": "https://api.incantly.xyz"
+  }
+  // AUTH_PROXY_SECRET is a Worker secret: `npx wrangler secret put AUTH_PROXY_SECRET`.
+}
