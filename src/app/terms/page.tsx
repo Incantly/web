@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { pageMetadata } from '../../lib/brand/siteMetadata'
 import { Detail, Email, InShort, LegalDocument, type LegalSection } from '../../components/legal/LegalDocument'
 import { legalEntity as e } from '../../lib/legal/company'
 
-export const metadata: Metadata = {
-  title: 'Terms of Service · Incantly',
-  description: 'The agreement between you and Genesis HQ for using Incantly.',
-}
+export const metadata: Metadata = pageMetadata({ title: 'Terms of Service · Incantly', description: 'The agreement between you and Genesis HQ for using Incantly.', path: '/terms' })
 
 const sections: LegalSection[] = [
   {

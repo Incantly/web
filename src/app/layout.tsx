@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { CookieConsent } from '../components/consent/CookieConsent'
+import { pageMetadata, siteDescription, siteName, siteTitle, siteUrl } from '../lib/brand/siteMetadata'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Incantly — Bring your notes to life',
-  description: 'Incantly turns notes into living learning environments.',
-  icons: { icon: '/incantly-logo.svg' },
+  metadataBase: siteUrl,
+  applicationName: siteName,
+  ...pageMetadata({ title: siteTitle, description: siteDescription }),
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

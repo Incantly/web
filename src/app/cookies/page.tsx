@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { pageMetadata } from '../../lib/brand/siteMetadata'
 import { CookieSettingsButton } from '../../components/consent/CookieConsent'
 import { Email, InShort, LegalDocument, LegalTable, type LegalSection } from '../../components/legal/LegalDocument'
 import { buttonSecondary } from '../../components/product/workspace/ui'
 import { legalEntity as e } from '../../lib/legal/company'
 import { CONSENT_COOKIE } from '../../lib/consent/consent'
 
-export const metadata: Metadata = {
-  title: 'Cookie Policy · Incantly',
-  description: 'The cookies and browser storage Incantly uses, and how to control them.',
-}
+export const metadata: Metadata = pageMetadata({ title: 'Cookie Policy · Incantly', description: 'The cookies and browser storage Incantly uses, and how to control them.', path: '/cookies' })
 
 const code = (value: string) => <code className="rounded bg-surface px-1 py-0.5 text-[0.8125rem] text-foreground">{value}</code>
 

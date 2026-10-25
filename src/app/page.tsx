@@ -6,6 +6,9 @@ import { IncantlyFeatureStack } from '../components/landing/FeatureStack'
 import { IncantlyCloser } from '../components/landing/Closer'
 import { IncantlyFooter } from '../components/landing/Footer'
 import ScrollRoot from '../components/ScrollRoot'
+import { pageMetadata, siteDescription, siteTitle } from '../lib/brand/siteMetadata'
+
+export const metadata = pageMetadata({ title: siteTitle, description: siteDescription, path: '/' })
 
 export default function Home() {
   return (
