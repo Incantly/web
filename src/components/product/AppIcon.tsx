@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'alert' | 'archive' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'table' | 'trash' | 'unlink' | 'upload' | 'video'
+export type IconName = 'alert' | 'archive' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pause' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'table' | 'trash' | 'unlink' | 'upload' | 'video'
 
 const paths: Record<IconName, ReactNode> = {
   alert: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></>,
@@ -39,6 +39,7 @@ const paths: Record<IconName, ReactNode> = {
   minus: <path d="M5 12h14"/>,
   panel: <><path d="M6 4h3v16H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" fill="currentColor" stroke="none"/><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></>,
   paper: <><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></>,
+  pause: <path d="M8.5 5v14M15.5 5v14"/>,
   plus: <path d="M12 5v14M5 12h14"/>,
   quote: <path d="M9 6C6 8 4 11 4 15v3h6v-6H7c0-2 1-4 2-5zM20 6c-3 2-5 5-5 9v3h6v-6h-3c0-2 1-4 2-5z"/>,
   search: <><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></>,

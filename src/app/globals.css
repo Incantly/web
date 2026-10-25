@@ -93,6 +93,28 @@
   --ui-code-number: #0550ae;
   --ui-code-function: #8250df;
   --ui-code-title: #953800;
+
+  /*
+   * Visualization stage: the dark viewer that note visuals render into
+   * (landing showcase). Series hues follow the Euler reference: helix blue,
+   * sine green, cosine pink, moving-point orange. Labels hold 8:1 on the stage.
+   */
+  --palette-night: #16171b;
+  --palette-night-line: #3a3c42;
+  --palette-night-ink: #a7abb2;
+  --palette-night-glow: #e9ebee;
+  --palette-viz-blue: #5ea6f7;
+  --palette-viz-green: #7fd88a;
+  --palette-viz-pink: #e8739f;
+  --palette-viz-orange: #f2994a;
+  --ui-viz-stage: var(--palette-night);
+  --ui-viz-grid: var(--palette-night-line);
+  --ui-viz-label: var(--palette-night-ink);
+  --ui-viz-guide: var(--palette-night-glow);
+  --ui-viz-1: var(--palette-viz-blue);
+  --ui-viz-2: var(--palette-viz-green);
+  --ui-viz-3: var(--palette-viz-pink);
+  --ui-viz-4: var(--palette-viz-orange);
 }
 
 /* Tailwind theme: colors, fonts, breakpoints, animations. */
@@ -130,6 +152,14 @@
   --color-button-hover: var(--ui-button-hover);
   --color-danger: var(--ui-danger);
   --color-danger-surface: var(--ui-danger-surface);
+  --color-viz-stage: var(--ui-viz-stage);
+  --color-viz-grid: var(--ui-viz-grid);
+  --color-viz-label: var(--ui-viz-label);
+  --color-viz-guide: var(--ui-viz-guide);
+  --color-viz-1: var(--ui-viz-1);
+  --color-viz-2: var(--ui-viz-2);
+  --color-viz-3: var(--ui-viz-3);
+  --color-viz-4: var(--ui-viz-4);
 
   --animate-hero-drift: hero-drift 4.5s ease-in-out infinite;
   --animate-hero-drift-slow: hero-drift 5.5s ease-in-out infinite reverse;
