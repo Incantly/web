@@ -1,6 +1,7 @@
 import * as THREE from 'three'
-import { arrivals } from './doppler'
-import { createStage, type ViewName } from './stage'
+import { approachFrequency, arrivals, machAngleDegrees, recedeFrequency } from './doppler'
+import type { ReadoutSink } from './scenes'
+import { createStage } from './stage'
 
 /**
  * A source crossing a ground plane, emitting a wavefront on a fixed beat. Wavefronts are drawn as
@@ -19,15 +20,9 @@ const RINGS = 96
 const PRE = 8 // the source has been emitting this long (sim seconds) when the scene opens
 const RING_SAMPLES = 72
 
-export const dopplerViews: { name: ViewName; label: string }[] = [
-  { name: 'iso', label: 'Isometric' },
-  { name: 'top', label: 'Top' },
-  { name: 'side', label: 'Side' },
-]
+const hz = (value: number) => (Number.isFinite(value) ? `${Math.round(value).toLocaleString('en-US')} Hz` : '—')
 
-export type Hearing = { frequencies: number[] }
-
-export function createDopplerScene(host: HTMLElement, onHear: (hearing: Hearing) => void) {
+export function createDopplerScene(host: HTMLElement, onReadout: ReadoutSink) {
   const stage = createStage(host, {
     target: new THREE.Vector3(0, 0, 0),
     initial: 'iso',
@@ -167,7 +162,16 @@ export function createDopplerScene(host: HTMLElement, onHear: (hearing: Hearing)
       audio.heardBefore = heard.length
     }
     reported += dt
-    if (reported > 0.12) { reported = 0; onHear({ frequencies: heard.map((hit) => hit.frequency) }) }
+    if (reported > 0.12) {
+      reported = 0
+      const angle = machAngleDegrees(mach)
+      onReadout([
+        { label: 'Approaching', value: hz(approachFrequency(F0, mach)) },
+        { label: 'Receding', value: hz(recedeFrequency(F0, mach)) },
+        { label: 'Mach cone', value: angle ? `${angle.toFixed(1)}°` : 'none' },
+        { label: 'Listener hears', value: heard.length ? heard.map((hit) => hz(hit.frequency)).join(' + ') : 'silence', accent: true },
+      ])
+    }
   })
   reset()
   draw()
@@ -176,7 +180,7 @@ export function createDopplerScene(host: HTMLElement, onHear: (hearing: Hearing)
     setPlaying: (value: boolean) => { playing = value },
     setView: stage.setView,
     restart: reset,
-    setMach: (value: number) => { mach = value; reset() },
+    setParam: (value: number) => { mach = value; reset() },
     setSound: (on: boolean) => {
       if (on && !audio) startAudio()
       if (!on && audio) { void audio.context.close(); audio = null }

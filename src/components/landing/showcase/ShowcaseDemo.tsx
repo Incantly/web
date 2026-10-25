@@ -6,7 +6,7 @@ import { CurrentUserProvider } from '../../product/SessionGate'
 import { Sidebar } from '../../product/workspace/Sidebar'
 import { SpaceGlyph } from '../../product/workspace/ui'
 import { demoNotes, demoScenes, demoSources, demoSpaces, demoUser } from './demoNotes'
-import { VizBlock, type VisualState } from './VizBlock'
+import { freshVisual, VizBlock, type VisualKind, type VisualState } from './VizBlock'
 
 /**
  * The landing page's product preview: the real workspace sidebar around a sample note, with a
@@ -17,7 +17,16 @@ import { VizBlock, type VisualState } from './VizBlock'
 type Step = { wait: number; run: (tour: Tour) => void }
 type Tour = { move: (target: string) => void; press: (target: string) => void; hover: (target: string | null) => void; next: () => void }
 
-const STEPS: Record<'euler' | 'doppler', Step[]> = {
+/** Look at the formula, ask for a visual, then try one or two of its controls. */
+const generate: Step[] = [
+    { wait: 900, run: (tour) => { tour.move('formula'); tour.hover('formula') } },
+    { wait: 1500, run: (tour) => { tour.move('visualize'); tour.hover(null) } },
+    { wait: 1100, run: (tour) => tour.press('visualize') },
+]
+const press = (target: string, wait: number): Step[] => [{ wait, run: (tour) => tour.move(target) }, { wait: 1000, run: (tour) => tour.press(target) }]
+const next = (wait: number): Step => ({ wait, run: (tour) => tour.next() })
+
+const STEPS: Record<VisualKind, Step[]> = {
   euler: [
     { wait: 900, run: (tour) => { tour.move('formula'); tour.hover('formula') } },
     { wait: 1500, run: (tour) => { tour.move('visualize'); tour.hover(null) } },
@@ -34,10 +43,13 @@ const STEPS: Record<'euler' | 'doppler', Step[]> = {
     { wait: 900, run: (tour) => { tour.move('formula'); tour.hover('formula') } },
     { wait: 1800, run: (tour) => { tour.move('visualize'); tour.hover(null) } },
     { wait: 1100, run: (tour) => tour.press('visualize') },
-    { wait: 5200, run: (tour) => tour.move('mach-1.5') },
-    { wait: 1000, run: (tour) => tour.press('mach-1.5') },
+    { wait: 5200, run: (tour) => tour.move('param-1.5') },
+    { wait: 1000, run: (tour) => tour.press('param-1.5') },
     { wait: 7000, run: (tour) => tour.next() },
   ],
+  kepler: [...generate, ...press('param-0.7', 3800), ...press('view-top', 3600), ...press('view-iso', 3600), next(2800)],
+  fourier: [...generate, ...press('param-9', 3600), ...press('param-25', 2800), ...press('view-side', 2600), next(3800)],
+  predator: [...generate, ...press('view-front', 4200), ...press('param-200', 3000), ...press('view-iso', 3200), next(3800)],
 }
 const GENERATING_MS = 1400
 
@@ -47,8 +59,6 @@ function subscribeReducedMotion(callback: () => void) {
   return () => query.removeEventListener('change', callback)
 }
 const useReducedMotion = () => useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia('(prefers-reduced-motion: reduce)').matches, () => false)
-
-const freshVisual = (sound: boolean, live: boolean): VisualState => ({ phase: live ? 'live' : 'idle', playing: true, view: 'iso', mach: 0.9, sound })
 
 const tabClass = 'inline-flex min-h-11 items-center border-b-2 border-transparent px-1 py-2 text-[0.8125rem] font-semibold text-subtle hover:border-button hover:text-button focus-visible:border-button focus-visible:text-button aria-pressed:border-button aria-pressed:text-button'
 const iconButton = 'grid size-11 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface hover:text-foreground'
@@ -62,7 +72,7 @@ export function ShowcaseDemo({ backdrop }: { backdrop?: ReactNode }) {
   const [step, setStep] = useState(0)
   const [touring, setTouring] = useState(true)
   const [inView, setInView] = useState(false)
-  const [visual, setVisual] = useState<VisualState>(() => freshVisual(false, false))
+  const [visual, setVisual] = useState<VisualState>(() => freshVisual(demoScenes[0].kind, false, false))
   const [cursor, setCursor] = useState({ target: '', x: 0, y: 0, pressing: false })
   const [hot, setHot] = useState<string | null>(null)
   const generating = useRef(0)
@@ -119,15 +129,16 @@ export function ShowcaseDemo({ backdrop }: { backdrop?: ReactNode }) {
       },
       hover: setHot,
       next: () => {
-        setSceneIndex((index) => (index + 1) % demoScenes.length)
-        setVisual((value) => freshVisual(value.sound, false))
+        const following = (sceneIndex + 1) % demoScenes.length
+        setSceneIndex(following)
+        setVisual((value) => freshVisual(demoScenes[following].kind, value.sound, false))
         scroller.current?.scrollTo({ top: 0 })
         setStep(-1)
       },
     }
     const timer = window.setTimeout(() => { current.run(tour); setStep((value) => value + 1) }, current.wait)
     return () => window.clearTimeout(timer)
-  }, [autoplay, inView, locate, scene.kind, step])
+  }, [autoplay, inView, locate, scene.kind, sceneIndex, step])
 
   useEffect(() => {
     const frame = root.current
@@ -147,11 +158,11 @@ export function ShowcaseDemo({ backdrop }: { backdrop?: ReactNode }) {
   const openScene = (index: number) => {
     setTouring(false)
     setSceneIndex(index)
-    setVisual((value) => freshVisual(value.sound, true))
+    setVisual((value) => freshVisual(demoScenes[index].kind, value.sound, true))
     scroller.current?.scrollTo({ top: 0 })
   }
   const replay = () => {
-    setVisual((value) => freshVisual(value.sound, false))
+    setVisual((value) => freshVisual(scene.kind, value.sound, false))
     setStep(0)
     setHot(null)
     scroller.current?.scrollTo({ top: 0 })
@@ -164,7 +175,7 @@ export function ShowcaseDemo({ backdrop }: { backdrop?: ReactNode }) {
   return <>
     <div className="mx-auto mt-11 flex max-w-[72rem] flex-wrap items-center justify-center gap-x-4 gap-y-1 border-b border-default">
       <div role="group" aria-label="Sample notes" className="flex flex-wrap justify-center gap-x-4">
-        {demoScenes.map((item, index) => <button key={item.noteId} type="button" aria-pressed={index === sceneIndex} onClick={() => openScene(index)} className={tabClass}>{item.title}</button>)}
+        {demoScenes.map((item, index) => <button key={item.noteId} type="button" aria-pressed={index === sceneIndex} onClick={() => openScene(index)} className={tabClass}>{item.tab}</button>)}
       </div>
       {!autoplay && !reduced ? <button type="button" onClick={replay} className={`${tabClass} gap-1.5`}><AppIcon name="play" className="size-3.5" />Replay the tour</button> : null}
     </div>
