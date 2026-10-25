@@ -52,6 +52,13 @@ async function forward(request: NextRequest, headers: Headers, backend: string) 
 }
 
 export async function middleware(request: NextRequest) {
+  // Better Auth's own error page fails on the backend; the sign-in screen
+  // explains OAuth errors instead (and moves a signed-in user on).
+  if (request.nextUrl.pathname === '/api/auth/error') {
+    const login = new URL('/auth', request.url)
+    login.searchParams.set('error', request.nextUrl.searchParams.get('error') ?? 'unknown')
+    return NextResponse.redirect(login)
+  }
   if (matches(request.nextUrl.pathname, backendPaths)) return signForBackend(request)
 
   const isProtected = matches(request.nextUrl.pathname, protectedPaths)

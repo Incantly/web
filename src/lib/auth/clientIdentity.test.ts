@@ -144,6 +144,17 @@ describe('proxy on Cloudflare Workers with AUTH_BACKEND_URL', () => {
   })
 })
 
+describe('Better Auth error page', () => {
+  it('sends OAuth errors to the sign-in screen instead of the backend', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const response = await proxy(new NextRequest('https://www.incantly.xyz/api/auth/error?error=state_mismatch'))
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://www.incantly.xyz/auth?error=state_mismatch')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('proxy under Node (server.mjs)', () => {
   it('passes a valid server.mjs stamp through untouched and refuses forged ones', async () => {
     vi.stubEnv('AUTH_PROXY_SECRET', secret)
