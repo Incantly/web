@@ -16,9 +16,24 @@
     { "binding": "WORKER_SELF_REFERENCE", "service": "incantly-web" }
   ],
   "images": { "binding": "IMAGES" },
-  // Served at the apex once its DNS record no longer points at Vercel.
-  // wrangler refuses to attach while a conflicting record exists.
-  "routes": [{ "pattern": "incantly.xyz", "custom_domain": true }],
+  // Workers Logs, Traces and real-time Issues in the dashboard (Observability).
+  // Query strings are redacted: OAuth callbacks carry the code and state there.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": true },
+    "traces": { "enabled": true, "head_sampling_rate": 1 },
+    "issues": { "enabled": true }
+  },
+  // www is the canonical host; Cloudflare creates its DNS record and
+  // certificate. The apex keeps its existing proxied record, so it uses a
+  // route instead (a custom domain would require deleting that record), and
+  // next.config.ts redirects it to www.
+  "routes": [
+    { "pattern": "www.incantly.xyz", "custom_domain": true },
+    { "pattern": "incantly.xyz/*", "zone_name": "incantly.xyz" }
+  ],
   "vars": {
     // Runtime copy only. The rewrite destination is fixed at build time, so
     // `npm run build:cf` also sets AUTH_BACKEND_URL for `next build`.

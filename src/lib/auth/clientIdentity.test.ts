@@ -114,6 +114,47 @@ describe('proxy on Cloudflare Workers', () => {
   })
 })
 
+describe('proxy on Cloudflare Workers with AUTH_BACKEND_URL', () => {
+  it('forwards signed requests itself and returns redirects and every cookie unchanged', async () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' })
+    vi.stubEnv('AUTH_PROXY_SECRET', secret)
+    vi.stubEnv('AUTH_BACKEND_URL', 'https://api.incantly.xyz')
+    const backend = new Headers({ location: 'https://incantly.xyz/workspace', 'content-encoding': 'gzip' })
+    backend.append('set-cookie', 'a=1; Path=/; HttpOnly; Expires=Wed, 21 Oct 2027 07:28:00 GMT')
+    backend.append('set-cookie', 'b=2; Path=/; Secure')
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 302, headers: backend }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await proxy(new NextRequest('https://incantly.xyz/api/auth/callback/google?code=c&state=s', {
+      headers: { ...forged, 'cf-connecting-ip': '203.0.113.7' },
+    }))
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toBe('https://api.incantly.xyz/api/auth/callback/google?code=c&state=s')
+    expect(init.redirect).toBe('manual')
+    const sent = init.headers as Headers
+    expect(sent.get('x-incantly-client-ip')).toBe('203.0.113.7')
+    expect(sent.get('x-incantly-client-signature')).toBe(nodeStamp('203.0.113.7', Number(sent.get('x-incantly-client-time')))['x-incantly-client-signature'])
+    expect(sent.has('cf-connecting-ip')).toBe(false)
+    expect(sent.has('x-incantly-verified-client-ip')).toBe(false)
+    expect(response.status).toBe(302)
+    expect(response.headers.get('location')).toBe('https://incantly.xyz/workspace')
+    expect(response.headers.getSetCookie()).toHaveLength(2)
+    expect(response.headers.has('content-encoding')).toBe(false)
+  })
+})
+
+describe('Better Auth error page', () => {
+  it('sends OAuth errors to the sign-in screen instead of the backend', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const response = await proxy(new NextRequest('https://www.incantly.xyz/api/auth/error?error=state_mismatch'))
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://www.incantly.xyz/auth?error=state_mismatch')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('proxy under Node (server.mjs)', () => {
   it('passes a valid server.mjs stamp through untouched and refuses forged ones', async () => {
     vi.stubEnv('AUTH_PROXY_SECRET', secret)

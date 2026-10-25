@@ -6,7 +6,7 @@ Production runs on Cloudflare Workers through the OpenNext adapter (`@opennextjs
 
 Workers never run `server.mjs`, so `src/middleware.ts` signs every request that the `next.config.ts` rewrites send to the backend (`/api/auth/*` and `/v1/*`). The middleware picks its behavior from the runtime, not from anything in the request:
 
-- On Workers (`navigator.userAgent === 'Cloudflare-Workers'`), it deletes every incoming `x-incantly-*` identity header, reads the client IP from `CF-Connecting-IP` (set and overwritten by Cloudflare at the edge), and signs it with Web Crypto. A missing or invalid IP gets 403.
+- On Workers (`navigator.userAgent === 'Cloudflare-Workers'`), it deletes every incoming `x-incantly-*` identity header, reads the client IP from `CF-Connecting-IP` (set and overwritten by Cloudflare at the edge), and signs it with Web Crypto. A missing or invalid IP gets 403. It then forwards the request to `AUTH_BACKEND_URL` itself with `redirect: "manual"` and returns the backend's response unchanged. OpenNext's rewrite proxy follows redirects inside the Worker, which would swallow the backend's 302s (the Google callback) and their cookies.
 - On Node, `server.mjs` has already stamped the request from the socket. The middleware only checks that stamp (fresh, correctly signed) and passes it through unchanged; anything else gets 403. This also closes the gap if someone runs bare `next start`.
 
 This is the edge-runtime `middleware.ts`, not Next 16's `proxy.ts`: `proxy.ts` always runs on the Node runtime, which OpenNext for Cloudflare does not support yet (the build fails and its docs list Node middleware as unsupported). Next 16 still supports `middleware.ts` but prints a deprecation notice; move to `proxy.ts` once OpenNext supports it.
@@ -46,14 +46,14 @@ npm run deploy
 
 With Cloudflare Workers Builds (Git integration), use build command `npm run build:cf`, deploy command `npx opennextjs-cloudflare deploy`, and add `GITHUB_PACKAGES_TOKEN` as a build secret. The Worker secret above is still set once with `wrangler secret put`.
 
-## Custom domain
+## Domains
 
-`wrangler.jsonc` routes the apex `incantly.xyz` to the Worker as a custom domain. The apex currently points at the old Vercel landing page. Remove that DNS record (and the domain from the Vercel project) before the first deploy: wrangler refuses to attach a custom domain over an existing record, and on success creates the proxied record and certificate itself. `api.incantly.xyz` stays a proxied A record to the VPS.
+`https://www.incantly.xyz` is the canonical address. `wrangler.jsonc` attaches it as a Worker custom domain, so Cloudflare creates its DNS record and certificate. The apex `incantly.xyz` keeps its existing proxied DNS record and reaches the Worker through a route (`incantly.xyz/*`), where `next.config.ts` redirects every path to `www` with a 308. One host keeps session cookies and the Google callback (`https://www.incantly.xyz/api/auth/callback/google`) consistent. The apex record must stay proxied (orange cloud) for the route to apply. `api.incantly.xyz` stays a proxied A record to the VPS.
 
 ## Backend settings
 
 - `AUTH_PROXY_SECRET` must equal the Worker secret. Rotate both together.
-- `BETTER_AUTH_URL=https://incantly.xyz`, and `https://incantly.xyz` in `WEB_ORIGINS`.
+- `BETTER_AUTH_URL=https://www.incantly.xyz`, and `WEB_ORIGINS=https://www.incantly.xyz,https://incantly.xyz`.
 - The backend trusts only the signed `x-incantly-client-ip`, never `X-Forwarded-For` or `CF-Connecting-IP` on its own hostname: the Worker's subrequest to `api.incantly.xyz` passes through Cloudflare again, which rewrites those headers.
 
-After deploying, `curl -i https://incantly.xyz/api/auth/get-session` should return 200 (no session) rather than 403 `UNTRUSTED_PROXY`.
+After deploying, `curl -i https://www.incantly.xyz/api/auth/get-session` should return 200 (no session) rather than 403 `UNTRUSTED_PROXY`.
