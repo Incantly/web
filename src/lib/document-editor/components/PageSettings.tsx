@@ -1,6 +1,6 @@
 import type { FieldsetHTMLAttributes } from 'react'
-import type { HeaderFooterContent, HeaderFooterFieldType, PageHeaderFooterVariants, PageSetup } from '@incantly/core/document'
-import { normalizePageSetup } from '@incantly/core/document'
+import type { HeaderFooterContent, HeaderFooterFieldType, PageHeaderFooterVariants, PageSetup } from '@incantly/canvas-core/document'
+import { normalizePageSetup } from '@incantly/canvas-core/document'
 
 export interface PageSettingsProps extends Omit<FieldsetHTMLAttributes<HTMLFieldSetElement>, 'onChange'> {
   value: PageSetup

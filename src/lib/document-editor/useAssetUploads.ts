@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AssetRecord } from '@incantly/core/document'
+import type { AssetRecord } from '@incantly/canvas-core/document'
 import type { AssetUploadProgress, DocumentAssetHost } from './assetHost'
 
 export interface AssetUploadState {

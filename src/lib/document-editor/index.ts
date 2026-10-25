@@ -1,5 +1,5 @@
 /** Isolated document entry point; canvas-only imports never load Tiptap. */
-export * from '@incantly/core/document'
+export * from '@incantly/canvas-core/document'
 export * from './DocumentEditor'
 export * from './DocumentEditorContext'
 export * from './components/FormattingUI'
@@ -22,5 +22,6 @@ export * from './clipboardExtension'
 export * from './useDocumentAutosave'
 export * from './useAssetUploads'
 export * from './assetHost'
+export * from './blockNavigation'
 export * from './indexedDbDocumentRepository'
 export * from './performance'

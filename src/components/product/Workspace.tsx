@@ -23,6 +23,8 @@ import { createSpaceVariables, useSpaceActions, useSpaces } from './workspace/us
 import { addSourceToLibrary, libraryKey, useLibrarySources } from './workspace/useLibrary'
 import { EmptyState, OfflineBanner, PageFrame, buttonSecondary } from './workspace/ui'
 import { SIDE_PANEL_WIDTH, SidePanelProvider, useMediaQuery, useSidePanelHost } from './workspace/sidePanel'
+import { ImportDialog, ImportTray, useImportTracker, type ImportMode } from './workspace/imports'
+import type { BlockRange } from './workspace/ContextSearch'
 
 const initialInbox: InboxItem[] = [
   { id: 'inbox-1', title: 'A question for later', detail: 'Why do some ideas stay with us long after a conversation?', when: 'Today' },
@@ -30,23 +32,43 @@ const initialInbox: InboxItem[] = [
   { id: 'inbox-3', title: 'A new connection', detail: 'Your city notes might connect to the observation in your journal.', when: 'Sep 21' },
 ]
 
+/**
+ * Connection state for the banner. Background refreshes pause on their own while offline or hidden
+ * (TanStack Query's online and focus managers) and resume on reconnect; note sync flushes then too.
+ */
 function useOnline() {
   const [online, setOnline] = useState(true)
+  const [backOnline, setBackOnline] = useState(false)
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine)
+    let timer: number | undefined
+    let previous = true
+    const update = () => {
+      const next = navigator.onLine
+      if (next && !previous) { setBackOnline(true); window.clearTimeout(timer); timer = window.setTimeout(() => setBackOnline(false), 4000) }
+      previous = next
+      setOnline(next)
+    }
     update()
     window.addEventListener('online', update)
     window.addEventListener('offline', update)
-    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update) }
+    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); window.clearTimeout(timer) }
   }, [])
-  return online
+  return { online, backOnline }
 }
 
-function NoteRoute({ userId, noteId, ...props }: { userId: string; noteId: string } & Omit<Parameters<typeof NoteScreen>[0], 'noteId' | 'session'>) {
+function NoteRoute({ userId, noteId, reloaders, ...props }: { userId: string; noteId: string; reloaders: Map<string, () => void> } & Omit<Parameters<typeof NoteScreen>[0], 'noteId' | 'session'>) {
   const cache = useNotesCache(userId)
   const session = useNoteSession(userId, noteId, {
     onAck: (_revision, title) => cache.upsert({ id: noteId, updatedAt: new Date().toISOString(), ...(title ? { title } : {}) }),
   })
+  // An import into this note finished: show it now, unless local edits are still on their way.
+  const sessionRef = useRef(session)
+  useEffect(() => { sessionRef.current = session })
+  useEffect(() => {
+    const reload = () => { const current = sessionRef.current; if (current.phase === 'ready' && !current.sync?.pending) void current.takeServer().catch(() => {}) }
+    reloaders.set(noteId, reload)
+    return () => { if (reloaders.get(noteId) === reload) reloaders.delete(noteId) }
+  }, [reloaders, noteId])
   const assets = useServerAssetHost(userId)
   return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} {...props} /></DocumentAssetsProvider>
 }
@@ -58,7 +80,7 @@ export function Workspace() {
 function WorkspaceShell() {
   const user = useCurrentUser()
   const client = useQueryClient()
-  const online = useOnline()
+  const { online, backOnline } = useOnline()
   const spacesQuery = useSpaces(user.id)
   const libraryQuery = useLibrarySources(user.id)
   const spaceActions = useSpaceActions(user.id)
@@ -80,6 +102,12 @@ function WorkspaceShell() {
   const [railCollapsed, setRailCollapsed] = useState(false)
   const [railPeek, setRailPeek] = useState(false)
   const [dialog, setDialog] = useState<'space' | 'source' | null>(null)
+  const [importDialog, setImportDialog] = useState<{ mode: ImportMode; intoNote?: { id: string; title: string } } | null>(null)
+  const [focusBlock, setFocusBlock] = useState<(BlockRange & { noteId: string; nonce: number }) | null>(null)
+  const [reloaders] = useState(() => new Map<string, () => void>())
+  const imports = useImportTracker(user.id, (_job, item) => {
+    if (item.intoNoteId) { reloaders.get(item.intoNoteId)?.(); void client.invalidateQueries({ queryKey: ['note-index', item.intoNoteId] }) }
+  })
   const peekTimer = useRef<number | undefined>(undefined)
   const [query, setQuery] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
@@ -148,6 +176,14 @@ function WorkspaceShell() {
     setOpenSourceId(sourceId)
     if (sourceId && view !== 'library') navigate('library')
   }
+  // Search results open where the passage lives: a note scrolls to its block.
+  const evidenceTarget = {
+    openNote: (noteId: string, range?: BlockRange) => {
+      if (activeNoteId !== noteId) openNote(noteId, noteContext?.noteId === noteId ? noteContext.spaceId : undefined)
+      setFocusBlock(range ? { ...range, noteId, nonce: Date.now() } : null)
+    },
+    openSource: (sourceId: string) => openSource(sourceId),
+  }
   function createNote(options: { title?: string; spaceId?: string | null } = {}) {
     if (createNoteMutation.isPending) return
     createNoteMutation.mutate(createNoteVariables(options.title), {
@@ -175,6 +211,8 @@ function WorkspaceShell() {
     if (action === 'note') createNote({ spaceId: activeSpace?.status === 'ACTIVE' ? activeSpace.id : null })
     if (action === 'space') setDialog('space')
     if (action === 'source') setDialog('source')
+    if (action === 'import-file') setImportDialog({ mode: 'file' })
+    if (action === 'import-url') setImportDialog({ mode: 'url' })
   }
 
   const barLeading = <>
@@ -212,7 +250,7 @@ function WorkspaceShell() {
     </div>
     <div className="min-w-0 flex-1 p-2 lg:pl-0">
       <section className="relative min-h-[calc(100svh-1rem)] overflow-hidden rounded-[1.15rem] border border-default bg-raised lg:h-[calc(100svh-1rem)] lg:min-h-0 lg:overflow-y-auto" aria-label="Workspace content">
-        {online ? null : <OfflineBanner />}
+        {online ? (backOnline ? <OfflineBanner reconnected /> : null) : <OfflineBanner />}
         {activeNoteId ? null : <div className="flex min-h-12 items-center gap-1.5 px-2 pt-1 sm:px-4">
           {barLeading}
           {viewLabel ? <span className="min-w-0 truncate px-1 text-sm text-muted">{viewLabel}</span> : null}
@@ -220,7 +258,7 @@ function WorkspaceShell() {
         </div>}
 
         {view === 'home' ? <HomeView notes={notes} notesStatus={notesStatus} spaces={spaces} sources={sources} navigate={navigate} onNewNote={() => createNote()} /> : null}
-        {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} spaces={spaces} sources={sources} query={query} setQuery={setQuery} navigate={navigate} onOpenSource={openSource} /></div> : null}
+        {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} spaces={spaces} sources={sources} query={query} setQuery={setQuery} navigate={navigate} onOpenSource={openSource} target={evidenceTarget} /></div> : null}
         {view === 'notes' ? <NotesView notes={notes} notesStatus={notesStatus} spaces={spaces} navigate={navigate} onNewNote={() => createNote()} /> : null}
         {view === 'spaces' ? <SpacesView spaces={spaces} status={spacesStatus} navigate={navigate} onNewSpace={() => setDialog('space')} /> : null}
         {view === 'library' ? <LibraryView userId={user.id} sources={sources} status={libraryStatus} spaces={spaces} navigate={navigate} openSourceId={openSourceId} onOpenSource={setOpenSourceId} onAdd={() => setDialog('source')} /> : null}
@@ -229,7 +267,9 @@ function WorkspaceShell() {
           onOpenNote={openNote} onCreateNote={(spaceId) => createNote({ spaceId })} onAddSource={() => setDialog('source')} /> : null}
         {activeSpaceId && !activeSpace && spacesQuery.isPending ? <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame> : null}
         {activeSpaceId && !activeSpace && !spacesQuery.isPending ? <PageFrame><EmptyState icon="space" title="Space not found" body="It may have been deleted." action={<button type="button" onClick={() => navigate('spaces')} className={buttonSecondary}>All Spaces</button>} /></PageFrame> : null}
-        {activeNoteId ? <NoteRoute key={activeNoteId} userId={user.id} noteId={activeNoteId} title={activeNote?.title ?? ''} space={noteSpace}
+        {activeNoteId ? <NoteRoute key={activeNoteId} userId={user.id} noteId={activeNoteId} reloaders={reloaders} title={activeNote?.title ?? ''} space={noteSpace}
+          notes={notes} sources={sources} target={evidenceTarget} focusBlock={focusBlock?.noteId === activeNoteId ? focusBlock : null}
+          onImport={(mode) => setImportDialog({ mode, intoNote: { id: activeNoteId, title: activeNote?.title ?? '' } })}
           leading={barLeading} trailing={barTrailing} onOpenSpace={(spaceId) => navigate(`space:${spaceId}`)} onShare={() => shareNote(activeNote?.title ?? '')}
           onDelete={() => deleteNote(activeNoteId)} onBack={() => navigate('notes')} /> : null}
       </section>
@@ -239,6 +279,8 @@ function WorkspaceShell() {
       <div ref={panels.setSlot} className={`absolute inset-y-0 left-0 ${SIDE_PANEL_WIDTH} py-2 pr-2`} />
     </div>
 
+    <ImportDialog open={Boolean(importDialog)} mode={importDialog?.mode ?? 'file'} intoNote={importDialog?.intoNote} onClose={() => setImportDialog(null)} onStarted={imports.track} />
+    <ImportTray tracker={imports} onOpenNote={(noteId) => openNote(noteId)} />
     <SpaceFormDialog open={dialog === 'space'} onClose={() => setDialog(null)} onSubmit={async (draft) => { const space = await spaceActions.create.mutateAsync(createSpaceVariables(draft)); navigate(`space:${space.id}`) }} />
     <AddSourceDialog open={dialog === 'source'} onClose={() => setDialog(null)} spaces={spaces} notes={notes} defaultSpaceId={activeSpace?.status === 'ACTIVE' ? activeSpace.id : undefined}
       onSubmit={async (input, options) => {

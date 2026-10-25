@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Editor } from '@tiptap/core'
-import type { AssetRecord, AssetRepository } from '@incantly/core/document'
+import type { AssetRecord, AssetRepository } from '@incantly/canvas-core/document'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { repositoryAssetHost, useAssetHostOrLocal } from '../assetHost'
 import { fileDropHub, insertUploadedAsset, measureImage } from '../fileUploads'

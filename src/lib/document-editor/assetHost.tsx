@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react'
-import type { AssetRecord, AssetRepository } from '@incantly/core/document'
+import type { AssetRecord, AssetRepository } from '@incantly/canvas-core/document'
 import { getSharedAssetRepository } from './indexedDbAssetRepository'
 
 export interface AssetUploadProgress {

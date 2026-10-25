@@ -1,4 +1,4 @@
-import { FONT_FAMILY_STACKS, type FontFamilyKey } from '@incantly/core/document'
+import { FONT_FAMILY_STACKS, type FontFamilyKey } from '@incantly/canvas-core/document'
 
 export interface DocumentFontFamily {
   key: FontFamilyKey

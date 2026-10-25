@@ -5,7 +5,7 @@ description: Canonical Incantly document model rules. Use before creating or cha
 
 # Canonical Document Schema Rules
 
-The stored document is **Incantly JSON** from `@incantly/core` (file-linked at `../../incantly-canvas/canvas/packages/core`). It is plain versioned data — never Tiptap JSON, never HTML.
+The stored document is **Incantly JSON** from `@incantly/canvas-core/document` (installed from GitHub Packages, pinned to 0.2.0). It is plain versioned data — never Tiptap JSON, never HTML.
 
 ## Must
 

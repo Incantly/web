@@ -1,4 +1,4 @@
-import { isFontFamilyKey } from '@incantly/core/document'
+import { isFontFamilyKey } from '@incantly/canvas-core/document'
 import type { Editor, JSONContent } from '@tiptap/core'
 import { FONT_SIZE_MAX_PT, FONT_SIZE_MIN_PT, fontSizeToCss, fontStackForKey } from './schema/fonts'
 import type { ResolvedPos } from '@tiptap/pm/model'

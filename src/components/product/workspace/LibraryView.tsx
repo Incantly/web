@@ -12,6 +12,8 @@ import { processingSummary, stageLabel } from './sourceStatus'
 import { useLibraryActions, useSource, useSourceProcessing, useSourceSpaces } from './useLibrary'
 import type { ListStatus } from './views'
 import { SidePanel } from './sidePanel'
+import { IndexStatusView } from './ContextSearch'
+import { useSourceIndexStatus } from './useContextSearch'
 import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, buttonPrimary, buttonQuiet, buttonSecondary, inputClass, labelClass } from './ui'
 
 const statusFilters: { value: SourceStatus | 'ALL'; label: string }[] = [
@@ -101,6 +103,8 @@ function SourceDrawer({ userId, sourceId, listed, spaces, navigate, onClose }: {
   const archived = status === 'ARCHIVED'
   const meta = sourceKindMeta(source?.kind ?? listed?.kind ?? 'FILE')
   const fileAssetId = latest?.assetId ?? listed?.assetId ?? null
+  const searchable = status === 'READY' || status === 'PARTIALLY_READY'
+  const index = useSourceIndexStatus(sourceId, searchable)
 
   async function openFile() {
     if (!fileAssetId) return
@@ -128,7 +132,7 @@ function SourceDrawer({ userId, sourceId, listed, spaces, navigate, onClose }: {
         <section aria-label="Processing" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2"><StatusChip status={status} stage={stage} />{source ? <span className="text-xs text-muted">Updated {updatedLabel(Date.parse(source.updatedAt) || 0)}</span> : null}</div>
           <p role="status" aria-live="polite" className="rounded-xl bg-surface p-3 text-sm leading-6 text-muted">{processingSummary(status, processing.data?.version ?? latest)}</p>
-          {processing.data?.index && (status === 'READY' || status === 'PARTIALLY_READY') ? <p className="text-xs text-muted">{processing.data.index.building ? 'Building search index…' : processing.data.index.lexicalReady ? `Searchable · ${processing.data.index.passageCount} passages` : 'Not searchable yet.'}</p> : null}
+          {searchable ? <IndexStatusView status={index.data} subject="source" loading={index.isPending} /> : null}
           {processing.data?.canRetry || processing.data?.canCancel ? <div className="flex flex-wrap gap-2">
             {processing.data.canRetry ? <button type="button" disabled={actions.retry.isPending} onClick={() => actions.retry.mutate(sourceId)} className={buttonSecondary}><AppIcon name="restore" className="size-4" />{actions.retry.isPending ? 'Retrying…' : 'Retry processing'}</button> : null}
             {processing.data.canCancel ? <button type="button" disabled={actions.cancel.isPending} onClick={() => actions.cancel.mutate(sourceId)} className={buttonQuiet}><AppIcon name="close" className="size-4" />Cancel processing</button> : null}

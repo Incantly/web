@@ -1,4 +1,4 @@
-import { documentToHtml, exportMarkdown, exportText, serializeIncantlyDocument, type ExportResult, type IncantlyDocument } from '@incantly/core/document'
+import { documentToHtml, exportMarkdown, exportText, serializeIncantlyDocument, type ExportResult, type IncantlyDocument } from '@incantly/canvas-core/document'
 
 export type WebExportFormat = 'inc' | 'txt' | 'md' | 'html' | 'pdf' | 'docx'
 

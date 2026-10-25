@@ -1,5 +1,5 @@
 import { Extension } from '@tiptap/core'
-import { createDocumentNodeId } from '@incantly/core/document'
+import { createDocumentNodeId } from '@incantly/canvas-core/document'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { INCANTLY_NODE_ID_TYPES } from './nodes'

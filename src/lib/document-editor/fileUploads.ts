@@ -1,6 +1,6 @@
 import type { Editor, JSONContent } from '@tiptap/core'
 import { NodeSelection } from '@tiptap/pm/state'
-import type { AssetRecord } from '@incantly/core/document'
+import type { AssetRecord } from '@incantly/canvas-core/document'
 
 export interface PendingFileDrop {
   editor: Editor

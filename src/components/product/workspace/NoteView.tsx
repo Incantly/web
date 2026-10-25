@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Editor } from '@tiptap/core'
-import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu } from '../../../lib/document-editor'
+import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
 import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
 import { TableSelectionOverlay } from '@/components/tiptap-node/table-node/ui/table-selection-overlay'
 import { TableExtendRowColumnButtons } from '@/components/tiptap-node/table-node/ui/table-extend-row-column-button'
@@ -18,7 +18,9 @@ import type { NoteSession } from './useNoteSession'
 import { libraryFollowUp } from './useAssets'
 import { SidePanel } from './sidePanel'
 import { useRevisions } from './useNotes'
-import type { SpaceRecord } from './model'
+import type { NoteRecord, SourceRecord, SpaceRecord } from './model'
+import type { BlockRange, EvidenceTarget } from './ContextSearch'
+import { NoteContextPanel } from './NoteContextPanel'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, buttonPrimary, buttonSecondary, iconButton } from './ui'
 
 const DocumentEditor = dynamic(
@@ -37,15 +39,6 @@ function PanelSection({ icon, title, body }: { icon: IconName; title: string; bo
     <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><AppIcon name={icon} className="size-4 text-muted" />{title}</h3>
     <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
   </section>
-}
-
-/** Sources, search readiness and the evidence preview for one note (filled by Phases 7–8). */
-function ContextPanelBody() {
-  return <>
-    <PanelSection icon="link" title="Sources for this note" body="Choose Library sources this note relies on, so questions about it look there first." />
-    <PanelSection icon="search" title="Searchable" body="Shows whether this note can be searched yet. New edits are indexed about a minute after you stop typing." />
-    <PanelSection icon="sparkles" title="What would the AI see?" body="Preview the passages from this note and its sources that would be used to answer a question." />
-  </>
 }
 
 const syncCopy: Record<SyncState['status'], { label: (state: SyncState) => string; icon: IconName; tone: string }> = {
@@ -159,6 +152,12 @@ export type NoteScreenProps = {
   noteId: string
   title: string
   space?: SpaceRecord
+  notes: NoteRecord[]
+  sources: SourceRecord[]
+  target: EvidenceTarget
+  /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
+  focusBlock?: (BlockRange & { nonce: number }) | null
+  onImport: (mode: 'file' | 'url') => void
   session: NoteSession
   leading: ReactNode
   trailing: ReactNode
@@ -168,8 +167,17 @@ export type NoteScreenProps = {
   onBack: () => void
 }
 
-export function NoteScreen({ noteId, title, space, session, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
+export function NoteScreen({ noteId, title, space, notes, sources, target, focusBlock, onImport, session, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
   const [contextOpen, setContextOpen] = useState(false)
+  const editorRef = useRef<Editor | null>(null)
+  const [editorReady, setEditorReady] = useState(0)
+  const [missingBlock, setMissingBlock] = useState(false)
+  // Jump to a cited passage once the editor (re)loads; the nonce repeats a jump to the same block.
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!focusBlock || !editor || editor.isDestroyed) return
+    setMissingBlock(!revealBlockRange(editor, focusBlock.blockId, focusBlock.endBlockId))
+  }, [focusBlock, editorReady])
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
   const editable = session.phase === 'ready' && session.sync?.status !== 'gone'
@@ -189,6 +197,8 @@ export function NoteScreen({ noteId, title, space, session, leading, trailing, o
         <button type="button" onClick={() => setContextOpen((current) => !current)} aria-pressed={contextOpen} className={`${iconButton} ${contextOpen ? 'bg-surface text-foreground' : ''}`} aria-label="Note context" title="Sources and context for this note"><AppIcon name="link" className="size-5" /></button>
         <ActionMenu label="Note actions" items={[
           { label: 'Version history', icon: 'history', onSelect: () => setDialog('history'), disabled: session.phase !== 'ready' },
+          { label: 'Import file into note', icon: 'import', onSelect: () => onImport('file'), disabled: !editable },
+          { label: 'Import web page into note', icon: 'globe', onSelect: () => onImport('url'), disabled: !editable },
           { label: 'Share summary', icon: 'share', onSelect: onShare },
           { label: 'Delete note', icon: 'trash', destructive: true, onSelect: () => setDialog('delete') },
         ]} />
@@ -202,16 +212,21 @@ export function NoteScreen({ noteId, title, space, session, leading, trailing, o
 
     {session.document && (session.phase === 'ready' || session.phase === 'cached') && session.sync?.status !== 'gone' ? <>
       {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
+      {missingBlock ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">That passage has changed since it was indexed, so it can’t be highlighted.</p> : null}
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
       <div className="min-h-full">
           <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"
+            onReady={(editor) => { editorRef.current = editor; setEditorReady((value) => value + 1) }}
             onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
             <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar />
           </DocumentEditor>
       </div>
     </> : null}
 
-    <SidePanel open={contextOpen} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5"><ContextPanelBody /></div></SidePanel>
+    <SidePanel open={contextOpen} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5">
+      <PanelSection icon="link" title="Sources for this note" body="Choose Library sources this note relies on, so questions about it look there first. Coming soon." />
+      <NoteContextPanel noteId={noteId} space={space} notes={notes} sources={sources} getEditor={() => editorRef.current} target={target} />
+    </div></SidePanel>
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />
     <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} />
     <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel="Delete note" title={`Delete “${shownTitle || 'this note'}”?`}

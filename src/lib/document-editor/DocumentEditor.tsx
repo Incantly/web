@@ -17,7 +17,7 @@ import {
   validateDocument,
   type DocumentValidationIssue,
   type IncantlyDocument,
-} from '@incantly/core/document'
+} from '@incantly/canvas-core/document'
 import { incantlyDocumentToProseMirror, type DocumentAdapterIssue } from './conversion'
 import { createIncantlyDocumentExtensions } from './schema/index'
 import { DocumentEditorProvider } from './DocumentEditorContext'
@@ -202,7 +202,8 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
   const reportError = (error: unknown, phase: DocumentEditorErrorPhase): void =>
     callbacksRef.current.onError?.({ error, phase }, editor && !editor.isDestroyed ? editor : null)
 
-  useImperativeHandle(forwardedRef, () => {
+  // Built outside useImperativeHandle so onReady still gets the API when no ref is passed.
+  const editorApi = useMemo((): DocumentEditorRef => {
     const liveEditor = (): Editor | null => editor && !editor.isDestroyed ? editor : null
     const api: DocumentEditorRef = {
       get editor() { return liveEditor() },
@@ -246,9 +247,10 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
       },
       destroy() { liveEditor()?.destroy() },
     }
-    apiRef.current = api
     return api
   }, [editor])
+  apiRef.current = editorApi
+  useImperativeHandle(forwardedRef, () => editorApi, [editorApi])
 
   useEffect(() => {
     if (!editor || editor.isDestroyed || readyEditorRef.current === editor || !apiRef.current) return

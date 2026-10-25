@@ -46,5 +46,3 @@ next-env.d.ts
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
 
-# Tiptap Pro registry auth (never commit that file)
-.npmrc

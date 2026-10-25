@@ -1,4 +1,4 @@
-import type { DocumentOperation, IncantlyDocument } from '@incantly/core/document'
+import type { DocumentOperation, IncantlyDocument } from '@incantly/canvas-core/document'
 
 /** A sealed transaction. Its ID and sequence never change, so a retry is byte-identical. */
 export type PendingBatch = { transactionId: string; localSequence: string; operations: DocumentOperation[] }

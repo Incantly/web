@@ -1,6 +1,6 @@
 'use client'
 
-import type { IncantlyDocument } from '@incantly/core/document'
+import type { IncantlyDocument } from '@incantly/canvas-core/document'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { authClient } from '../../../lib/auth-client'
 import { ApiError } from '../../../lib/api/errors'

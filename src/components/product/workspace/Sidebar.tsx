@@ -57,8 +57,8 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
     { action: 'note', label: 'New note', icon: 'document', available: true },
     { action: 'space', label: 'New Space', icon: 'space', available: true },
     { action: 'source', label: 'Add to Library', icon: 'upload', available: true },
-    { action: 'import-file', label: 'Import file as note', icon: 'import', available: false },
-    { action: 'import-url', label: 'Import from web address', icon: 'globe', available: false },
+    { action: 'import-file', label: 'Import file as note', icon: 'import', available: true },
+    { action: 'import-url', label: 'Import from web address', icon: 'globe', available: true },
   ]
   return <div className="relative" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }} onKeyDown={(event) => { if (event.key === 'Escape' && open) { event.stopPropagation(); setOpen(false) } }}>
     <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="menu" title={collapsed ? 'New' : undefined}
