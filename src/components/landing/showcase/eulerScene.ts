@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import katex from 'katex'
-import { createStage, type ViewName } from './stage'
+import type { ReadoutSink } from './scenes'
+import { createStage } from './stage'
 
 /**
  * “Unrolling Euler's formula”: e^{iθ} traced along a θ axis. The helix is the point itself; its
@@ -21,14 +22,7 @@ const helix = (theta: number) => new THREE.Vector3(theta * STRETCH, Math.sin(the
 const onWall = (theta: number) => new THREE.Vector3(theta * STRETCH, Math.sin(theta), WALL)
 const onFloor = (theta: number) => new THREE.Vector3(theta * STRETCH, FLOOR, Math.cos(theta))
 
-export const eulerViews: { name: ViewName; label: string }[] = [
-  { name: 'iso', label: 'Isometric' },
-  { name: 'front', label: 'Circle' },
-  { name: 'side', label: 'Sine' },
-  { name: 'top', label: 'Cosine' },
-]
-
-export function createEulerScene(host: HTMLElement) {
+export function createEulerScene(host: HTMLElement, onReadout: ReadoutSink) {
   const stage = createStage(host, {
     target: new THREE.Vector3(LENGTH / 2 - 0.4, 0, 0),
     initial: 'iso',
@@ -101,6 +95,11 @@ export function createEulerScene(host: HTMLElement) {
     stage.setLine(toWall, [p, onWall(theta)])
     stage.setLine(toFloor, [p, onFloor(theta)])
     tag.position.copy(p)
+    onReadout([
+      { label: 'θ', value: `${(theta / Math.PI).toFixed(2)}π`, accent: true },
+      { label: 'Re = cos θ', value: Math.cos(theta).toFixed(2) },
+      { label: 'Im = sin θ', value: Math.sin(theta).toFixed(2) },
+    ])
   }
   draw()
 
