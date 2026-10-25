@@ -3,6 +3,12 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
+  async redirects() {
+    // One canonical host, so session cookies and the OAuth callback always match.
+    return [
+      { source: '/:path*', has: [{ type: 'host', value: 'incantly.xyz' }], destination: 'https://www.incantly.xyz/:path*', permanent: true },
+    ];
+  },
   async rewrites() {
     const backend = process.env.AUTH_BACKEND_URL ?? 'http://localhost:3002';
     return [
