@@ -14,7 +14,7 @@ const sections: LegalSection[] = [
     title: 'Who we are',
     body: <>
       <InShort>Genesis HQ makes Incantly and is responsible for your personal data. You can reach us about privacy at any time.</InShort>
-      <p>Incantly is a product of <strong>{e.company}</strong>, a company organised under the laws of {e.country} (registration number <Detail value={e.registrationNumber} missing="CAC registration number" />), registered address <Detail value={e.registeredAddress} missing="registered address" />.</p>
+      <p>Incantly is a product of <strong>{e.company}</strong>, a company organised under the laws of {e.country}</p>
       <p>Genesis HQ is the <strong>data controller</strong> for the personal data described in this policy. This means we decide why and how it is processed, under the Nigeria Data Protection Act 2023 (“NDPA”) and the General Application and Implementation Directive issued under it, the EU General Data Protection Regulation (“GDPR”), and the UK GDPR and Data Protection Act 2018.</p>
       <ul>
         <li><strong>Privacy contact and Data Protection Officer:</strong> {privacy}</li>
@@ -224,7 +224,7 @@ const sections: LegalSection[] = [
     id: 'contact',
     title: 'Contact us',
     body: <>
-      <p>For any question about this policy or your personal data, contact our privacy team and Data Protection Officer at {privacy}, or write to {e.company}, <Detail value={e.registeredAddress} missing="registered address" />, {e.country}.</p>
+      <p>For any question about this policy or your personal data, contact our privacy team and Data Protection Officer at {privacy}, or write to {e.company}.</p>
     </>,
   },
 ]
