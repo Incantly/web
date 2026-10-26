@@ -74,7 +74,7 @@ function TitleInput({ title, disabled, onRename }: { title: string; disabled: bo
     onBlur={() => { editing.current = false; window.clearTimeout(timer.current); if (value.trim()) onRename(value); else setValue(title) }}
     onChange={(event) => { const next = event.target.value; setValue(next); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { if (next.trim()) onRename(next) }, 800) }}
     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }}
-    aria-label="Note title" className="min-h-11 min-w-0 flex-1 bg-transparent font-display text-base text-foreground outline-none disabled:opacity-70" />
+    aria-label="Note title" className="-mx-1.5 min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-1.5 font-display text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-button/25 disabled:opacity-70" />
 }
 
 function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open: boolean; onClose: () => void; noteId: string; hasPending: boolean; onRestore: (revisionId: string) => Promise<void> }) {

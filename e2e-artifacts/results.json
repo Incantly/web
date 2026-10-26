@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-21T13:10:05.570Z",
+  "when": "2026-10-26T09:18:49.311Z",
   "results": [
     {
       "suite": "landing",
@@ -8292,6 +8292,54 @@
       "name": "a reload resumes tracking the import",
       "pass": true,
       "detail": ""
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "reproduced: black 2px outline on auto-focused Name field",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/before.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "focused field has no outline, blue border + soft ring at 320px, no page overflow",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/after-320.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "focused field has no outline, blue border + soft ring at 375px, no page overflow",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/after-375.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "focused field has no outline, blue border + soft ring at 768px, no page overflow",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/after-768.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "focused field has no outline, blue border + soft ring at 1024px, no page overflow",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/after-1024.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "focused field has no outline, blue border + soft ring at 1440px, no page overflow",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/after-1440.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "keyboard Tab moves the soft ring to Email",
+      "pass": true,
+      "detail": "e2e-artifacts/screenshots/waitlist-focus-ring/after-keyboard-email.png"
+    },
+    {
+      "suite": "waitlist-focus-ring",
+      "name": "buttons and links keep the global focus outline",
+      "pass": true,
+      "detail": "first Tab stop on / has solid 2px outline"
     }
   ]
 }
