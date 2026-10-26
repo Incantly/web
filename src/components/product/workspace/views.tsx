@@ -104,7 +104,7 @@ export function SearchView({ notes, spaces, sources, query, setQuery, navigate, 
   return <PageFrame>
     <PageHeading title="Search" subtitle="Titles match as you type. Press Enter to search inside your notes and Library sources." />
     <form onSubmit={submit} role="search" className="mt-8 space-y-3">
-      <label className="flex min-h-14 items-center gap-3 rounded-xl border border-default bg-raised px-4 focus-within:border-strong">
+      <label className="flex min-h-14 items-center gap-3 rounded-xl border border-default bg-raised px-4 transition-[border-color,box-shadow] focus-within:border-button focus-within:ring-4 focus-within:ring-button/15 motion-reduce:transition-none">
         <AppIcon name="search" className="size-5 shrink-0 text-muted" />
         <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={1000} placeholder="Search titles, or press Enter to search content" aria-label="Search" className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle" />
       </label>

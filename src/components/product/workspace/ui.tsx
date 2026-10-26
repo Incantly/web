@@ -10,7 +10,8 @@ export const buttonSecondary = 'inline-flex min-h-11 items-center justify-center
 export const buttonQuiet = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60'
 export const buttonDanger = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-danger px-4 text-sm font-semibold text-inverse transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60'
 export const iconButton = 'grid size-11 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground'
-export const inputClass = 'mt-1.5 min-h-11 w-full rounded-xl border border-default bg-surface px-3.5 text-base text-foreground placeholder:text-subtle focus-visible:border-strong'
+// Text fields swap the global focus outline for a softer ring that follows their rounded corners.
+export const inputClass = 'mt-1.5 min-h-11 w-full rounded-xl border border-default bg-surface px-3.5 text-base text-foreground transition-[border-color,box-shadow] placeholder:text-subtle focus-visible:border-button focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-button/15 motion-reduce:transition-none'
 export const labelClass = 'block text-sm font-semibold text-foreground'
 
 export function PageFrame({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
