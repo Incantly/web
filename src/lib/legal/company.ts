@@ -9,9 +9,9 @@ export const legalEntity = {
   registrationNumber: null as string | null,
   country: 'Nigeria',
   registeredAddress: null as string | null,
-  privacyEmail: null as string | null,
-  legalEmail: null as string | null,
-  supportEmail: null as string | null,
+  privacyEmail: 'team@incantly.xyz' as string | null,
+  legalEmail: 'team@incantly.xyz' as string | null,
+  supportEmail: 'team@incantly.xyz' as string | null,
   /** Article 27 GDPR / UK GDPR representatives, required while there is no EU or UK establishment. */
   euRepresentative: null as string | null,
   ukRepresentative: null as string | null,
