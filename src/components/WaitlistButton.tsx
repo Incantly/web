@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { apiErrorMessage } from '../lib/api/errors'
 import { waitlistApi } from '../lib/api/waitlist'
@@ -13,6 +14,7 @@ export function WaitlistButton({ className, children = 'Join waitlist' }: { clas
   const [step, setStep] = useState<Step>({ kind: 'form' })
   const formId = useId()
   const errorId = useId()
+  const noticeId = useId()
 
   function close() {
     setOpen(false)
@@ -66,10 +68,13 @@ export function WaitlistButton({ className, children = 'Join waitlist' }: { clas
               </label>
               <label className={labelClass}>Email address
                 <input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com"
-                  aria-invalid={error ? true : undefined} aria-describedby={error ? errorId : undefined} className={inputClass} />
+                  aria-invalid={error ? true : undefined} aria-describedby={error ? `${errorId} ${noticeId}` : noticeId} className={inputClass} />
               </label>
               {error ? <p id={errorId} role="alert" className="m-0 break-words rounded-xl border border-danger bg-danger-surface px-4 py-3 text-sm text-danger">{error}</p> : null}
             </fieldset>
+            <p id={noticeId} className="m-0 mt-4 text-sm leading-6 text-muted">
+              We’ll only use your name and email to tell you when your spot is ready, and you can ask us to remove them at any time. See our <Link href="/privacy" target="_blank" rel="noopener" className="font-semibold text-foreground underline underline-offset-2">Privacy Policy</Link>.
+            </p>
           </form>
         )}
       </Dialog>
