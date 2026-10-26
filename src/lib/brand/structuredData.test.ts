@@ -12,10 +12,13 @@ describe('home structured data', () => {
     expect(byType('WebSite')).toMatchObject({ name: 'Incantly', publisher: { '@id': 'https://www.incantly.xyz/#organization' } })
   })
 
-  it('leaves out details that are not known yet', () => {
+  it('lists the contact address and leaves out details that are not known yet', () => {
     const organization = byType('Organization')
+    expect(organization.contactPoint).toEqual([
+      { '@type': 'ContactPoint', contactType: 'customer support', email: 'team@incantly.xyz' },
+      { '@type': 'ContactPoint', contactType: 'privacy', email: 'team@incantly.xyz' },
+    ])
     expect(organization).not.toHaveProperty('address')
-    expect(organization).not.toHaveProperty('contactPoint')
     expect(organization).not.toHaveProperty('sameAs')
   })
 
