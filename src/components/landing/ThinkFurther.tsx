@@ -54,10 +54,10 @@ function Heading() {
 function BenefitCard({ benefit }: { benefit: Benefit }) {
   return (
     <article className="grid min-w-0 items-center gap-7 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-[clamp(2rem,9vw,6rem)] sm:even:[&>*:first-child]:col-start-2 sm:even:[&>*:first-child]:row-start-1 sm:even:[&>*:last-child]:col-start-1 sm:even:[&>*:last-child]:row-start-1 sm:even:[&>*:last-child]:justify-self-end">
-      <div className="w-[min(100%,26rem)] justify-self-center overflow-hidden bg-raised [&>img]:block [&>img]:h-auto [&>img]:w-full">
+      <div className="order-2 w-[min(100%,26rem)] justify-self-center overflow-hidden bg-raised sm:order-none [&>img]:block [&>img]:h-auto [&>img]:w-full">
         <Image src={benefit.image} alt={benefit.alt} width={benefit.width} height={benefit.height} sizes="(max-width: 767px) min(100vw - 4rem, 26rem), 24rem" />
       </div>
-      <div className="max-w-[23rem]">
+      <div className="order-1 max-w-[23rem] sm:order-none">
         <h3 className="m-0 font-display text-[clamp(1.8rem,4vw,2.6rem)] font-normal leading-[1.03] tracking-[-0.045em] text-foreground">{benefit.title}</h3>
         <p className="mt-[0.9rem] text-base leading-[1.6] text-muted">{benefit.description}</p>
       </div>
