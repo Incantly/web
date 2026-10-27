@@ -38,6 +38,14 @@
     // Runtime copy only. The rewrite destination is fixed at build time, so
     // `npm run build:cf` also sets AUTH_BACKEND_URL for `next build`.
     "AUTH_BACKEND_URL": "https://api.incantly.xyz"
+  },
+  // Worker Previews (branch deploys) do not inherit the settings above, so
+  // list what a Preview needs. This points at the production auth backend.
+  "previews": {
+    "vars": {
+      "AUTH_BACKEND_URL": "https://api.incantly.xyz"
+    },
+    "images": { "binding": "IMAGES" }
   }
   // AUTH_PROXY_SECRET is a Worker secret: `npx wrangler secret put AUTH_PROXY_SECRET`.
 }
