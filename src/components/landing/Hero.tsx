@@ -49,7 +49,7 @@ function HeroArtwork() {
         priority
         sizes="(max-width: 639px) 288px, 396px"
       />
-      <div className="absolute bottom-[26%] right-[-6%] font-display text-[clamp(1.1rem,2vw,1.5rem)] text-button motion-safe:animate-hero-drift-slow">✳</div>
+      <div className="absolute bottom-[26%] right-[-6%] font-display text-[clamp(1.1rem,2vw,1.5rem)] text-button motion-safe:animate-hero-drift-slow [font-variant-emoji:text]">✳&#xFE0E;</div>
     </div>
   )
 }

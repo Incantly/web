@@ -20,7 +20,7 @@ export function IncantlyCloser() {
             <p className="mt-5 max-w-[32rem] text-base leading-[1.6] text-muted">Start with a note. See what becomes possible when you can ask, make, and explore in the same space.</p>
             <WaitlistButton className="mt-7 inline-flex min-h-11 items-center rounded-xl bg-raised px-8 py-2.5 font-medium text-foreground hover:underline">Join waitlist</WaitlistButton>
           </div>
-          <span className="self-end justify-self-end text-[clamp(7rem,24vw,10rem)] leading-[0.8] text-button lg:self-center lg:justify-self-center lg:text-[clamp(10rem,18vw,15rem)]" aria-hidden="true">✳</span>
+          <span className="self-end justify-self-end text-[clamp(7rem,24vw,10rem)] leading-[0.8] text-button lg:self-center lg:justify-self-center lg:text-[clamp(10rem,18vw,15rem)] [font-variant-emoji:text]" aria-hidden="true">✳&#xFE0E;</span>
         </div>
       </section>
     </>
