@@ -40,7 +40,9 @@ export function SidePanelProvider({ registry, top, children }: { registry: Regis
   return <RegistryContext.Provider value={registry}><TopContext.Provider value={top}>{children}</TopContext.Provider></RegistryContext.Provider>
 }
 
-type SidePanelProps = { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; footer?: ReactNode }
+type SidePanelProps = { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; footer?: ReactNode
+  /** The children draw their own header and fill the panel edge to edge; `title` still names it for assistive tech. */
+  bare?: boolean }
 
 /**
  * A right-hand panel. From `lg` up it docks in the shell's right column and pushes the content
@@ -65,7 +67,7 @@ export function SidePanel(props: SidePanelProps) {
   return createPortal(<DockedPanel {...props} />, registry.slot)
 }
 
-function DockedPanel({ onClose, title, description, children, footer }: SidePanelProps) {
+function DockedPanel({ onClose, title, description, children, footer, bare }: SidePanelProps) {
   const titleId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
   // Take focus when it opens and hand it back when it closes, like a dialog, without trapping it.
@@ -76,6 +78,7 @@ function DockedPanel({ onClose, title, description, children, footer }: SidePane
   }, [])
   return <section aria-labelledby={titleId} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}
     className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.15rem] border border-default bg-raised text-foreground">
+    {bare ? <><h2 ref={heading} id={titleId} tabIndex={-1} className="sr-only">{title}</h2>{children}</> : <>
     <header className="flex items-start justify-between gap-3 border-b border-default px-5 pb-4 pt-4">
       <div className="min-w-0">
         <h2 ref={heading} id={titleId} tabIndex={-1} className="break-words font-display text-2xl leading-tight text-foreground outline-none">{title}</h2>
@@ -85,5 +88,6 @@ function DockedPanel({ onClose, title, description, children, footer }: SidePane
     </header>
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
     {footer ? <footer className="flex flex-wrap justify-end gap-2 border-t border-default px-5 pb-4 pt-4">{footer}</footer> : null}
+    </>}
   </section>
 }

@@ -1,9 +1,14 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'alert' | 'archive' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pause' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'table' | 'trash' | 'unlink' | 'upload' | 'video'
+export type IconName = 'alert' | 'archive' | 'arrowUp' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'copy' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'keyboard' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pause' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'stop' | 'table' | 'trash' | 'unlink' | 'upload' | 'user' | 'video'
 
 const paths: Record<IconName, ReactNode> = {
   alert: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></>,
+  arrowUp: <path d="M12 19V5M6 11l6-6 6 6"/>,
+  copy: <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></>,
+  stop: <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>,
+  keyboard: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></>,
+  user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
   audio: <path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>,
   checkCircle: <><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
   clipboard: <><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></>,

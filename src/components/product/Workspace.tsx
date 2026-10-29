@@ -10,7 +10,8 @@ import { AppProviders } from './AppProviders'
 import { SessionGate, useCurrentUser } from './SessionGate'
 import type { NoteRecord, WorkspaceView } from './workspace/model'
 import { Sidebar, type NewAction } from './workspace/Sidebar'
-import { HomeView, NotesView, SearchView, SettingsView } from './workspace/views'
+import { HomeView, NotesView, SearchView } from './workspace/views'
+import { SettingsDialog } from './workspace/SettingsDialog'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
 import { LibraryView } from './workspace/LibraryView'
 import { NoteScreen } from './workspace/NoteView'
@@ -21,10 +22,12 @@ import { DocumentAssetsProvider } from '../../lib/document-editor/assetHost'
 import { AddSourceDialog, SpaceFormDialog } from './workspace/dialogs'
 import { createSpaceVariables, useSpaceActions, useSpaces } from './workspace/useSpaces'
 import { addSourceToLibrary, libraryKey, useLibrarySources } from './workspace/useLibrary'
-import { EmptyState, OfflineBanner, PageFrame, buttonSecondary } from './workspace/ui'
+import { EmptyState, OfflineBanner, PageFrame, TopBar, buttonSecondary } from './workspace/ui'
 import { SIDE_PANEL_WIDTH, SidePanelProvider, useMediaQuery, useSidePanelHost } from './workspace/sidePanel'
 import { ImportDialog, ImportTray, useImportTracker, type ImportMode } from './workspace/imports'
 import type { BlockRange } from './workspace/ContextSearch'
+import { searchForView, viewFromSearch, type UrlState } from './workspace/viewUrl'
+import { AssistantPanel, type AssistantContext } from './assistant/AssistantPanel'
 
 const initialInbox: InboxItem[] = [
   { id: 'inbox-1', title: 'A question for later', detail: 'Why do some ideas stay with us long after a conversation?', when: 'Today' },
@@ -73,6 +76,10 @@ function NoteRoute({ userId, noteId, reloaders, ...props }: { userId: string; no
   return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} {...props} /></DocumentAssetsProvider>
 }
 
+function noteContextFor({ view, noteSpaceId }: UrlState) {
+  return view.startsWith('note:') && noteSpaceId ? { noteId: view.slice(5), spaceId: noteSpaceId } : null
+}
+
 export function Workspace() {
   return <AppProviders><SessionGate><WorkspaceShell /></SessionGate></AppProviders>
 }
@@ -86,10 +93,13 @@ function WorkspaceShell() {
   const spaceActions = useSpaceActions(user.id)
   const spaces = spacesQuery.spaces
   const sources = libraryQuery.sources
+  // The shell renders only on the client (behind the session gate), so the URL is readable here:
+  // a refresh or shared link reopens the same view.
+  const [initial] = useState(() => viewFromSearch(window.location.search))
   // The notes list has no Space field (gap G1): a note opened from a Space remembers it here.
-  const [noteContext, setNoteContext] = useState<{ noteId: string; spaceId: string } | null>(null)
+  const [noteContext, setNoteContext] = useState<{ noteId: string; spaceId: string } | null>(() => noteContextFor(initial))
   const [openSourceId, setOpenSourceId] = useState<string | null>(null)
-  const [view, setView] = useState<WorkspaceView>('home')
+  const [view, setView] = useState<WorkspaceView>(initial.view)
   const notesQuery = useNotesList(user.id)
   const createNoteMutation = useCreateNote(user.id)
   const deleteNoteMutation = useDeleteNote(user.id)
@@ -102,6 +112,8 @@ function WorkspaceShell() {
   const [railCollapsed, setRailCollapsed] = useState(false)
   const [railPeek, setRailPeek] = useState(false)
   const [dialog, setDialog] = useState<'space' | 'source' | null>(null)
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [importDialog, setImportDialog] = useState<{ mode: ImportMode; intoNote?: { id: string; title: string } } | null>(null)
   const [focusBlock, setFocusBlock] = useState<(BlockRange & { noteId: string; nonce: number }) | null>(null)
   const [reloaders] = useState(() => new Map<string, () => void>())
@@ -133,6 +145,14 @@ function WorkspaceShell() {
       if ((event.metaKey || event.ctrlKey) && event.key === '\\') {
         event.preventDefault()
         toggleRail()
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === ',') {
+        event.preventDefault()
+        setSettingsOpen(true)
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
+        event.preventDefault()
+        setAssistantOpen((current) => !current)
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -166,6 +186,23 @@ function WorkspaceShell() {
   const panels = useSidePanelHost()
   const roomy = useMediaQuery('(min-width: 1280px)')
   const railExpanded = (!railCollapsed && !(panels.open && !roomy)) || railPeek
+
+  // Mirror the view in the URL (one history entry per navigation), and follow back/forward.
+  const urlSpaceId = activeNoteId && noteContext?.noteId === activeNoteId ? noteContext.spaceId : null
+  useEffect(() => {
+    const current = viewFromSearch(window.location.search)
+    if (current.view === view && current.noteSpaceId === urlSpaceId) return
+    window.history.pushState(null, '', `${window.location.pathname}${searchForView(view, urlSpaceId)}`)
+  }, [view, urlSpaceId])
+  useEffect(() => {
+    const onPopState = () => {
+      const next = viewFromSearch(window.location.search)
+      setNoteContext(noteContextFor(next))
+      setView(next.view)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   function navigate(destination: WorkspaceView) { setView(destination); setMobileOpen(false) }
   function openNote(noteId: string, spaceId?: string) {
@@ -223,14 +260,20 @@ function WorkspaceShell() {
       onPointerLeave={(event) => { if (railCollapsed && event.pointerType === 'mouse') schedulePeek(false) }}
       className="hidden size-11 place-items-center rounded-lg text-foreground hover:bg-surface lg:grid" aria-label={railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={`${railCollapsed ? 'Expand' : 'Collapse'} sidebar (⌘\\)`} aria-controls="workspace-sidebar" aria-expanded={!railCollapsed}><AppIcon name="panel" className="size-5" /></button>
   </>
-  const barTrailing = <InboxPopover items={inbox}
-    createFrom={(item) => { createNote({ title: item.title }); setInbox((current) => current.filter((candidate) => candidate.id !== item.id)) }}
-    dismiss={(id) => setInbox((current) => current.filter((item) => item.id !== id))} />
+  const barTrailing = <>
+    <button type="button" onClick={() => setAssistantOpen((current) => !current)} aria-pressed={assistantOpen} aria-label="Chat with AI" title="Chat with AI (⌘J)"
+      className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface hover:text-foreground ${assistantOpen ? 'bg-surface text-foreground' : 'text-muted'}`}><AppIcon name="sparkles" className="size-5" /></button>
+    <InboxPopover items={inbox}
+      createFrom={(item) => { createNote({ title: item.title }); setInbox((current) => current.filter((candidate) => candidate.id !== item.id)) }}
+      dismiss={(id) => setInbox((current) => current.filter((item) => item.id !== id))} />
+  </>
+  const banner = online ? (backOnline ? <OfflineBanner reconnected /> : null) : <OfflineBanner />
+  const assistantContext = useMemo<AssistantContext>(() => ({ note: activeNoteId ? { id: activeNoteId, title: activeNote?.title ?? '' } : undefined, space: activeSpace ?? noteSpace }), [activeNoteId, activeNote?.title, activeSpace, noteSpace])
 
-  const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource }
-  const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'settings' ? 'Settings' : activeSpace ? activeSpace.name : null
+  const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource, onOpenSettings: () => { setMobileOpen(false); setSettingsOpen(true) } }
+  const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : activeSpace ? activeSpace.name : null
 
-  return <SidePanelProvider registry={panels.registry} top={panels.top}><main className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
+  return <SidePanelProvider registry={panels.registry} top={panels.top}><main data-workspace className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
     <div className={`relative hidden h-svh shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:block ${railExpanded ? 'w-[17.5rem]' : 'w-16'}`}>
       <div
         id="workspace-sidebar"
@@ -249,20 +292,20 @@ function WorkspaceShell() {
       <div id="workspace-mobile-sidebar" className={`absolute inset-y-0 left-0 w-[min(17.5rem,82vw)] shadow-lg transition-transform duration-200 motion-reduce:transition-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}><Sidebar {...sidebarProps} onClose={() => setMobileOpen(false)} /></div>
     </div>
     <div className="min-w-0 flex-1 p-2 lg:pl-0">
-      <section className="relative min-h-[calc(100svh-1rem)] overflow-hidden rounded-[1.15rem] border border-default bg-raised lg:h-[calc(100svh-1rem)] lg:min-h-0 lg:overflow-y-auto" aria-label="Workspace content">
-        {online ? (backOnline ? <OfflineBanner reconnected /> : null) : <OfflineBanner />}
-        {activeNoteId ? null : <div className="flex min-h-12 items-center gap-1.5 px-2 pt-1 sm:px-4">
+      {/* overflow-clip (not hidden) on small screens keeps the rounded corners without making this a
+          scroll container, so the top bar can stick while the page scrolls. */}
+      <section className="relative min-h-[calc(100svh-1rem)] overflow-clip overscroll-none rounded-[1.15rem] border border-default bg-raised lg:h-[calc(100svh-1rem)] lg:min-h-0 lg:overflow-y-auto" aria-label="Workspace content">
+        {activeNoteId ? null : <TopBar banner={banner}>
           {barLeading}
           {viewLabel ? <span className="min-w-0 truncate px-1 text-sm text-muted">{viewLabel}</span> : null}
           <div className="ml-auto flex shrink-0 items-center gap-1">{barTrailing}</div>
-        </div>}
+        </TopBar>}
 
         {view === 'home' ? <HomeView notes={notes} notesStatus={notesStatus} spaces={spaces} sources={sources} navigate={navigate} onNewNote={() => createNote()} /> : null}
         {view === 'search' ? <div ref={(element) => { searchInput.current = element?.querySelector('input') ?? null }}><SearchView notes={notes} spaces={spaces} sources={sources} query={query} setQuery={setQuery} navigate={navigate} onOpenSource={openSource} target={evidenceTarget} /></div> : null}
         {view === 'notes' ? <NotesView notes={notes} notesStatus={notesStatus} spaces={spaces} navigate={navigate} onNewNote={() => createNote()} /> : null}
         {view === 'spaces' ? <SpacesView spaces={spaces} status={spacesStatus} navigate={navigate} onNewSpace={() => setDialog('space')} /> : null}
         {view === 'library' ? <LibraryView userId={user.id} sources={sources} status={libraryStatus} spaces={spaces} navigate={navigate} openSourceId={openSourceId} onOpenSource={setOpenSourceId} onAdd={() => setDialog('source')} /> : null}
-        {view === 'settings' ? <SettingsView /> : null}
         {activeSpace ? <SpaceView key={activeSpace.id} userId={user.id} space={activeSpace} notes={notes} sources={sources} navigate={navigate}
           onOpenNote={openNote} onCreateNote={(spaceId) => createNote({ spaceId })} onAddSource={() => setDialog('source')} /> : null}
         {activeSpaceId && !activeSpace && spacesQuery.isPending ? <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame> : null}
@@ -270,7 +313,7 @@ function WorkspaceShell() {
         {activeNoteId ? <NoteRoute key={activeNoteId} userId={user.id} noteId={activeNoteId} reloaders={reloaders} title={activeNote?.title ?? ''} space={noteSpace}
           notes={notes} sources={sources} target={evidenceTarget} focusBlock={focusBlock?.noteId === activeNoteId ? focusBlock : null}
           onImport={(mode) => setImportDialog({ mode, intoNote: { id: activeNoteId, title: activeNote?.title ?? '' } })}
-          leading={barLeading} trailing={barTrailing} onOpenSpace={(spaceId) => navigate(`space:${spaceId}`)} onShare={() => shareNote(activeNote?.title ?? '')}
+          banner={banner} leading={barLeading} trailing={barTrailing} onOpenSpace={(spaceId) => navigate(`space:${spaceId}`)} onShare={() => shareNote(activeNote?.title ?? '')}
           onDelete={() => deleteNote(activeNoteId)} onBack={() => navigate('notes')} /> : null}
       </section>
     </div>
@@ -279,6 +322,8 @@ function WorkspaceShell() {
       <div ref={panels.setSlot} className={`absolute inset-y-0 left-0 ${SIDE_PANEL_WIDTH} py-2 pr-2`} />
     </div>
 
+    <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} userId={user.id} context={assistantContext} notes={notes} sources={sources} target={evidenceTarget} />
     <ImportDialog open={Boolean(importDialog)} mode={importDialog?.mode ?? 'file'} intoNote={importDialog?.intoNote} onClose={() => setImportDialog(null)} onStarted={imports.track} />
     <ImportTray tracker={imports} onOpenNote={(noteId) => openNote(noteId)} />
     <SpaceFormDialog open={dialog === 'space'} onClose={() => setDialog(null)} onSubmit={async (draft) => { const space = await spaceActions.create.mutateAsync(createSpaceVariables(draft)); navigate(`space:${space.id}`) }} />

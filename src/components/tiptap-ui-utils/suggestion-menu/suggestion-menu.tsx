@@ -298,6 +298,12 @@ export const SuggestionMenu = ({
         }
       },
       ...internalSuggestionPropsRef.current,
+      // The plugin is registered once, so read `items` from the latest props on every query.
+      // Otherwise it keeps the first render's list, e.g. hiding "Table" for good when the
+      // editor first mounted with the cursor inside a table.
+      ...(internalSuggestionPropsRef.current.items
+        ? { items: (props: Parameters<NonNullable<typeof internalSuggestionPropsRef.current.items>>[0]) => internalSuggestionPropsRef.current.items!(props) }
+        : {}),
     })
 
     editor.registerPlugin(suggestion)

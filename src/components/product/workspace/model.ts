@@ -9,7 +9,6 @@ export type WorkspaceView =
   | 'notes'
   | 'spaces'
   | 'library'
-  | 'settings'
   | `space:${string}`
   | `note:${string}`
 

@@ -66,9 +66,20 @@ export function ListSkeleton({ rows = 4, label = 'Loading' }: { rows?: number; l
   </div>
 }
 
+/**
+ * The content box's top bar (and the offline notice above it), pinned while the content scrolls.
+ * One sticky wrapper holds both so they never overlap.
+ */
+export function TopBar({ banner, children }: { banner?: ReactNode; children: ReactNode }) {
+  return <div className="sticky top-0 z-20 bg-raised">
+    {banner}
+    <div className="flex min-h-12 items-center gap-1.5 px-2 pt-1 sm:px-4">{children}</div>
+  </div>
+}
+
 /** Offline notice, and a brief "back online" confirmation after reconnecting. */
 export function OfflineBanner({ reconnected = false }: { reconnected?: boolean }) {
-  return <div role="status" aria-live="polite" className="sticky top-0 z-20 flex items-center gap-2 border-b border-default bg-surface px-4 py-2 text-xs text-muted sm:px-5">
+  return <div role="status" aria-live="polite" className="flex items-center gap-2 border-b border-default bg-surface px-4 py-2 text-xs text-muted sm:px-5">
     <AppIcon name={reconnected ? 'checkCircle' : 'alert'} className="size-4 shrink-0" />{reconnected ? 'Back online. Syncing your changes…' : 'You’re offline. Changes are saved on this device and sync when you reconnect.'}
   </div>
 }
@@ -95,7 +106,7 @@ export function StatusChip({ status, stage }: { status: SourceStatus; stage?: st
  * Accessible modal built on the native `<dialog>`: focus trap, Escape and background inertness
  * come from the browser. `variant="drawer"` docks it to the right edge as a full-height panel.
  */
-export function Dialog({ open, onClose, title, description, children, footer, variant = 'modal' }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer' }) {
+export function Dialog({ open, onClose, title, description, children, footer, variant = 'modal', bare = false }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; bare?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   useEffect(() => {
@@ -112,6 +123,7 @@ export function Dialog({ open, onClose, title, description, children, footer, va
   return <dialog ref={ref} aria-labelledby={titleId} onClose={onClose} onCancel={(event) => { event.preventDefault(); onClose() }}
     onClick={(event) => { if (event.target === ref.current) onClose() }}
     className={`${shape} border border-default bg-raised p-0 text-foreground shadow-xl backdrop:bg-foreground/30 open:flex open:flex-col`}>
+    {bare ? <><h2 id={titleId} className="sr-only">{title}</h2>{children}</> : <>
     <header className="flex items-start justify-between gap-3 border-b border-default px-5 pb-4 pt-[max(1.1rem,env(safe-area-inset-top))]">
       <div className="min-w-0">
         <h2 id={titleId} className="break-words font-display text-2xl leading-tight text-foreground">{title}</h2>
@@ -121,6 +133,7 @@ export function Dialog({ open, onClose, title, description, children, footer, va
     </header>
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
     {footer ? <footer className="flex flex-wrap justify-end gap-2 border-t border-default px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">{footer}</footer> : null}
+    </>}
   </dialog>
 }
 

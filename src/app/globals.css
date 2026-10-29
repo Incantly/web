@@ -240,3 +240,58 @@ code {
 .incantly-document-editor .ProseMirror:focus-visible {
   box-shadow: none;
 }
+
+/* Assistant panel: short entrances for appended rows, menus and the send/stop swap. */
+@keyframes citation-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes icon-swap {
+  from { opacity: 0; transform: translateY(3px) scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The workspace is an app shell: no rubber-band bounce that drags the whole page (and its pinned
+   top bar) away from the edge on trackpads and touch. The content box opts out separately. */
+html:has(main[data-workspace]),
+html:has(main[data-workspace]) body {
+  overscroll-behavior: none;
+}
+
+/* Workspace scrollbars: thin, no track, and invisible until the pointer is over the area that
+   scrolls (like macOS overlay scrollbars), so long content still shows it can scroll. */
+main[data-workspace],
+main[data-workspace] * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+main[data-workspace] *:hover {
+  scrollbar-color: var(--ui-border) transparent;
+}
+
+/* Browsers without `scrollbar-color` (older Safari) use the WebKit pseudo-elements instead. */
+@supports not (scrollbar-color: auto) {
+  main[data-workspace] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+
+  main[data-workspace] ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: transparent;
+  }
+
+  main[data-workspace] *:hover::-webkit-scrollbar-thumb {
+    background-color: var(--ui-border);
+  }
+}

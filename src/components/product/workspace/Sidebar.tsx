@@ -79,7 +79,7 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
   </div>
 }
 
-export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; collapsed?: boolean; onClose?: () => void }) {
+export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; collapsed?: boolean; onClose?: () => void }) {
   const user = useCurrentUser()
   const [open, setOpen] = useState({ spaces: true, library: true })
   const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
@@ -116,7 +116,7 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenS
     </Section>
 
     <div className="mt-auto border-t border-default pt-2">
-      <RailItem icon="settings" label="Settings" collapsed={collapsed} active={view === 'settings'} onClick={() => navigate('settings')} />
+      <RailItem icon="settings" label="Settings" collapsed={collapsed} active={false} onClick={onOpenSettings} />
       <div className="mt-1 flex min-h-11 items-center gap-2 overflow-hidden whitespace-nowrap px-[0.45rem]" title={collapsed ? displayName(user) : undefined}>
         <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-full bg-button text-xs font-semibold text-inverse">{initial(user)}</span>
         <Label collapsed={collapsed} className="text-sm font-medium text-foreground">{displayName(user)}</Label>
