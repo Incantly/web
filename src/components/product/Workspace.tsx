@@ -10,7 +10,8 @@ import { AppProviders } from './AppProviders'
 import { SessionGate, useCurrentUser } from './SessionGate'
 import type { NoteRecord, WorkspaceView } from './workspace/model'
 import { Sidebar, type NewAction } from './workspace/Sidebar'
-import { HomeView, NotesView, SearchView, SettingsView } from './workspace/views'
+import { HomeView, NotesView, SearchView } from './workspace/views'
+import { SettingsDialog } from './workspace/SettingsDialog'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
 import { LibraryView } from './workspace/LibraryView'
 import { NoteScreen } from './workspace/NoteView'
@@ -112,6 +113,7 @@ function WorkspaceShell() {
   const [railPeek, setRailPeek] = useState(false)
   const [dialog, setDialog] = useState<'space' | 'source' | null>(null)
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [importDialog, setImportDialog] = useState<{ mode: ImportMode; intoNote?: { id: string; title: string } } | null>(null)
   const [focusBlock, setFocusBlock] = useState<(BlockRange & { noteId: string; nonce: number }) | null>(null)
   const [reloaders] = useState(() => new Map<string, () => void>())
@@ -143,6 +145,10 @@ function WorkspaceShell() {
       if ((event.metaKey || event.ctrlKey) && event.key === '\\') {
         event.preventDefault()
         toggleRail()
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === ',') {
+        event.preventDefault()
+        setSettingsOpen(true)
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
         event.preventDefault()
@@ -264,8 +270,8 @@ function WorkspaceShell() {
   const banner = online ? (backOnline ? <OfflineBanner reconnected /> : null) : <OfflineBanner />
   const assistantContext = useMemo<AssistantContext>(() => ({ note: activeNoteId ? { id: activeNoteId, title: activeNote?.title ?? '' } : undefined, space: activeSpace ?? noteSpace }), [activeNoteId, activeNote?.title, activeSpace, noteSpace])
 
-  const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource }
-  const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'settings' ? 'Settings' : activeSpace ? activeSpace.name : null
+  const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource, onOpenSettings: () => { setMobileOpen(false); setSettingsOpen(true) } }
+  const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : activeSpace ? activeSpace.name : null
 
   return <SidePanelProvider registry={panels.registry} top={panels.top}><main data-workspace className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
     <div className={`relative hidden h-svh shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:block ${railExpanded ? 'w-[17.5rem]' : 'w-16'}`}>
@@ -300,7 +306,6 @@ function WorkspaceShell() {
         {view === 'notes' ? <NotesView notes={notes} notesStatus={notesStatus} spaces={spaces} navigate={navigate} onNewNote={() => createNote()} /> : null}
         {view === 'spaces' ? <SpacesView spaces={spaces} status={spacesStatus} navigate={navigate} onNewSpace={() => setDialog('space')} /> : null}
         {view === 'library' ? <LibraryView userId={user.id} sources={sources} status={libraryStatus} spaces={spaces} navigate={navigate} openSourceId={openSourceId} onOpenSource={setOpenSourceId} onAdd={() => setDialog('source')} /> : null}
-        {view === 'settings' ? <SettingsView /> : null}
         {activeSpace ? <SpaceView key={activeSpace.id} userId={user.id} space={activeSpace} notes={notes} sources={sources} navigate={navigate}
           onOpenNote={openNote} onCreateNote={(spaceId) => createNote({ spaceId })} onAddSource={() => setDialog('source')} /> : null}
         {activeSpaceId && !activeSpace && spacesQuery.isPending ? <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame> : null}
@@ -317,6 +322,7 @@ function WorkspaceShell() {
       <div ref={panels.setSlot} className={`absolute inset-y-0 left-0 ${SIDE_PANEL_WIDTH} py-2 pr-2`} />
     </div>
 
+    <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} userId={user.id} context={assistantContext} notes={notes} sources={sources} target={evidenceTarget} />
     <ImportDialog open={Boolean(importDialog)} mode={importDialog?.mode ?? 'file'} intoNote={importDialog?.intoNote} onClose={() => setImportDialog(null)} onStarted={imports.track} />
     <ImportTray tracker={imports} onOpenNote={(noteId) => openNote(noteId)} />

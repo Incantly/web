@@ -3,7 +3,7 @@ import { searchForView, viewFromSearch } from './viewUrl'
 
 describe('workspace view URL', () => {
   it('round-trips every kind of view', () => {
-    for (const view of ['home', 'notes', 'spaces', 'library', 'search', 'settings', 'space:sp_1', 'note:document:abc'] as const) {
+    for (const view of ['home', 'notes', 'spaces', 'library', 'search', 'space:sp_1', 'note:document:abc'] as const) {
       expect(viewFromSearch(searchForView(view)).view).toBe(view)
     }
   })

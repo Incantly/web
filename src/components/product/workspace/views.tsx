@@ -4,9 +4,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { EvidenceResults, type EvidenceTarget } from './ContextSearch'
 import { useContentSearch } from './useContextSearch'
 import { AppIcon, type IconName } from '../AppIcon'
-import { SignOutButton } from '../SignOutButton'
 import { useCurrentUser } from '../SessionGate'
-import { displayName, firstName, greeting } from '../../../lib/identity'
+import { firstName, greeting } from '../../../lib/identity'
 import type { Navigate, NoteRecord, SourceRecord, SpaceRecord } from './model'
 import { sourceKindMeta } from './model'
 import { updatedLabel } from './SpaceViews'
@@ -128,18 +127,6 @@ export function SearchView({ notes, spaces, sources, query, setQuery, navigate, 
       {results?.spaces.length ? <section aria-label="Spaces"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Spaces</h2><div className="mt-1 divide-y divide-default">{results.spaces.map((space) => <Row key={space.id} leading={<SpaceGlyph icon={space.icon} />} title={space.name} meta={space.status === 'ARCHIVED' ? 'Archived' : undefined} onClick={() => navigate(`space:${space.id}`)} />)}</div></section> : null}
       {results?.notes.length ? <section aria-label="Notes"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Notes</h2><div className="mt-1 divide-y divide-default">{results.notes.map((note) => <Row key={note.id} title={note.title || 'Untitled note'} meta={spaceName(spaces, note.spaceId)} onClick={() => navigate(`note:${note.id}`)} />)}</div></section> : null}
       {results?.sources.length ? <section aria-label="Library sources"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Library</h2><div className="mt-1 divide-y divide-default">{results.sources.map((source) => <Row key={source.id} icon={sourceKindMeta(source.kind).icon} title={source.title} meta={sourceKindMeta(source.kind).label} trailing={<StatusChip status={source.status} stage={source.stage} />} onClick={() => onOpenSource(source.id)} />)}</div></section> : null}
-    </div>
-  </PageFrame>
-}
-
-export function SettingsView() {
-  const user = useCurrentUser()
-  return <PageFrame>
-    <PageHeading title="Settings" subtitle="Your account and workspace preferences." />
-    <div className="mt-8 divide-y divide-default border-y border-default">
-      <div className="flex flex-wrap items-center justify-between gap-3 py-5"><div className="min-w-0"><h2 className="font-medium text-foreground">Profile</h2><p className="mt-1 break-words text-sm text-muted">{displayName(user)}</p></div><span className="min-w-0 break-all text-sm text-subtle">{user.email}</span></div>
-      <div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Writing</h2><p className="mt-1 text-sm text-muted">Your notes open in the Incantly document editor.</p></div></div>
-      <div className="flex flex-wrap items-center justify-between gap-3 py-5"><div><h2 className="font-medium text-foreground">Account</h2><p className="mt-1 text-sm text-muted">Manage Google access or sign out of your account.</p></div><SignOutButton /></div>
     </div>
   </PageFrame>
 }
