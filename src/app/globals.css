@@ -240,3 +240,19 @@ code {
 .incantly-document-editor .ProseMirror:focus-visible {
   box-shadow: none;
 }
+
+/* Assistant panel: short entrances for appended rows, menus and the send/stop swap. */
+@keyframes citation-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes icon-swap {
+  from { opacity: 0; transform: translateY(3px) scale(0.8); }
+  to { opacity: 1; transform: none; }
+}

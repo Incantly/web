@@ -95,7 +95,7 @@ export function StatusChip({ status, stage }: { status: SourceStatus; stage?: st
  * Accessible modal built on the native `<dialog>`: focus trap, Escape and background inertness
  * come from the browser. `variant="drawer"` docks it to the right edge as a full-height panel.
  */
-export function Dialog({ open, onClose, title, description, children, footer, variant = 'modal' }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer' }) {
+export function Dialog({ open, onClose, title, description, children, footer, variant = 'modal', bare = false }: { open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode; footer?: ReactNode; variant?: 'modal' | 'drawer'; bare?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   useEffect(() => {
@@ -112,6 +112,7 @@ export function Dialog({ open, onClose, title, description, children, footer, va
   return <dialog ref={ref} aria-labelledby={titleId} onClose={onClose} onCancel={(event) => { event.preventDefault(); onClose() }}
     onClick={(event) => { if (event.target === ref.current) onClose() }}
     className={`${shape} border border-default bg-raised p-0 text-foreground shadow-xl backdrop:bg-foreground/30 open:flex open:flex-col`}>
+    {bare ? <><h2 id={titleId} className="sr-only">{title}</h2>{children}</> : <>
     <header className="flex items-start justify-between gap-3 border-b border-default px-5 pb-4 pt-[max(1.1rem,env(safe-area-inset-top))]">
       <div className="min-w-0">
         <h2 id={titleId} className="break-words font-display text-2xl leading-tight text-foreground">{title}</h2>
@@ -121,6 +122,7 @@ export function Dialog({ open, onClose, title, description, children, footer, va
     </header>
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
     {footer ? <footer className="flex flex-wrap justify-end gap-2 border-t border-default px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">{footer}</footer> : null}
+    </>}
   </dialog>
 }
 

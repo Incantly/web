@@ -25,6 +25,7 @@ import { EmptyState, OfflineBanner, PageFrame, buttonSecondary } from './workspa
 import { SIDE_PANEL_WIDTH, SidePanelProvider, useMediaQuery, useSidePanelHost } from './workspace/sidePanel'
 import { ImportDialog, ImportTray, useImportTracker, type ImportMode } from './workspace/imports'
 import type { BlockRange } from './workspace/ContextSearch'
+import { AssistantPanel, type AssistantContext } from './assistant/AssistantPanel'
 
 const initialInbox: InboxItem[] = [
   { id: 'inbox-1', title: 'A question for later', detail: 'Why do some ideas stay with us long after a conversation?', when: 'Today' },
@@ -102,6 +103,7 @@ function WorkspaceShell() {
   const [railCollapsed, setRailCollapsed] = useState(false)
   const [railPeek, setRailPeek] = useState(false)
   const [dialog, setDialog] = useState<'space' | 'source' | null>(null)
+  const [assistantOpen, setAssistantOpen] = useState(false)
   const [importDialog, setImportDialog] = useState<{ mode: ImportMode; intoNote?: { id: string; title: string } } | null>(null)
   const [focusBlock, setFocusBlock] = useState<(BlockRange & { noteId: string; nonce: number }) | null>(null)
   const [reloaders] = useState(() => new Map<string, () => void>())
@@ -133,6 +135,10 @@ function WorkspaceShell() {
       if ((event.metaKey || event.ctrlKey) && event.key === '\\') {
         event.preventDefault()
         toggleRail()
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
+        event.preventDefault()
+        setAssistantOpen((current) => !current)
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -223,9 +229,14 @@ function WorkspaceShell() {
       onPointerLeave={(event) => { if (railCollapsed && event.pointerType === 'mouse') schedulePeek(false) }}
       className="hidden size-11 place-items-center rounded-lg text-foreground hover:bg-surface lg:grid" aria-label={railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={`${railCollapsed ? 'Expand' : 'Collapse'} sidebar (⌘\\)`} aria-controls="workspace-sidebar" aria-expanded={!railCollapsed}><AppIcon name="panel" className="size-5" /></button>
   </>
-  const barTrailing = <InboxPopover items={inbox}
-    createFrom={(item) => { createNote({ title: item.title }); setInbox((current) => current.filter((candidate) => candidate.id !== item.id)) }}
-    dismiss={(id) => setInbox((current) => current.filter((item) => item.id !== id))} />
+  const barTrailing = <>
+    <button type="button" onClick={() => setAssistantOpen((current) => !current)} aria-pressed={assistantOpen} aria-label="Chat with AI" title="Chat with AI (⌘J)"
+      className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface hover:text-foreground ${assistantOpen ? 'bg-surface text-foreground' : 'text-muted'}`}><AppIcon name="sparkles" className="size-5" /></button>
+    <InboxPopover items={inbox}
+      createFrom={(item) => { createNote({ title: item.title }); setInbox((current) => current.filter((candidate) => candidate.id !== item.id)) }}
+      dismiss={(id) => setInbox((current) => current.filter((item) => item.id !== id))} />
+  </>
+  const assistantContext = useMemo<AssistantContext>(() => ({ note: activeNoteId ? { id: activeNoteId, title: activeNote?.title ?? '' } : undefined, space: activeSpace ?? noteSpace }), [activeNoteId, activeNote?.title, activeSpace, noteSpace])
 
   const sidebarProps = { view, notes, spaces, sources, navigate, onNew, onOpenSource: openSource }
   const viewLabel = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'settings' ? 'Settings' : activeSpace ? activeSpace.name : null
@@ -279,6 +290,7 @@ function WorkspaceShell() {
       <div ref={panels.setSlot} className={`absolute inset-y-0 left-0 ${SIDE_PANEL_WIDTH} py-2 pr-2`} />
     </div>
 
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} userId={user.id} context={assistantContext} notes={notes} sources={sources} target={evidenceTarget} />
     <ImportDialog open={Boolean(importDialog)} mode={importDialog?.mode ?? 'file'} intoNote={importDialog?.intoNote} onClose={() => setImportDialog(null)} onStarted={imports.track} />
     <ImportTray tracker={imports} onOpenNote={(noteId) => openNote(noteId)} />
     <SpaceFormDialog open={dialog === 'space'} onClose={() => setDialog(null)} onSubmit={async (draft) => { const space = await spaceActions.create.mutateAsync(createSpaceVariables(draft)); navigate(`space:${space.id}`) }} />

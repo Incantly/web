@@ -406,7 +406,17 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
   - `offline-banner.spec.ts`: offline, then back online.
 
   All three pass with `PLAYWRIGHT_CHROME_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'`.
-- [~] **AI agent** (`/v1/ai/*`: ask, quiz, jobs, citations, allowance). Named in the first request but not in the scope confirmed on 2026-10-20. Planned separately when asked.
+- [x] **AI agent chat** (`/v1/ai/*`), requested 2026-10-29. `src/lib/api/ai.ts`; panel in `src/components/product/assistant/` (sparkles button in the top bar, ⌘J). Docks right from `lg`, sheet below.
+  - [x] Ask (`POST /v1/ai/requests`) with one `Idempotency-Key` per send; `surface: chat`; scope pill (this note / this Space / all notes and sources). `LIBRARY` is only ever an explicit pick.
+  - [x] "+" menu: Ask with sources (`ask`) or Quiz me (`practice`); suggestion chips send an explicit `command`.
+  - [x] Clarification options resend the same text and scope with `command` + `clarified: true` and a new key.
+  - [x] Poll `/events?after=` with 1 s → 4 s backoff (paused while hidden); progress copy from event codes; read the job when `done`.
+  - [x] Grounded answer: `[S1E1]` refs become numbered markers (unknown brackets stay text), plain-text rendering, progressive reveal (the backend has no token stream), copy, ask again, sources list from `/citations` that opens the note or Source.
+  - [x] Practice questions with "Show answer" disclosures and shared sources.
+  - [x] `NOT_FOUND` shows "Your material doesn't cover this", `PARTIAL` is labelled; every `failureCode` has copy, refusals and limits are not retryable.
+  - [x] Stop → `POST /cancel`; New chat cancels running jobs. Thread and running `jobId`s are kept in session storage and polling resumes after a reload.
+  - [x] Allowance (`GET /v1/ai/allowance`): sending is disabled with the reset time when it is used up; a `503` hides it.
+  - [x] Unit tests: `assistant/aiModel.test.ts`.
 - [~] **Inbox / notifications.** No backend support (D2).
 
 ---
