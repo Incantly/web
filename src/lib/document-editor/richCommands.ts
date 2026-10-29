@@ -114,7 +114,18 @@ export const documentRichCommands = {
         content: [paragraph()],
       })),
     }))
-    return editor.chain().insertContent({ type: 'table', content }).run()
+    const from = editor.state.selection.from
+    if (!editor.chain().insertContent({ type: 'table', content }).run()) return false
+    // insertContent leaves the caret after the last cell; start typing in the first one instead.
+    const { doc } = editor.state
+    let tablePos: number | null = null
+    doc.nodesBetween(Math.max(0, from - 2), doc.content.size, (node, pos) => {
+      if (tablePos !== null) return false
+      if (node.type.name === 'table' && pos >= from - 2) { tablePos = pos; return false }
+      return true
+    })
+    if (tablePos !== null) editor.view.dispatch(editor.state.tr.setSelection(TextSelection.near(doc.resolve(tablePos + 1))))
+    return true
   },
   addTableRow: (editor: Editor): boolean => runTableCommand(editor, addRowAfter),
   addTableColumn: (editor: Editor): boolean => runTableCommand(editor, addColumnAfter),

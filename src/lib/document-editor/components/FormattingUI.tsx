@@ -495,7 +495,8 @@ function SlashTablePicker({ grid, editor, onClose }: {
   })
   const pickerRef = useRef<HTMLDivElement>(null)
   const insert = useCallback((row: number, col: number) => {
-    if (grid.grid.command(editor, row + 1, col + 1)) onClose()
+    // The picker held focus; hand it back so typing lands in the new table's first cell.
+    if (grid.grid.command(editor, row + 1, col + 1)) { onClose(); editor.commands.focus() }
   }, [editor, grid.grid, onClose])
 
   // Choosing the menu item with Enter opens the picker mid-event, so that same keydown reaches the

@@ -21,7 +21,7 @@ import { useRevisions } from './useNotes'
 import type { NoteRecord, SourceRecord, SpaceRecord } from './model'
 import type { BlockRange, EvidenceTarget } from './ContextSearch'
 import { NoteContextPanel } from './NoteContextPanel'
-import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, buttonPrimary, buttonSecondary } from './ui'
+import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, TopBar, buttonPrimary, buttonSecondary } from './ui'
 
 const DocumentEditor = dynamic(
   () => import('../../../lib/document-editor').then((module) => module.DocumentEditor),
@@ -160,6 +160,8 @@ export type NoteScreenProps = {
   focusBlock?: (BlockRange & { nonce: number }) | null
   onImport: (mode: 'file' | 'url') => void
   session: NoteSession
+  /** Offline notice, pinned above the header. */
+  banner?: ReactNode
   leading: ReactNode
   trailing: ReactNode
   onOpenSpace: (spaceId: string) => void
@@ -168,7 +170,7 @@ export type NoteScreenProps = {
   onBack: () => void
 }
 
-export function NoteScreen({ noteId, title, space, notes, sources, target, focusBlock, onImport, session, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
+export function NoteScreen({ noteId, title, space, notes, sources, target, focusBlock, onImport, session, banner, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
   const [contextOpen, setContextOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
@@ -188,7 +190,7 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
   const rename = (next: string) => { setRenamed(next.trim()); session.rename(next) }
 
   return <>
-    <div className="flex min-h-12 items-center gap-1.5 px-2 pt-1 sm:px-4">
+    <TopBar banner={banner}>
       {leading}
       <nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-1.5">
         {space ? <><button type="button" onClick={() => onOpenSpace(space.id)} className="flex min-h-11 max-w-[40%] shrink items-center gap-1.5 rounded-lg px-1.5 text-sm text-muted hover:bg-surface hover:text-foreground"><SpaceGlyph icon={space.icon} size="sm" /><span className="truncate">{space.name}</span></button><span aria-hidden="true" className="text-subtle">/</span></> : null}
@@ -207,7 +209,7 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
         ]} />
         {trailing}
       </div>
-    </div>
+    </TopBar>
 
     {session.phase === 'loading' ? <div className="mx-auto mt-16 h-28 w-full max-w-[46rem] animate-pulse rounded-2xl bg-surface motion-reduce:animate-none" role="status" aria-label="Loading note" /> : null}
     {session.phase === 'not-found' || session.sync?.status === 'gone' ? <PageFrame><EmptyState icon="document" title="Note not found" body="It may have been deleted, or it belongs to another account." action={<button type="button" onClick={onBack} className={buttonSecondary}>All notes</button>} /></PageFrame> : null}

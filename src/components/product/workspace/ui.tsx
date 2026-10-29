@@ -66,9 +66,20 @@ export function ListSkeleton({ rows = 4, label = 'Loading' }: { rows?: number; l
   </div>
 }
 
+/**
+ * The content box's top bar (and the offline notice above it), pinned while the content scrolls.
+ * One sticky wrapper holds both so they never overlap.
+ */
+export function TopBar({ banner, children }: { banner?: ReactNode; children: ReactNode }) {
+  return <div className="sticky top-0 z-20 bg-raised">
+    {banner}
+    <div className="flex min-h-12 items-center gap-1.5 px-2 pt-1 sm:px-4">{children}</div>
+  </div>
+}
+
 /** Offline notice, and a brief "back online" confirmation after reconnecting. */
 export function OfflineBanner({ reconnected = false }: { reconnected?: boolean }) {
-  return <div role="status" aria-live="polite" className="sticky top-0 z-20 flex items-center gap-2 border-b border-default bg-surface px-4 py-2 text-xs text-muted sm:px-5">
+  return <div role="status" aria-live="polite" className="flex items-center gap-2 border-b border-default bg-surface px-4 py-2 text-xs text-muted sm:px-5">
     <AppIcon name={reconnected ? 'checkCircle' : 'alert'} className="size-4 shrink-0" />{reconnected ? 'Back online. Syncing your changes…' : 'You’re offline. Changes are saved on this device and sync when you reconnect.'}
   </div>
 }

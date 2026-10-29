@@ -256,3 +256,10 @@ code {
   from { opacity: 0; transform: translateY(3px) scale(0.8); }
   to { opacity: 1; transform: none; }
 }
+
+/* The workspace is an app shell: no rubber-band bounce that drags the whole page (and its pinned
+   top bar) away from the edge on trackpads and touch. The content box opts out separately. */
+html:has(main[data-workspace]),
+html:has(main[data-workspace]) body {
+  overscroll-behavior: none;
+}
