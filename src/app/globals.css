@@ -263,3 +263,35 @@ html:has(main[data-workspace]),
 html:has(main[data-workspace]) body {
   overscroll-behavior: none;
 }
+
+/* Workspace scrollbars: thin, no track, and invisible until the pointer is over the area that
+   scrolls (like macOS overlay scrollbars), so long content still shows it can scroll. */
+main[data-workspace],
+main[data-workspace] * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+main[data-workspace] *:hover {
+  scrollbar-color: var(--ui-border) transparent;
+}
+
+/* Browsers without `scrollbar-color` (older Safari) use the WebKit pseudo-elements instead. */
+@supports not (scrollbar-color: auto) {
+  main[data-workspace] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+
+  main[data-workspace] ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: transparent;
+  }
+
+  main[data-workspace] *:hover::-webkit-scrollbar-thumb {
+    background-color: var(--ui-border);
+  }
+}
