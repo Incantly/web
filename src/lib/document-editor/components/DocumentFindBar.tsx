@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { Editor } from '@tiptap/core'
 import { useEditorState } from '@tiptap/react'
 import type { Transaction } from '@tiptap/pm/state'
@@ -16,6 +16,11 @@ import { useDocumentEditor } from '../DocumentEditorContext'
 export interface DocumentFindBarProps {
   editor?: Editor | null
   className?: string
+  /** Controlled open state, for hosts that open find from their own menu. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Show the floating search button while closed (default true). */
+  showToggle?: boolean
 }
 
 const runSearchCommand = (
@@ -57,10 +62,18 @@ function readMatchStatus(editor: Editor | null, query: string): MatchStatus | nu
  * ProseMirror decorations (never persisted); replacements dispatch normal
  * transactions, so the canonical mapping handles them like typed text.
  */
-export function DocumentFindBar({ editor: suppliedEditor, className }: DocumentFindBarProps) {
+export function DocumentFindBar({ editor: suppliedEditor, className, open: openProp, onOpenChange, showToggle = true }: DocumentFindBarProps) {
   const contextualEditor = useDocumentEditor()
   const editor = suppliedEditor ?? contextualEditor
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = openProp ?? internalOpen
+  const onOpenChangeRef = useRef(onOpenChange)
+  const controlled = openProp !== undefined
+  useEffect(() => { onOpenChangeRef.current = onOpenChange })
+  const setOpen = useCallback((next: boolean) => {
+    if (!controlled) setInternalOpen(next)
+    onOpenChangeRef.current?.(next)
+  }, [controlled])
   const [query, setQuery] = useState('')
   const [replacement, setReplacement] = useState('')
   const [matchCase, setMatchCase] = useState(false)
@@ -98,7 +111,10 @@ export function DocumentFindBar({ editor: suppliedEditor, className }: DocumentF
     }
     element.addEventListener('keydown', onKeyDown, true)
     return () => element.removeEventListener('keydown', onKeyDown, true)
-  }, [editor])
+  }, [editor, setOpen])
+
+  // However it opened (button, Mod-F, or a host menu), the field takes focus.
+  useEffect(() => { if (open) inputRef.current?.focus() }, [open])
 
   if (!editor) return null
 
@@ -113,6 +129,7 @@ export function DocumentFindBar({ editor: suppliedEditor, className }: DocumentF
   }
 
   if (!open) {
+    if (!showToggle) return null
     return (
       <button
         type="button"

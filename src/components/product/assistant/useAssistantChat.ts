@@ -9,14 +9,14 @@ import { eventLabel, failureMessage, type AssistantTurn, type ScopeChoice, type 
 
 const MAX_KEPT = 60
 
-function storageKey(userId: string) {
-  return `incantly:assistant:${userId}`
+function storageKey(userId: string, thread: string) {
+  return `incantly:assistant:${userId}:${thread}`
 }
 
 /** The thread lives in this tab's session storage so a reload resumes running jobs. */
-function load(userId: string): Turn[] {
+function load(userId: string, thread: string): Turn[] {
   try {
-    const raw = sessionStorage.getItem(storageKey(userId))
+    const raw = sessionStorage.getItem(storageKey(userId, thread))
     const turns = raw ? (JSON.parse(raw) as Turn[]) : []
     // A request that never got a job cannot be resumed.
     return Array.isArray(turns) ? turns.map((turn) => (turn.role === 'assistant' && turn.state === 'sending' ? { ...turn, state: 'failed', error: 'That request was interrupted. Ask again.' } : turn)) : []
@@ -25,8 +25,8 @@ function load(userId: string): Turn[] {
   }
 }
 
-function save(userId: string, turns: Turn[]) {
-  try { sessionStorage.setItem(storageKey(userId), JSON.stringify(turns.slice(-MAX_KEPT))) } catch { /* storage full or blocked: the thread just won't survive a reload */ }
+function save(userId: string, thread: string, turns: Turn[]) {
+  try { sessionStorage.setItem(storageKey(userId, thread), JSON.stringify(turns.slice(-MAX_KEPT))) } catch { /* storage full or blocked: the thread just won't survive a reload */ }
 }
 
 function errorCopy(error: unknown) {
@@ -41,12 +41,13 @@ function errorCopy(error: unknown) {
 type Request = AssistantTurn['request']
 
 /**
- * The assistant thread. Each question becomes a background job: submit, poll its events for
+ * One assistant thread: per note, Space, or the rest of the workspace (the caller remounts per
+ * `thread`). Each question becomes a background job: submit, poll its events for
  * progress, then read the result and its cited passages (frontend-api-integration.md, "AI assistant API").
  */
-export function useAssistantChat(userId: string, { onLimitReached }: { onLimitReached?: () => void } = {}) {
+export function useAssistantChat(userId: string, thread: string, { onLimitReached }: { onLimitReached?: () => void } = {}) {
   // The workspace renders only on the client (behind the session gate), so storage is readable here.
-  const [turns, setTurns] = useState<Turn[]>(() => load(userId))
+  const [turns, setTurns] = useState<Turn[]>(() => load(userId, thread))
   const controllers = useRef(new Map<string, AbortController>())
   const cancelRequested = useRef(new Set<string>())
   const limitRef = useRef(onLimitReached)
@@ -116,7 +117,7 @@ export function useAssistantChat(userId: string, { onLimitReached }: { onLimitRe
     return () => { for (const controller of live.values()) controller.abort(); live.clear() }
   }, [follow])
 
-  useEffect(() => { save(userId, turns) }, [userId, turns])
+  useEffect(() => { save(userId, thread, turns) }, [userId, thread, turns])
 
   const send = useCallback((text: string, scope: ScopeChoice, command?: AiCommand) => {
     const userTurn: Turn = { id: crypto.randomUUID(), role: 'user', text, ...(command ? { command } : {}) }
@@ -139,14 +140,6 @@ export function useAssistantChat(userId: string, { onLimitReached }: { onLimitRe
 
   const markRevealed = useCallback((id: string) => update(id, { revealed: true }), [update])
 
-  /** Starts a new chat. Jobs still running are cancelled so they stop spending the allowance. */
-  const reset = useCallback(() => {
-    for (const turn of turnsRef.current) if (turn.role === 'assistant' && turn.state === 'running' && turn.jobId) void aiApi.cancel(turn.jobId).catch(() => {})
-    setTurns([])
-    for (const controller of controllers.current.values()) controller.abort()
-    controllers.current.clear()
-  }, [])
-
   const active = turns.findLast((turn): turn is AssistantTurn => turn.role === 'assistant' && (turn.state === 'sending' || turn.state === 'running'))
-  return { turns, active, send, clarify, retry, stop, reset, markRevealed }
+  return { turns, active, send, clarify, retry, stop, markRevealed }
 }

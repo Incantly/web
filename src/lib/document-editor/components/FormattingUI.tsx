@@ -498,8 +498,14 @@ function SlashTablePicker({ grid, editor, onClose }: {
     if (grid.grid.command(editor, row + 1, col + 1)) onClose()
   }, [editor, grid.grid, onClose])
 
+  // Choosing the menu item with Enter opens the picker mid-event, so that same keydown reaches the
+  // listener below. Only keys pressed after the picker appeared count, or Enter would insert the
+  // default size before the user sees the grid.
+  const [openedAt] = useState(() => performance.now())
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.timeStamp <= openedAt) return
       if (event.key === 'Escape') {
         event.preventDefault()
         onClose()
@@ -525,7 +531,7 @@ function SlashTablePicker({ grid, editor, onClose }: {
     window.addEventListener('keydown', onKeyDown)
     pickerRef.current?.focus()
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [editor, grid.grid.maxCols, grid.grid.maxRows, hoveredCell, insert, onClose])
+  }, [editor, grid.grid.maxCols, grid.grid.maxRows, hoveredCell, insert, onClose, openedAt])
 
   return (
     <Card ref={pickerRef} tabIndex={-1} className="tiptap-slash-table-picker" role="dialog" aria-label={`${grid.item.label} size`}

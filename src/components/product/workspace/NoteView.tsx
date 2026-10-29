@@ -21,7 +21,7 @@ import { useRevisions } from './useNotes'
 import type { NoteRecord, SourceRecord, SpaceRecord } from './model'
 import type { BlockRange, EvidenceTarget } from './ContextSearch'
 import { NoteContextPanel } from './NoteContextPanel'
-import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, buttonPrimary, buttonSecondary, iconButton } from './ui'
+import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, buttonPrimary, buttonSecondary } from './ui'
 
 const DocumentEditor = dynamic(
   () => import('../../../lib/document-editor').then((module) => module.DocumentEditor),
@@ -74,7 +74,8 @@ function TitleInput({ title, disabled, onRename }: { title: string; disabled: bo
     onBlur={() => { editing.current = false; window.clearTimeout(timer.current); if (value.trim()) onRename(value); else setValue(title) }}
     onChange={(event) => { const next = event.target.value; setValue(next); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { if (next.trim()) onRename(next) }, 800) }}
     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }}
-    aria-label="Note title" className="-mx-1.5 min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-1.5 font-display text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-button/25 disabled:opacity-70" />
+    // Edits in place like plain text: no ring or outline on focus; the caret shows where you type.
+    aria-label="Note title" className="-mx-1.5 min-h-11 min-w-0 flex-1 bg-transparent px-1.5 font-display text-base text-foreground outline-none focus-visible:outline-none disabled:opacity-70" />
 }
 
 function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open: boolean; onClose: () => void; noteId: string; hasPending: boolean; onRestore: (revisionId: string) => Promise<void> }) {
@@ -169,6 +170,7 @@ export type NoteScreenProps = {
 
 export function NoteScreen({ noteId, title, space, notes, sources, target, focusBlock, onImport, session, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
   const [contextOpen, setContextOpen] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
   const [editorReady, setEditorReady] = useState(0)
   const [missingBlock, setMissingBlock] = useState(false)
@@ -194,8 +196,9 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
       </nav>
       <div className="ml-auto flex shrink-0 items-center gap-0.5">
         {session.phase === 'ready' || session.phase === 'cached' ? <SyncIndicator state={session.sync} cached={session.phase === 'cached'} onResolve={() => setDialog('conflict')} /> : null}
-        <button type="button" onClick={() => setContextOpen((current) => !current)} aria-pressed={contextOpen} className={`${iconButton} ${contextOpen ? 'bg-surface text-foreground' : ''}`} aria-label="Note context" title="Sources and context for this note"><AppIcon name="link" className="size-5" /></button>
         <ActionMenu label="Note actions" items={[
+          { label: 'Find in note', icon: 'search', hint: '⌘F', onSelect: () => setFindOpen(true), disabled: !session.document },
+          { label: 'Note context', icon: 'link', onSelect: () => setContextOpen(true) },
           { label: 'Version history', icon: 'history', onSelect: () => setDialog('history'), disabled: session.phase !== 'ready' },
           { label: 'Import file into note', icon: 'import', onSelect: () => onImport('file'), disabled: !editable },
           { label: 'Import web page into note', icon: 'globe', onSelect: () => onImport('url'), disabled: !editable },
@@ -218,7 +221,7 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
           <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"
             onReady={(editor) => { editorRef.current = editor; setEditorReady((value) => value + 1) }}
             onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
-            <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar />
+            <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
           </DocumentEditor>
       </div>
     </> : null}

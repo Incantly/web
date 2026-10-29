@@ -12,8 +12,6 @@ export type CitationItem = {
   title: ReactNode
   /** Where in the original: "Page 4", a timestamp, or a heading path. */
   detail?: ReactNode
-  /** The cited passage, as plain text. */
-  excerpt?: string
   icon?: IconName
   onOpen?: () => void
 }
@@ -52,16 +50,13 @@ export function CitationStack({ citations, limit = 3 }: { citations: CitationIte
 function CitationRow({ citation, index, idPrefix }: { citation: CitationItem; index: number; idPrefix: string }) {
   const content = <>
     <CitationGlyph icon={citation.icon} />
-    <span className="min-w-0 flex-1">
-      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-        <span className="min-w-0 truncate text-sm font-medium text-foreground">{citation.title}</span>
-        {citation.detail ? <span className="min-w-0 truncate text-xs text-muted">{citation.detail}</span> : null}
-      </span>
-      {citation.excerpt ? <span className="mt-0.5 line-clamp-2 block break-words text-xs leading-5 text-muted">{citation.excerpt}</span> : null}
+    <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+      <span className="min-w-0 truncate text-sm font-medium text-foreground">{citation.title}</span>
+      {citation.detail ? <span className="min-w-0 truncate text-xs text-muted">{citation.detail}</span> : null}
     </span>
     <span className="grid size-5 shrink-0 place-items-center rounded-md bg-surface text-[0.65rem] font-semibold text-muted tabular-nums">{index}</span>
   </>
-  const className = 'flex min-h-11 w-full min-w-0 items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors'
+  const className = 'flex min-h-11 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors'
   const id = citationTargetId(idPrefix, citation.id)
   return citation.onOpen
     ? <button id={id} type="button" onClick={citation.onOpen} className={`${className} hover:bg-surface`}>{content}</button>

@@ -48,14 +48,29 @@ function resetTime(iso: string) {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
+/** Each note (or Space, or the rest of the workspace) keeps its own conversation. */
+export function threadKey({ note, space }: AssistantContext) {
+  return note ? `note:${note.id}` : space ? `space:${space.id}` : 'workspace'
+}
+
 /**
  * The AI chat. Docks beside the content from `lg` up, a full-height sheet below. Every question is
  * answered from the user's own material in the chosen scope, with citations back to it.
  */
 export function AssistantPanel({ open, onClose, userId, context, notes, sources, target }: { open: boolean; onClose: () => void; userId: string; context: AssistantContext } & Lookup) {
+  // Contents mount only while open: the small-screen sheet stays in the DOM when closed, and a
+  // hidden answer would otherwise play its reveal unseen. Threads persist per note in session
+  // storage, so remounting (or moving to another note) restores the right one.
+  const key = threadKey(context)
+  return <SidePanel open={open} onClose={onClose} title="Chat" bare>
+    {open ? <ChatBody key={key} thread={key} onClose={onClose} userId={userId} context={context} notes={notes} sources={sources} target={target} /> : null}
+  </SidePanel>
+}
+
+function ChatBody({ thread, onClose, userId, context, notes, sources, target }: { thread: string; onClose: () => void; userId: string; context: AssistantContext } & Lookup) {
   const client = useQueryClient()
-  const allowance = useQuery({ queryKey: ['ai-allowance', userId], queryFn: ({ signal }) => aiApi.allowance(signal), enabled: open, staleTime: 60_000, retry: false })
-  const chat = useAssistantChat(userId, { onLimitReached: () => void client.invalidateQueries({ queryKey: ['ai-allowance', userId] }) })
+  const allowance = useQuery({ queryKey: ['ai-allowance', userId], queryFn: ({ signal }) => aiApi.allowance(signal), staleTime: 60_000, retry: false })
+  const chat = useAssistantChat(userId, thread, { onLimitReached: () => void client.invalidateQueries({ queryKey: ['ai-allowance', userId] }) })
   const choices = useMemo(() => scopeChoices(context), [context])
   const [picked, setPicked] = useState<ScopeKind | null>(null)
   // A pick holds while it is on offer; otherwise the narrowest context wins. Everything is only ever an explicit pick.
@@ -78,32 +93,27 @@ export function AssistantPanel({ open, onClose, userId, context, notes, sources,
     setDraft('')
   }
 
-  // Contents mount only while open: the small-screen sheet stays in the DOM when closed, and a
-  // hidden answer would otherwise play its reveal unseen. The thread itself lives in `chat`.
-  return <SidePanel open={open} onClose={onClose} title="Chat" bare>
-    {open ? <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex min-h-14 shrink-0 items-center gap-1 border-b border-default pl-4 pr-1.5 pt-[env(safe-area-inset-top)] lg:pt-0">
-        <p className="min-w-0 flex-1 truncate text-base font-medium text-foreground" aria-hidden="true">Chat</p>
-        <button type="button" onClick={() => { chat.reset(); setDraft('') }} disabled={!chat.turns.length} className={`${iconButton} disabled:opacity-40`} aria-label="New chat" title="New chat"><AppIcon name="plus" className="size-5" /></button>
-        <button type="button" onClick={onClose} className={iconButton} aria-label="Close chat" title="Close chat"><AppIcon name="close" className="size-5" /></button>
-      </header>
+  return <div className="flex min-h-0 flex-1 flex-col">
+    <header className="flex min-h-14 shrink-0 items-center gap-1 pl-4 pr-1.5 pt-[env(safe-area-inset-top)] lg:pt-0">
+      <p className="min-w-0 flex-1 truncate text-base font-medium text-foreground" aria-hidden="true">Chat</p>
+      <button type="button" onClick={onClose} className={iconButton} aria-label="Close chat" title="Close chat"><AppIcon name="close" className="size-5" /></button>
+    </header>
 
-      <Thread turns={chat.turns} scope={scope} lookup={lookup} disabled={!scope || limited}
-        onSuggest={(text, command) => send(text, command)} onRetry={chat.retry} onClarify={chat.clarify} onRevealed={chat.markRevealed} />
+    <Thread turns={chat.turns} scope={scope} lookup={lookup} disabled={!scope || limited}
+      onSuggest={(text, command) => send(text, command)} onRetry={chat.retry} onClarify={chat.clarify} onRevealed={chat.markRevealed} />
 
-      <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-        <PromptInput value={draft} onValueChange={setDraft} onSubmit={(text) => send(text)} maxLength={MAX_PROMPT}
-          canSubmit={Boolean(scope) && !limited && draft.trim().length >= MIN_PROMPT}
-          loading={Boolean(chat.active)} onStop={chat.active ? () => chat.stop(chat.active!) : undefined}
-          placeholder={mode === 'practice' ? 'What should the quiz cover?' : 'Ask about your notes…'}
-          actions={modes} onAction={(value) => setMode(value as AiCommand)} hint={draft || limited || !scope ? hint : undefined}
-          header={mode === 'practice' ? <div className="px-1 pb-1"><button type="button" onClick={() => setMode('ask')} aria-label="Quiz mode on. Turn off"
-            className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-canvas">
-            <AppIcon name="edit" className="size-3.5 text-muted" />Quiz me<AppIcon name="close" className="size-3.5 text-muted" /></button></div> : null}
-          leadingAction={<ScopeMenu choices={choices} value={scope} onChange={setPicked} />} />
-      </div>
-    </div> : null}
-  </SidePanel>
+    <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+      <PromptInput value={draft} onValueChange={setDraft} onSubmit={(text) => send(text)} maxLength={MAX_PROMPT}
+        canSubmit={Boolean(scope) && !limited && draft.trim().length >= MIN_PROMPT}
+        loading={Boolean(chat.active)} onStop={chat.active ? () => chat.stop(chat.active!) : undefined}
+        placeholder={mode === 'practice' ? 'What should the quiz cover?' : 'Ask about your notes…'}
+        actions={modes} onAction={(value) => setMode(value as AiCommand)} hint={draft || limited || !scope ? hint : undefined}
+        header={mode === 'practice' ? <div className="px-1"><button type="button" onClick={() => setMode('ask')} aria-label="Quiz mode on. Turn off" className="group inline-flex min-h-11 items-center">
+          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-2.5 text-xs font-medium text-foreground transition-colors group-hover:bg-canvas">
+            <AppIcon name="edit" className="size-3.5 text-muted" />Quiz me<AppIcon name="close" className="size-3.5 text-muted" /></span></button></div> : null}
+        leadingAction={<ScopeMenu choices={choices} value={scope} onChange={setPicked} />} />
+    </div>
+  </div>
 }
 
 function ScopeMenu({ choices, value, onChange }: { choices: ScopeChoice[]; value: ScopeChoice | null; onChange: (kind: ScopeKind) => void }) {
@@ -249,7 +259,6 @@ function toItem({ ref, citation, passage }: ResolvedCitation, { notes, sources, 
     id: ref,
     title: source?.title ?? (note ? note.title || 'Untitled note' : sourceId ? 'Library source' : noteId ? 'Note' : 'Your material'),
     detail: where ?? undefined,
-    excerpt: passage?.text,
     icon: source ? sourceKindMeta(source.kind).icon : 'document',
     onOpen: sourceId ? () => target.openSource(sourceId) : noteId ? () => target.openNote(noteId) : undefined,
   }
