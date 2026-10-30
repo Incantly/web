@@ -231,8 +231,9 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
       {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
       {missingBlock ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">That passage has changed since it was indexed, so it can’t be highlighted.</p> : null}
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
-      <div className="min-h-full">
-          <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…" className="min-h-full"
+      {/* No full-height stretch: the top bar shares this scroll box, so an empty note would scroll by its height. */}
+      <div>
+          <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…"
             onReady={(editor) => { editorRef.current = editor; setEditorReady((value) => value + 1) }}
             onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
             <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
