@@ -6,7 +6,7 @@ import { assetsApi } from '../../../lib/api/assets'
 import { apiErrorMessage } from '../../../lib/api/errors'
 import type { EvidenceDto, IndexStatusDto } from '../../../lib/api/context'
 import { groupEvidence, indexBadge, locatorLabel, previewBanners, youtubeLink } from './contextModel'
-import type { ContentSearch } from './useContextSearch'
+import type { ContentSearch } from '@/hooks/use-context-search'
 import { sourceKindMeta, type SourceKind } from './model'
 import { ErrorState, ListSkeleton } from './ui'
 

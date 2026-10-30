@@ -2,10 +2,10 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { contextApi, type ContextPreviewRequest, type ContextPreviewResult, type IndexStatusDto } from '../../../lib/api/context'
-import { indexStillBuilding, retryAfterSeconds } from './contextModel'
-import { pollDelay } from './sourceStatus'
-import { useCurrentUser } from '../SessionGate'
+import { contextApi, type ContextPreviewRequest, type ContextPreviewResult, type IndexStatusDto } from '@/lib/api/context'
+import { indexStillBuilding, retryAfterSeconds } from '@/components/product/workspace/contextModel'
+import { pollDelay } from '@/components/product/workspace/sourceStatus'
+import { useCurrentUser } from '@/components/product/SessionGate'
 
 export const noteIndexKey = (noteId: string) => ['note-index', noteId] as const
 export const sourceIndexKey = (sourceId: string) => ['source-index', sourceId] as const
@@ -46,6 +46,22 @@ export function useReindexNote(noteId: string, onScheduled: () => void) {
     onError: (error) => { const seconds = retryAfterSeconds(error); if (seconds) setWait(seconds) },
   })
   return { ...mutation, wait, rateLimited: wait > 0 }
+}
+
+/** A note's search readiness and "Index now", for the note's Context panel. */
+export function useNoteSearchStatus(noteId: string) {
+  const index = useNoteIndexStatus(noteId)
+  // The build starts on a worker shortly after scheduling, so look again a few times.
+  const reindex = useReindexNote(noteId, () => { for (const ms of [0, 3000, 10000]) window.setTimeout(() => void index.refetch(), ms) })
+  return {
+    status: index.data,
+    loading: index.isPending,
+    unavailable: index.isError,
+    reindex: () => reindex.mutate(),
+    reindexDisabled: reindex.isPending || reindex.rateLimited,
+    reindexLabel: reindex.isPending ? 'Scheduling…' : reindex.rateLimited ? `Try again in ${reindex.wait} s` : reindex.isSuccess ? 'Indexing scheduled' : 'Index now',
+    reindexFailed: reindex.isError && !reindex.rateLimited,
+  }
 }
 
 export type ContentSearch = {

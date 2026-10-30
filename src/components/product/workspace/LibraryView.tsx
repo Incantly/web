@@ -17,7 +17,7 @@ import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { SidePanel } from './sidePanel'
 import { IndexStatusView } from './ContextSearch'
-import { useSourceIndexStatus } from './useContextSearch'
+import { useSourceIndexStatus } from '@/hooks/use-context-search'
 import { ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, buttonPrimary, buttonQuiet, buttonSecondary, inputClass, labelClass } from './ui'
 
 const statusFilters: { value: SourceStatus | 'ALL'; label: string }[] = [

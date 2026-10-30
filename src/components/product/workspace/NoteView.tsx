@@ -241,7 +241,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     </> : null}
 
     <SidePanel open={contextOpen} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5">
-      <NoteSourcesSection space={space} />
+      <NoteSourcesSection />
       <NoteContextPanel noteId={noteId} />
     </div></SidePanel>
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />

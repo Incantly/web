@@ -4,24 +4,20 @@ import { useState } from 'react'
 import { AppIcon } from '../AppIcon'
 import { apiErrorMessage } from '../../../lib/api/errors'
 import type { ContextBindingDto } from '../../../lib/api/bindings'
-import { bindingNotice, bindingUsages, pickableSources, revisionPolicies, type BindingUsage, type RevisionPolicy } from './bindingModel'
+import { bindingNotice, bindingUsages, revisionPolicies, type BindingUsage, type RevisionPolicy } from './bindingModel'
 import { PickerDialog } from './dialogs'
-import { sourceKindMeta, type SourceRecord, type SpaceRecord } from './model'
+import { sourceKindMeta, type SourceRecord } from './model'
 import { StatusChip, buttonQuiet, buttonSecondary, iconButton } from './ui'
-import { useSpaceSources } from './useSpaces'
-import { useLibrary } from '@/hooks/use-library'
-import { useNoteBindings } from '@/hooks/use-note-bindings'
+import { useNoteBindings, useNoteSourceChoices } from '@/hooks/use-note-bindings'
 
 const selectClass = 'mt-1 min-h-11 w-full rounded-lg border border-default bg-surface px-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60'
 
 /** The Library sources this note relies on (its context bindings): list, attach, change and remove. */
-export function NoteSourcesSection({ space }: { space?: SpaceRecord }) {
+export function NoteSourcesSection() {
   const { bindings, limit, status, bind, change, unbind, savingSourceId, error, clearError } = useNoteBindings()
-  const { sources } = useLibrary()
-  const spaceSources = useSpaceSources(space?.id ?? '', Boolean(space))
+  const { choices, full, libraryEmpty, spaceName } = useNoteSourceChoices()
+  // Whether the picker dialog is open is local to this section.
   const [picking, setPicking] = useState(false)
-  const choices = pickableSources(sources, bindings.map((binding) => binding.sourceId), spaceSources.data?.items.map((link) => link.sourceId))
-  const full = bindings.length >= limit
 
   return <section aria-labelledby="note-sources" className="space-y-3 border-b border-default px-5 py-5">
     <div>
@@ -51,8 +47,8 @@ export function NoteSourcesSection({ space }: { space?: SpaceRecord }) {
       </dl>
     </details>
 
-    <PickerDialog open={picking} onClose={() => setPicking(false)} title="Add a source to this note" description={space ? `Sources in “${space.name}” are listed first. Only ready sources can be added.` : 'Only ready sources can be added.'}
-      items={choices} empty={sources.length ? 'Every ready source is already added.' : 'Your Library is empty. Add a source to your Library first.'}
+    <PickerDialog open={picking} onClose={() => setPicking(false)} title="Add a source to this note" description={spaceName ? `Sources in “${spaceName}” are listed first. Only ready sources can be added.` : 'Only ready sources can be added.'}
+      items={choices} empty={libraryEmpty ? 'Your Library is empty. Add a source to your Library first.' : 'Every ready source is already added.'}
       render={(source) => <PickerRow source={source} />} onPick={(source) => bind(source.id)} />
   </section>
 }

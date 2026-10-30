@@ -3,11 +3,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
-import { bindingBody, defaultBinding, type BindingChange } from '@/components/product/workspace/bindingModel'
+import { bindingBody, defaultBinding, pickableSources, type BindingChange } from '@/components/product/workspace/bindingModel'
+import { useSpaceSources } from '@/components/product/workspace/useSpaces'
 import type { ListStatus } from '@/components/product/workspace/views'
 import { bindingsApi, type ContextBindingDto, type ContextBindingList, type UpsertContextBinding } from '@/lib/api/bindings'
 import { apiErrorMessage } from '@/lib/api/errors'
+import { useLibrary } from '@/hooks/use-library'
 import { useNavigation } from '@/hooks/use-navigation'
+import { useSpaces } from '@/hooks/use-spaces'
 
 export type NoteBindingsValue = {
   /** The open note the bindings belong to. */
@@ -95,4 +98,20 @@ export function useNoteBindingsState(): NoteBindingsValue {
 /** The open note's attached Library sources, and attaching, changing and removing them. Must be used inside `WorkspaceProviders`. */
 export function useNoteBindings(): NoteBindingsValue {
   return useFeatureContext(NoteBindingsContext)
+}
+
+/**
+ * What "Add a source" can offer the open note: ready Library sources not already attached, with the
+ * note's Space sources first (read through React Query, so it shares the Space page's cache).
+ */
+export function useNoteSourceChoices() {
+  const { bindings, limit } = useNoteBindings()
+  const { sources } = useLibrary()
+  const { noteSpace } = useSpaces()
+  const spaceSources = useSpaceSources(noteSpace?.id ?? '', Boolean(noteSpace))
+  const choices = useMemo(
+    () => pickableSources(sources, bindings.map((binding) => binding.sourceId), spaceSources.data?.items.map((link) => link.sourceId)),
+    [sources, bindings, spaceSources.data],
+  )
+  return { choices, full: bindings.length >= limit, libraryEmpty: sources.length === 0, spaceName: noteSpace?.name ?? null }
 }
