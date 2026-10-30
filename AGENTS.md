@@ -33,6 +33,23 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Full-bleed fixed or sticky UI must account for safe-area insets.
 - A UI task is not complete until its responsive states have been verified.
 
+## Feature contexts (mandatory)
+
+- Workspace state lives in React contexts under `src/components/product/features/`,
+  not in big component files or prop chains. Read state through the hooks
+  (`useNavigation`, `useWorkspaceUI`, `useNotes`, `useSpaces`, `useLibrary`,
+  `useImports`, `useAssistant`) instead of passing it down as props.
+- Every API-backed feature gets its own `<Feature>Provider` and `use<Feature>()`
+  hook in `features/<feature>/`, created with `createFeatureContext`, and is added
+  to `features/WorkspaceProviders.tsx`. New components never call `/v1/*` directly;
+  a few older ones still do (asset downloads, note history) and move behind a
+  feature hook when next touched.
+- Providers are thin over React Query: they bundle queries and workspace-level
+  actions, and never keep a second copy of server data.
+- Keep pure helpers (`*Model.ts`) as plain, unit-tested functions, and keep local UI
+  state (a menu being open, a draft) local. Components reused outside the workspace
+  (`Sidebar`, the form dialogs) stay props-in.
+
 ## Agent skills
 
 Skills in `.claude/skills/` are mandatory for the tasks they describe — read the matching skill before starting, not after failing:

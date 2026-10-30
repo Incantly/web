@@ -10,7 +10,11 @@ import { sensitivities, sourceKindMeta, sourceKinds } from './model'
 import { updatedLabel } from './SpaceViews'
 import { processingSummary, stageLabel } from './sourceStatus'
 import { useLibraryActions, useSource, useSourceProcessing, useSourceSpaces } from './useLibrary'
-import type { ListStatus } from './views'
+import { useCurrentUser } from '../SessionGate'
+import { useLibrary } from '../features/library/LibraryProvider'
+import { useNavigation } from '../features/navigation/NavigationProvider'
+import { useSpaces } from '../features/spaces/SpacesProvider'
+import { useWorkspaceUI } from '../features/workspace-ui/WorkspaceUIProvider'
 import { SidePanel } from './sidePanel'
 import { IndexStatusView } from './ContextSearch'
 import { useSourceIndexStatus } from './useContextSearch'
@@ -36,7 +40,13 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
   return <button type="button" aria-pressed={selected} onClick={onClick} className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-sm transition-colors ${selected ? 'border-foreground bg-foreground text-inverse' : 'border-default text-muted hover:border-strong hover:text-foreground'}`}>{children}</button>
 }
 
-export function LibraryView({ userId, sources, status: listStatus, spaces, navigate, openSourceId, onOpenSource, onAdd }: { userId: string; sources: SourceRecord[]; status: ListStatus; spaces: SpaceRecord[]; navigate: Navigate; openSourceId: string | null; onOpenSource: (sourceId: string | null) => void; onAdd: () => void }) {
+export function LibraryView() {
+  const userId = useCurrentUser().id
+  const { sources, status: listStatus } = useLibrary()
+  const { spaces } = useSpaces()
+  const { navigate, openSourceId, openSource: onOpenSource } = useNavigation()
+  const { openDialog } = useWorkspaceUI()
+  const onAdd = () => openDialog('source')
   const [kind, setKind] = useState<SourceKind | 'ALL'>('ALL')
   const [status, setStatus] = useState<SourceStatus | 'ALL'>('ALL')
   const visible = sources.filter((source) => (kind === 'ALL' || source.kind === kind) && matchesStatus(source, status))

@@ -1,15 +1,21 @@
 'use client'
 
 import { useMemo, useState, type ReactNode } from 'react'
-import { EvidenceResults, type EvidenceTarget } from './ContextSearch'
+import { EvidenceResults } from './ContextSearch'
 import { useContentSearch } from './useContextSearch'
 import { AppIcon, type IconName } from '../AppIcon'
 import { useCurrentUser } from '../SessionGate'
 import { firstName, greeting } from '../../../lib/identity'
-import type { Navigate, NoteRecord, SourceRecord, SpaceRecord } from './model'
+import type { SpaceRecord } from './model'
 import { sourceKindMeta } from './model'
 import { updatedLabel } from './SpaceViews'
 import { apiErrorMessage } from '../../../lib/api/errors'
+import { useLibrary } from '../features/library/LibraryProvider'
+import { useNavigation } from '../features/navigation/NavigationProvider'
+import { useNotes } from '../features/notes/NotesProvider'
+import { useSpaces } from '../features/spaces/SpacesProvider'
+import { useWorkspaceUI } from '../features/workspace-ui/WorkspaceUIProvider'
+import { WORKSPACE_SEARCH_INPUT_ID } from '../features/useWorkspaceShortcuts'
 import { EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, buttonPrimary, buttonSecondary } from './ui'
 
 /** Loading state of the server notes list. */
@@ -28,7 +34,12 @@ function spaceName(spaces: SpaceRecord[], id: string | null) {
   return id ? spaces.find((space) => space.id === id)?.name : undefined
 }
 
-export function HomeView({ notes, notesStatus, spaces, sources, navigate, onNewNote }: { notes: NoteRecord[]; notesStatus: ListStatus; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNewNote: () => void }) {
+export function HomeView() {
+  const { notes, status: notesStatus, createNote } = useNotes()
+  const { spaces } = useSpaces()
+  const { sources } = useLibrary()
+  const { navigate } = useNavigation()
+  const onNewNote = () => createNote()
   const user = useCurrentUser()
   const recent = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5)
   const cards: { label: string; count: number; icon: IconName; to: 'notes' | 'spaces' | 'library' }[] = [
@@ -55,7 +66,11 @@ export function HomeView({ notes, notesStatus, spaces, sources, navigate, onNewN
   </PageFrame>
 }
 
-export function NotesView({ notes, notesStatus, spaces, navigate, onNewNote }: { notes: NoteRecord[]; notesStatus: ListStatus; spaces: SpaceRecord[]; navigate: Navigate; onNewNote: () => void }) {
+export function NotesView() {
+  const { notes, status: notesStatus, createNote } = useNotes()
+  const { spaces } = useSpaces()
+  const { navigate } = useNavigation()
+  const onNewNote = () => createNote()
   const sorted = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt)
   return <PageFrame>
     <PageHeading title="Notes" subtitle="All your notes, newest first. A note can live in one Space or stand on its own."
@@ -76,7 +91,12 @@ export function NotesView({ notes, notesStatus, spaces, navigate, onNewNote }: {
   </PageFrame>
 }
 
-export function SearchView({ notes, spaces, sources, query, setQuery, navigate, onOpenSource, target }: { notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; query: string; setQuery: (value: string) => void; navigate: Navigate; onOpenSource: (sourceId: string) => void; target: EvidenceTarget }) {
+export function SearchView() {
+  const { notes } = useNotes()
+  const { spaces } = useSpaces()
+  const { sources } = useLibrary()
+  const { navigate, openSource: onOpenSource, evidenceTarget: target } = useNavigation()
+  const { searchQuery: query, setSearchQuery: setQuery } = useWorkspaceUI()
   const term = query.trim().toLowerCase()
   const results = useMemo(() => (term ? {
     notes: notes.filter((note) => note.title.toLowerCase().includes(term)),
@@ -105,7 +125,7 @@ export function SearchView({ notes, spaces, sources, query, setQuery, navigate, 
     <form onSubmit={submit} role="search" className="mt-8 space-y-3">
       <label className="flex min-h-14 items-center gap-3 rounded-xl border border-default bg-raised px-4 transition-[border-color,box-shadow] focus-within:border-button focus-within:ring-4 focus-within:ring-button/15 motion-reduce:transition-none">
         <AppIcon name="search" className="size-5 shrink-0 text-muted" />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={1000} placeholder="Search titles, or press Enter to search content" aria-label="Search" className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={1000} id={WORKSPACE_SEARCH_INPUT_ID} placeholder="Search titles, or press Enter to search content" aria-label="Search" className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle" />
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex min-w-0 items-center gap-2 text-sm text-muted">In

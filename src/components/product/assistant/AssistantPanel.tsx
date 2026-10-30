@@ -1,8 +1,13 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { aiApi, type AiCommand, type AnswerCitation } from '../../../lib/api/ai'
+import type { AiCommand, AnswerCitation } from '../../../lib/api/ai'
+import { useCurrentUser } from '../SessionGate'
+import { useAssistant } from '../features/assistant/AssistantProvider'
+import { useLibrary } from '../features/library/LibraryProvider'
+import { useNavigation } from '../features/navigation/NavigationProvider'
+import { useNotes } from '../features/notes/NotesProvider'
+import { useWorkspaceUI } from '../features/workspace-ui/WorkspaceUIProvider'
 import { AppIcon, type IconName } from '../AppIcon'
 import type { EvidenceTarget } from '../workspace/ContextSearch'
 import { sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from '../workspace/model'
@@ -57,20 +62,25 @@ export function threadKey({ note, space }: AssistantContext) {
  * The AI chat. Docks beside the content from `lg` up, a full-height sheet below. Every question is
  * answered from the user's own material in the chosen scope, with citations back to it.
  */
-export function AssistantPanel({ open, onClose, userId, context, notes, sources, target }: { open: boolean; onClose: () => void; userId: string; context: AssistantContext } & Lookup) {
+export function AssistantPanel() {
+  const { assistantOpen: open, closeAssistant: onClose } = useWorkspaceUI()
+  const { context } = useAssistant()
   // Contents mount only while open: the small-screen sheet stays in the DOM when closed, and a
   // hidden answer would otherwise play its reveal unseen. Threads persist per note in session
   // storage, so remounting (or moving to another note) restores the right one.
   const key = threadKey(context)
   return <SidePanel open={open} onClose={onClose} title="Chat" bare>
-    {open ? <ChatBody key={key} thread={key} onClose={onClose} userId={userId} context={context} notes={notes} sources={sources} target={target} /> : null}
+    {open ? <ChatBody key={key} thread={key} onClose={onClose} context={context} /> : null}
   </SidePanel>
 }
 
-function ChatBody({ thread, onClose, userId, context, notes, sources, target }: { thread: string; onClose: () => void; userId: string; context: AssistantContext } & Lookup) {
-  const client = useQueryClient()
-  const allowance = useQuery({ queryKey: ['ai-allowance', userId], queryFn: ({ signal }) => aiApi.allowance(signal), staleTime: 60_000, retry: false })
-  const chat = useAssistantChat(userId, thread, { onLimitReached: () => void client.invalidateQueries({ queryKey: ['ai-allowance', userId] }) })
+function ChatBody({ thread, onClose, context }: { thread: string; onClose: () => void; context: AssistantContext }) {
+  const userId = useCurrentUser().id
+  const { allowance, refreshAllowance } = useAssistant()
+  const { notes } = useNotes()
+  const { sources } = useLibrary()
+  const { evidenceTarget: target } = useNavigation()
+  const chat = useAssistantChat(userId, thread, { onLimitReached: refreshAllowance })
   const choices = useMemo(() => scopeChoices(context), [context])
   const [picked, setPicked] = useState<ScopeKind | null>(null)
   // A pick holds while it is on offer; otherwise the narrowest context wins. Everything is only ever an explicit pick.

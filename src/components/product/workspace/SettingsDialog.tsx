@@ -1,8 +1,7 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { aiApi } from '../../../lib/api/ai'
+import { useAssistant } from '../features/assistant/AssistantProvider'
 import { isApiError } from '../../../lib/api/errors'
 import { displayName } from '../../../lib/identity'
 import { AppIcon, type IconName } from '../AppIcon'
@@ -35,9 +34,9 @@ function resetTime(iso: string) {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-function useSections(open: boolean): Section[] {
+function useSections(): Section[] {
   const user = useCurrentUser()
-  const allowance = useQuery({ queryKey: ['ai-allowance', user.id], queryFn: ({ signal }) => aiApi.allowance(signal), enabled: open, staleTime: 60_000, retry: false })
+  const { allowance } = useAssistant()
   const resets = allowance.data ? resetTime(allowance.data.resetsAt) : null
   const allowanceValue = allowance.isPending ? 'Checking…'
     : allowance.data ? `$${allowance.data.remainingUsd.toFixed(2)} left today`
@@ -86,7 +85,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [active, setActive] = useState('general')
   const [query, setQuery] = useState('')
   const search = useRef<HTMLInputElement>(null)
-  const sections = useSections(open)
+  const sections = useSections()
 
   useEffect(() => {
     const dialog = ref.current

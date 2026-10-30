@@ -5,16 +5,22 @@ import type { Editor } from '@tiptap/core'
 import { selectedBlockIds } from '../../../lib/document-editor/blockNavigation'
 import { AppIcon } from '../AppIcon'
 import type { ContextPreviewRequest } from '../../../lib/api/context'
-import { EvidenceResults, IndexStatusView, type EvidenceTarget } from './ContextSearch'
+import { EvidenceResults, IndexStatusView } from './ContextSearch'
 import { useContentSearch, useNoteIndexStatus, useReindexNote } from './useContextSearch'
-import { isUsableSource, sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from './model'
+import { isUsableSource, sourceKindMeta, type SpaceRecord } from './model'
+import { useLibrary } from '../features/library/LibraryProvider'
+import { useNavigation } from '../features/navigation/NavigationProvider'
+import { useNotes } from '../features/notes/NotesProvider'
 import { buttonSecondary, inputClass, labelClass } from './ui'
 
 const MAX_PICKED = 50
 
 type Scope = 'NOTE' | 'SELECTION' | 'SPACE' | 'PICK' | 'LIBRARY'
 
-export function NoteContextPanel({ noteId, space, notes, sources, getEditor, target }: { noteId: string; space?: SpaceRecord; notes: NoteRecord[]; sources: SourceRecord[]; getEditor: () => Editor | null; target: EvidenceTarget }) {
+export function NoteContextPanel({ noteId, space, getEditor }: { noteId: string; space?: SpaceRecord; getEditor: () => Editor | null }) {
+  const { notes } = useNotes()
+  const { sources } = useLibrary()
+  const { evidenceTarget: target } = useNavigation()
   const index = useNoteIndexStatus(noteId)
   // The build starts on a worker shortly after scheduling, so look again a few times.
   const reindex = useReindexNote(noteId, () => { for (const ms of [0, 3000, 10000]) window.setTimeout(() => void index.refetch(), ms) })
