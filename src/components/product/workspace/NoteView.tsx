@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
 import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
@@ -15,11 +15,18 @@ import { notesApi } from '../../../lib/api/notes'
 import { loadDocument } from '../../../lib/notes/documentGate'
 import type { SyncState } from '../../../lib/notes/noteSync'
 import type { NoteSession } from './useNoteSession'
-import { libraryFollowUp } from './useAssets'
 import { SidePanel } from './sidePanel'
-import { useRevisions } from './useNotes'
-import type { NoteRecord, SourceRecord, SpaceRecord } from './model'
-import type { BlockRange, EvidenceTarget } from './ContextSearch'
+import { useNotesCache, useRevisions } from './useNotes'
+import { useCurrentUser } from '../SessionGate'
+import { useImports } from '@/hooks/use-imports'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useNotes } from '@/hooks/use-notes'
+import { useSpaces } from '@/hooks/use-spaces'
+import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
+import { DocumentAssetsProvider } from '../../../lib/document-editor/assetHost'
+import { useNoteSession } from './useNoteSession'
+import { libraryFollowUp, useServerAssetHost } from './useAssets'
+import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChrome'
 import { NoteContextPanel } from './NoteContextPanel'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, TopBar, buttonPrimary, buttonSecondary } from './ui'
 
@@ -149,28 +156,39 @@ function ConflictDialog({ open, onClose, state, onKeepMine, onTakeServer }: { op
   </Dialog>
 }
 
-export type NoteScreenProps = {
-  noteId: string
-  title: string
-  space?: SpaceRecord
-  notes: NoteRecord[]
-  sources: SourceRecord[]
-  target: EvidenceTarget
-  /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
-  focusBlock?: (BlockRange & { nonce: number }) | null
-  onImport: (mode: 'file' | 'url') => void
-  session: NoteSession
-  /** Offline notice, pinned above the header. */
-  banner?: ReactNode
-  leading: ReactNode
-  trailing: ReactNode
-  onOpenSpace: (spaceId: string) => void
-  onShare: () => void
-  onDelete: () => Promise<void>
-  onBack: () => void
+/** One open note: its session (load, sync, history) plus the screen. Mounted per note id. */
+export function NoteRoute({ noteId }: { noteId: string }) {
+  const user = useCurrentUser()
+  const cache = useNotesCache(user.id)
+  const { registerNoteReloader } = useImports()
+  const session = useNoteSession(user.id, noteId, {
+    onAck: (_revision, title) => cache.upsert({ id: noteId, updatedAt: new Date().toISOString(), ...(title ? { title } : {}) }),
+  })
+  // An import into this note finished: show it now, unless local edits are still on their way.
+  const sessionRef = useRef(session)
+  useEffect(() => { sessionRef.current = session })
+  useEffect(() => registerNoteReloader(noteId, () => {
+    const current = sessionRef.current
+    if (current.phase === 'ready' && !current.sync?.pending) void current.takeServer().catch(() => {})
+  }), [registerNoteReloader, noteId])
+  const assets = useServerAssetHost(user.id)
+  return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} /></DocumentAssetsProvider>
 }
 
-export function NoteScreen({ noteId, title, space, notes, sources, target, focusBlock, onImport, session, banner, leading, trailing, onOpenSpace, onShare, onDelete, onBack }: NoteScreenProps) {
+/** The note's top bar, editor, and side panels. Everything beyond the session comes from the feature contexts. */
+export function NoteScreen({ noteId, session }: { noteId: string; session: NoteSession }) {
+  const { navigate, focusBlock: requestedBlock } = useNavigation()
+  const { activeNote, deleteNote, shareNote } = useNotes()
+  const { noteSpace: space } = useSpaces()
+  const { openImport } = useWorkspaceUI()
+  const title = activeNote?.title ?? ''
+  /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
+  const focusBlock = requestedBlock?.noteId === noteId ? requestedBlock : null
+  const onImport = (mode: 'file' | 'url') => openImport({ mode, intoNote: { id: noteId, title } })
+  const onOpenSpace = (spaceId: string) => navigate(`space:${spaceId}`)
+  const onShare = () => shareNote(noteId)
+  const onDelete = () => deleteNote(noteId)
+  const onBack = () => navigate('notes')
   const [contextOpen, setContextOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
@@ -190,8 +208,8 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
   const rename = (next: string) => { setRenamed(next.trim()); session.rename(next) }
 
   return <>
-    <TopBar banner={banner}>
-      {leading}
+    <TopBar banner={<ConnectionBanner />}>
+      <TopBarLeading />
       <nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-1.5">
         {space ? <><button type="button" onClick={() => onOpenSpace(space.id)} className="flex min-h-11 max-w-[40%] shrink items-center gap-1.5 rounded-lg px-1.5 text-sm text-muted hover:bg-surface hover:text-foreground"><SpaceGlyph icon={space.icon} size="sm" /><span className="truncate">{space.name}</span></button><span aria-hidden="true" className="text-subtle">/</span></> : null}
         <TitleInput key={noteId} title={shownTitle} disabled={!editable} onRename={rename} />
@@ -207,7 +225,7 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
           { label: 'Share summary', icon: 'share', onSelect: onShare },
           { label: 'Delete note', icon: 'trash', destructive: true, onSelect: () => setDialog('delete') },
         ]} />
-        {trailing}
+        <TopBarTrailing />
       </div>
     </TopBar>
 
@@ -230,7 +248,7 @@ export function NoteScreen({ noteId, title, space, notes, sources, target, focus
 
     <SidePanel open={contextOpen} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5">
       <PanelSection icon="link" title="Sources for this note" body="Choose Library sources this note relies on, so questions about it look there first. Coming soon." />
-      <NoteContextPanel noteId={noteId} space={space} notes={notes} sources={sources} getEditor={() => editorRef.current} target={target} />
+      <NoteContextPanel noteId={noteId} space={space} getEditor={() => editorRef.current} />
     </div></SidePanel>
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />
     <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} />

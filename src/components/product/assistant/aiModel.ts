@@ -161,3 +161,120 @@ export function locatorLabel(item: { page: number | null; startMs: number | null
 
 export const MIN_PROMPT = 2
 export const MAX_PROMPT = 2000
+
+/** Inline Markdown in an answer: plain text, emphasis, code, and citation markers. */
+export type InlineNode =
+  | { kind: 'text'; text: string }
+  | { kind: 'code'; text: string }
+  | { kind: 'math'; tex: string }
+  | { kind: 'strong'; children: InlineNode[] }
+  | { kind: 'em'; children: InlineNode[] }
+  | { kind: 'ref'; ref: string; index: number }
+
+/** Block-level Markdown in an answer. */
+export type AnswerBlock =
+  | { kind: 'heading'; level: 1 | 2 | 3; content: InlineNode[] }
+  | { kind: 'paragraph'; content: InlineNode[] }
+  | { kind: 'list'; ordered: boolean; items: InlineNode[][] }
+  | { kind: 'code'; text: string }
+  | { kind: 'math'; tex: string }
+
+// Citation markers ride through the Markdown pass as private-use placeholders, so `*`, `_` and
+// backticks inside the answer can never split or swallow them.
+const REF_OPEN = ''
+const REF_MID = ''
+const REF_CLOSE = ''
+const INLINE = new RegExp([
+  '`([^`]+)`',
+  // Inline LaTeX: $…$ (no space inside the dollars, not followed by a digit, so "$5 and $10" stays
+  // text) or \(…\).
+  '\\$(?![\\s$])([^$\\n]+?)(?<!\\s)\\$(?!\\d)',
+  '\\\\\\((.+?)\\\\\\)',
+  '\\*\\*(.+?)\\*\\*',
+  '(?<![\\w])__(.+?)__(?![\\w])',
+  '(?<![\\w*])\\*([^*\\s](?:[^*]*?[^*\\s])?)\\*(?![\\w*])',
+  '(?<![\\w])_([^_\\s](?:[^_]*?[^_\\s])?)_(?![\\w])',
+  `${REF_OPEN}(\\d+)${REF_MID}([^${REF_CLOSE}]*)${REF_CLOSE}`,
+].join('|'), 'g')
+
+function parseInline(text: string): InlineNode[] {
+  const nodes: InlineNode[] = []
+  let last = 0
+  for (const match of text.matchAll(INLINE)) {
+    if (match.index > last) nodes.push({ kind: 'text', text: text.slice(last, match.index) })
+    const [, code, math, mathAlt, strong, strongAlt, em, emAlt, refIndex, ref] = match
+    if (code !== undefined) nodes.push({ kind: 'code', text: code })
+    else if (math !== undefined || mathAlt !== undefined) nodes.push({ kind: 'math', tex: plainRefs(math ?? mathAlt) })
+    else if (strong !== undefined || strongAlt !== undefined) nodes.push({ kind: 'strong', children: parseInline(strong ?? strongAlt) })
+    else if (em !== undefined || emAlt !== undefined) nodes.push({ kind: 'em', children: parseInline(em ?? emAlt) })
+    else nodes.push({ kind: 'ref', ref, index: Number(refIndex) })
+    last = match.index + match[0].length
+  }
+  if (last < text.length) nodes.push({ kind: 'text', text: text.slice(last) })
+  return nodes
+}
+
+/** Code blocks show citation markers as their plain `[n]`. */
+function plainRefs(text: string) {
+  return text.replace(new RegExp(`${REF_OPEN}(\\d+)${REF_MID}[^${REF_CLOSE}]*${REF_CLOSE}`, 'g'), '[$1]')
+}
+
+/**
+ * Turns answer segments into Markdown blocks: headings, paragraphs, bullet and numbered lists,
+ * fenced code, and inline emphasis and code. The result is data rendered as React elements, never
+ * HTML, so model text stays untrusted text. Unclosed markers (mid-reveal) stay literal.
+ */
+export function answerBlocks(segments: AnswerSegment[]): AnswerBlock[] {
+  const source = segments.map((segment) => (segment.kind === 'text' ? segment.text : `${REF_OPEN}${segment.index}${REF_MID}${segment.ref}${REF_CLOSE}`)).join('')
+  const blocks: AnswerBlock[] = []
+  let paragraph: string[] = []
+  let list: { ordered: boolean; items: string[] } | null = null
+  const flush = () => {
+    if (paragraph.length) blocks.push({ kind: 'paragraph', content: parseInline(paragraph.join('\n')) })
+    if (list) blocks.push({ kind: 'list', ordered: list.ordered, items: list.items.map(parseInline) })
+    paragraph = []
+    list = null
+  }
+  const lines = source.split('\n')
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index]
+    if (/^\s*```/.test(line)) {
+      flush()
+      const code: string[] = []
+      while (++index < lines.length && !/^\s*```/.test(lines[index])) code.push(lines[index])
+      blocks.push({ kind: 'code', text: plainRefs(code.join('\n')) })
+      continue
+    }
+    // Display math: $$…$$ or \[…\], on one line or across several.
+    const mathOpen = /^\s*(\$\$|\\\[)(.*)$/.exec(line)
+    if (mathOpen) {
+      flush()
+      const close = mathOpen[1] === '$$' ? '$$' : '\\]'
+      let body = mathOpen[2]
+      while (!body.trimEnd().endsWith(close) && index + 1 < lines.length) body += `\n${lines[++index]}`
+      const tex = body.trimEnd().endsWith(close) ? body.trimEnd().slice(0, -close.length) : body
+      blocks.push({ kind: 'math', tex: plainRefs(tex.trim()) })
+      continue
+    }
+    if (!line.trim()) { flush(); continue }
+    const heading = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line)
+    if (heading) {
+      flush()
+      blocks.push({ kind: 'heading', level: Math.min(heading[1].length, 3) as 1 | 2 | 3, content: parseInline(heading[2]) })
+      continue
+    }
+    const item = /^\s*(?:([-*+])|(\d+)[.)])\s+(.*)$/.exec(line)
+    if (item) {
+      const ordered = item[2] !== undefined
+      if (paragraph.length || (list && list.ordered !== ordered)) flush()
+      list ??= { ordered, items: [] }
+      list.items.push(item[3])
+      continue
+    }
+    // A line after a list item without a blank line continues that item.
+    if (list) { list.items[list.items.length - 1] += ` ${line.trim()}`; continue }
+    paragraph.push(line)
+  }
+  flush()
+  return blocks
+}

@@ -33,6 +33,37 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Full-bleed fixed or sticky UI must account for safe-area insets.
 - A UI task is not complete until its responsive states have been verified.
 
+## Feature contexts (mandatory)
+
+- Workspace state lives in React contexts, not in big component files or prop
+  chains. Components read it through the hooks in `src/hooks/`
+  (`use-navigation`, `use-workspace-ui`, `use-notes`, `use-spaces`, `use-library`,
+  `use-imports`, `use-assistant`), e.g. `import { useNotes } from '@/hooks/use-notes'`,
+  instead of passing it down as props.
+- Every API-backed feature's logic lives in its hook file, `src/hooks/use-<feature>.ts`,
+  which holds:
+  - the value type and the context (made with `createFeatureContext`);
+  - `use<Feature>State()`: all the feature's state, queries, effects and actions;
+  - `use<Feature>()`: what components call; it reads the shared value with `useFeatureContext`.
+- Its provider, `src/components/product/features/<feature>/<Feature>Provider.tsx`, is
+  one line: it runs `use<Feature>State()` once and shares the result, so every component
+  sees the same state. Add it to `features/WorkspaceProviders.tsx`. Components never call
+  `use<Feature>State()` themselves (each call would make its own separate copy).
+- A hook with no shared state (e.g. `use-workspace-shortcuts`) needs no provider.
+- New components never call `/v1/*` directly; a few older ones still do (asset
+  downloads, note history) and move behind a feature hook when next touched.
+- Feature state hooks are thin over React Query: they bundle queries and workspace-level
+  actions, and never keep a second copy of server data.
+- Keep pure helpers (`*Model.ts`) as plain, unit-tested functions, and keep local UI
+  state (a menu being open, a draft) local. Components reused outside the workspace
+  (`Sidebar`, the form dialogs) stay props-in.
+
+## Commits and pull requests
+
+- Never credit an AI tool as an author. Do not add `Co-Authored-By: Claude …` (or any
+  AI co-author trailer) to commit messages, and do not add "Generated with Claude Code"
+  or similar lines to pull request descriptions or comments.
+
 ## Agent skills
 
 Skills in `.claude/skills/` are mandatory for the tasks they describe — read the matching skill before starting, not after failing:

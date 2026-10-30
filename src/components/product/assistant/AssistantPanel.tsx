@@ -1,14 +1,20 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { aiApi, type AiCommand, type AnswerCitation } from '../../../lib/api/ai'
+import katex from 'katex'
+import type { AiCommand, AnswerCitation } from '../../../lib/api/ai'
+import { useCurrentUser } from '../SessionGate'
+import { useAssistant } from '@/hooks/use-assistant'
+import { useLibrary } from '@/hooks/use-library'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useNotes } from '@/hooks/use-notes'
+import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { AppIcon, type IconName } from '../AppIcon'
 import type { EvidenceTarget } from '../workspace/ContextSearch'
 import { sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from '../workspace/model'
 import { SidePanel, useMediaQuery } from '../workspace/sidePanel'
 import { iconButton } from '../workspace/ui'
-import { canRetry, isGroundedAnswer, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, resolveCitations, revealSegments, segmentAnswer, textLength, type AnswerSegment, type AssistantTurn, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
+import { canRetry, isGroundedAnswer, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
 import { Citation, citationTargetId, type CitationItem } from './Citations'
 import { PromptInput, type PromptAction } from './PromptInput'
 import { StreamingResponse } from './StreamingResponse'
@@ -57,20 +63,25 @@ export function threadKey({ note, space }: AssistantContext) {
  * The AI chat. Docks beside the content from `lg` up, a full-height sheet below. Every question is
  * answered from the user's own material in the chosen scope, with citations back to it.
  */
-export function AssistantPanel({ open, onClose, userId, context, notes, sources, target }: { open: boolean; onClose: () => void; userId: string; context: AssistantContext } & Lookup) {
+export function AssistantPanel() {
+  const { assistantOpen: open, closeAssistant: onClose } = useWorkspaceUI()
+  const { context } = useAssistant()
   // Contents mount only while open: the small-screen sheet stays in the DOM when closed, and a
   // hidden answer would otherwise play its reveal unseen. Threads persist per note in session
   // storage, so remounting (or moving to another note) restores the right one.
   const key = threadKey(context)
   return <SidePanel open={open} onClose={onClose} title="Chat" bare>
-    {open ? <ChatBody key={key} thread={key} onClose={onClose} userId={userId} context={context} notes={notes} sources={sources} target={target} /> : null}
+    {open ? <ChatBody key={key} thread={key} onClose={onClose} context={context} /> : null}
   </SidePanel>
 }
 
-function ChatBody({ thread, onClose, userId, context, notes, sources, target }: { thread: string; onClose: () => void; userId: string; context: AssistantContext } & Lookup) {
-  const client = useQueryClient()
-  const allowance = useQuery({ queryKey: ['ai-allowance', userId], queryFn: ({ signal }) => aiApi.allowance(signal), staleTime: 60_000, retry: false })
-  const chat = useAssistantChat(userId, thread, { onLimitReached: () => void client.invalidateQueries({ queryKey: ['ai-allowance', userId] }) })
+function ChatBody({ thread, onClose, context }: { thread: string; onClose: () => void; context: AssistantContext }) {
+  const userId = useCurrentUser().id
+  const { allowance, refreshAllowance } = useAssistant()
+  const { notes } = useNotes()
+  const { sources } = useLibrary()
+  const { evidenceTarget: target } = useNavigation()
+  const chat = useAssistantChat(userId, thread, { onLimitReached: refreshAllowance })
   const choices = useMemo(() => scopeChoices(context), [context])
   const [picked, setPicked] = useState<ScopeKind | null>(null)
   // A pick holds while it is on offer; otherwise the narrowest context wins. Everything is only ever an explicit pick.
@@ -264,11 +275,42 @@ function toItem({ ref, citation, passage }: ResolvedCitation, { notes, sources, 
   }
 }
 
-/** Renders text and markers. Text is untrusted model output: plain text only. */
+/** Inline Markdown nodes: text, emphasis, code, math and citation markers. */
+function Inline({ nodes, idPrefix, onCite }: { nodes: InlineNode[]; idPrefix: string; onCite: (ref: string) => void }) {
+  return <>{nodes.map((node, index) => node.kind === 'text' ? <span key={index}>{node.text}</span>
+    : node.kind === 'code' ? <code key={index} className="rounded bg-surface px-1 py-0.5 font-mono text-[0.85em]">{node.text}</code>
+    : node.kind === 'math' ? <TeX key={index} tex={node.tex} />
+    : node.kind === 'strong' ? <strong key={index} className="font-semibold"><Inline nodes={node.children} idPrefix={idPrefix} onCite={onCite} /></strong>
+    : node.kind === 'em' ? <em key={index}><Inline nodes={node.children} idPrefix={idPrefix} onCite={onCite} /></em>
+    : <Citation key={index} citationId={node.ref} index={node.index} idPrefix={idPrefix} onSelect={onCite} />)}</>
+}
+
+/**
+ * LaTeX from the answer, typeset by KaTeX. KaTeX escapes its input and `trust` stays off (no links,
+ * classes or raw HTML), so its markup is safe to insert; bad TeX shows as red source, never throws.
+ */
+function TeX({ tex, display = false }: { tex: string; display?: boolean }) {
+  const html = useMemo(() => katex.renderToString(tex, { throwOnError: false, displayMode: display, output: 'htmlAndMathml' }), [tex, display])
+  return display
+    ? <div className="overflow-x-auto py-1" dangerouslySetInnerHTML={{ __html: html }} />
+    : <span dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+const headingClass = { 1: 'font-display text-lg leading-snug', 2: 'font-display text-base leading-snug', 3: 'text-[0.9375rem] font-semibold' } as const
+
+/** Renders an answer's Markdown as React elements (never HTML): model text stays untrusted text. */
 function AnswerText({ segments, idPrefix, onCite }: { segments: AnswerSegment[]; idPrefix: string; onCite: (ref: string) => void }) {
-  return <p className="whitespace-pre-wrap">{segments.map((segment, index) => segment.kind === 'text'
-    ? <span key={index}>{segment.text}</span>
-    : <Citation key={index} citationId={segment.ref} index={segment.index} idPrefix={idPrefix} onSelect={onCite} />)}</p>
+  const blocks = useMemo(() => answerBlocks(segments), [segments])
+  return <div className="space-y-3">{blocks.map((block, index) => {
+    if (block.kind === 'heading') { const Heading = block.level === 1 ? 'h4' : 'h5'; return <Heading key={index} className={`text-foreground ${headingClass[block.level]} ${index ? 'pt-1' : ''}`}><Inline nodes={block.content} idPrefix={idPrefix} onCite={onCite} /></Heading> }
+    if (block.kind === 'math') return <TeX key={index} tex={block.tex} display />
+    if (block.kind === 'code') return <pre key={index} className="overflow-x-auto rounded-xl border border-default bg-surface p-3 text-[0.8125rem] leading-6"><code className="font-mono">{block.text}</code></pre>
+    if (block.kind === 'list') {
+      const List = block.ordered ? 'ol' : 'ul'
+      return <List key={index} className={`space-y-1.5 pl-5 ${block.ordered ? 'list-decimal' : 'list-disc'} marker:text-muted`}>{block.items.map((item, itemIndex) => <li key={itemIndex} className="pl-1"><Inline nodes={item} idPrefix={idPrefix} onCite={onCite} /></li>)}</List>
+    }
+    return <p key={index} className="whitespace-pre-line"><Inline nodes={block.content} idPrefix={idPrefix} onCite={onCite} /></p>
+  })}</div>
 }
 
 /** Opens the sources list and moves focus to a cited row once it is no longer inert. */

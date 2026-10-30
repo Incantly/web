@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canRetry, eventLabel, failureMessage, locatorLabel, resolveCitations, revealSegments, segmentAnswer, textLength } from './aiModel'
+import { answerBlocks, canRetry, eventLabel, failureMessage, locatorLabel, resolveCitations, revealSegments, segmentAnswer, textLength } from './aiModel'
 
 describe('segmentAnswer', () => {
   it('turns known refs into numbered markers and keeps unknown brackets as text', () => {
@@ -61,5 +61,41 @@ describe('citations', () => {
     expect(locatorLabel({ page: null, startMs: 125_000 })).toBe('2:05')
     expect(locatorLabel({ page: null, startMs: null }, ['Cells', 'Mitochondria'])).toBe('Cells › Mitochondria')
     expect(locatorLabel({ page: null, startMs: null })).toBeNull()
+  })
+})
+
+describe('answerBlocks', () => {
+  const blocks = (text: string, known: string[] = []) => answerBlocks(segmentAnswer(text, new Set(known)).segments)
+
+  it('reads headings, paragraphs, lists and code fences', () => {
+    const result = blocks('### What is a B-tree?\nA **B-tree** stores keys [S1E1].\n\n* **Root:** first page\n* Child pages\n\n1. One\n2. Two\n\n```\nSELECT 1\n```', ['S1E1'])
+    expect(result.map((block) => block.kind)).toEqual(['heading', 'paragraph', 'list', 'list', 'code'])
+    expect(result[0]).toEqual({ kind: 'heading', level: 3, content: [{ kind: 'text', text: 'What is a B-tree?' }] })
+    expect(result[1]).toEqual({ kind: 'paragraph', content: [
+      { kind: 'text', text: 'A ' }, { kind: 'strong', children: [{ kind: 'text', text: 'B-tree' }] }, { kind: 'text', text: ' stores keys' }, { kind: 'ref', ref: 'S1E1', index: 1 }, { kind: 'text', text: '.' },
+    ] })
+    expect(result[2]).toMatchObject({ kind: 'list', ordered: false, items: [[{ kind: 'strong' }, { kind: 'text', text: ' first page' }], [{ kind: 'text', text: 'Child pages' }]] })
+    expect(result[3]).toMatchObject({ kind: 'list', ordered: true })
+    expect(result[4]).toEqual({ kind: 'code', text: 'SELECT 1' })
+  })
+
+  it('handles emphasis and inline code without touching snake_case or lone asterisks', () => {
+    expect(blocks('Use *care* and `a_b` in file_name_here, 2 * 3 = 6')[0]).toEqual({ kind: 'paragraph', content: [
+      { kind: 'text', text: 'Use ' }, { kind: 'em', children: [{ kind: 'text', text: 'care' }] }, { kind: 'text', text: ' and ' }, { kind: 'code', text: 'a_b' }, { kind: 'text', text: ' in file_name_here, 2 * 3 = 6' },
+    ] })
+  })
+
+  it('reads inline and display math, but leaves prices as text', () => {
+    expect(blocks('Depth is $O(\\log n)$ and \\(x^2\\).')[0]).toEqual({ kind: 'paragraph', content: [
+      { kind: 'text', text: 'Depth is ' }, { kind: 'math', tex: 'O(\\log n)' }, { kind: 'text', text: ' and ' }, { kind: 'math', tex: 'x^2' }, { kind: 'text', text: '.' },
+    ] })
+    expect(blocks('It costs $5 and $10 today.')[0]).toEqual({ kind: 'paragraph', content: [{ kind: 'text', text: 'It costs $5 and $10 today.' }] })
+    expect(blocks('Before\n$$\na^2 + b^2\n$$\nAfter').map((block) => block.kind)).toEqual(['paragraph', 'math', 'paragraph'])
+    expect(blocks('$$E = mc^2$$')[0]).toEqual({ kind: 'math', tex: 'E = mc^2' })
+    expect(blocks('\\[\\frac{a}{b}\\]')[0]).toEqual({ kind: 'math', tex: '\\frac{a}{b}' })
+  })
+
+  it('leaves unclosed markers literal while an answer is still revealing', () => {
+    expect(blocks('A **partial')[0]).toEqual({ kind: 'paragraph', content: [{ kind: 'text', text: 'A **partial' }] })
   })
 })

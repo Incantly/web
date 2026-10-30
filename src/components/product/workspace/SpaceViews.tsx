@@ -4,11 +4,16 @@ import { useState } from 'react'
 import { AppIcon } from '../AppIcon'
 import { apiErrorMessage } from '../../../lib/api/errors'
 import type { SpaceSourceLinkDto } from '../../../lib/api/spaces'
-import type { Navigate, NoteRecord, SourceRecord, SourceStatus, SpaceRecord } from './model'
+import type { SourceRecord, SourceStatus, SpaceRecord } from './model'
 import { priorityLabel, priorityPresets, sourceKindMeta } from './model'
 import { PickerDialog, SpaceFormDialog, type SpaceDraft } from './dialogs'
 import { updateSpaceBody, useSpaceActions, useSpaceNotes, useSpaceSources } from './useSpaces'
-import type { ListStatus } from './views'
+import { useCurrentUser } from '../SessionGate'
+import { useLibrary } from '@/hooks/use-library'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useNotes } from '@/hooks/use-notes'
+import { useSpaces } from '@/hooks/use-spaces'
+import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { ActionMenu, ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, Tabs, buttonPrimary, buttonQuiet, buttonSecondary } from './ui'
 
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
@@ -20,7 +25,11 @@ export function updatedLabel(time: number) {
   return relative.format(Math.round(hours / 24), 'day')
 }
 
-export function SpacesView({ spaces, status: listStatus, navigate, onNewSpace }: { spaces: SpaceRecord[]; status: ListStatus; navigate: Navigate; onNewSpace: () => void }) {
+export function SpacesView() {
+  const { spaces, status: listStatus } = useSpaces()
+  const { navigate } = useNavigation()
+  const { openDialog } = useWorkspaceUI()
+  const onNewSpace = () => openDialog('space')
   const [status, setStatus] = useState<'ACTIVE' | 'ARCHIVED'>('ACTIVE')
   const listed = spaces.filter((space) => space.status === status)
   return <PageFrame wide>
@@ -44,20 +53,17 @@ export function SpacesView({ spaces, status: listStatus, navigate, onNewSpace }:
   </PageFrame>
 }
 
-type SpaceViewProps = {
-  userId: string
-  space: SpaceRecord
-  /** Every note (for "Add existing note"). */
-  notes: NoteRecord[]
-  /** The Library (for "Link from Library"). */
-  sources: SourceRecord[]
-  navigate: Navigate
-  onOpenNote: (noteId: string, spaceId: string) => void
-  onCreateNote: (spaceId: string) => void
-  onAddSource: (spaceId: string) => void
-}
 
-export function SpaceView({ userId, space, notes, sources, navigate, onOpenNote, onCreateNote, onAddSource }: SpaceViewProps) {
+/** One Space's page. `space` is the Space being shown; everything else comes from the feature contexts. */
+export function SpaceView({ space }: { space: SpaceRecord }) {
+  const userId = useCurrentUser().id
+  const { notes, createNote } = useNotes()
+  const { sources } = useLibrary()
+  const { navigate, openNote: onOpenNote } = useNavigation()
+  const { openDialog } = useWorkspaceUI()
+  const onCreateNote = (spaceId: string) => createNote({ spaceId })
+  // The Add to Library dialog preselects the Space being shown.
+  const onAddSource = () => openDialog('source')
   const [tab, setTab] = useState<'notes' | 'sources'>('notes')
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -125,7 +131,7 @@ export function SpaceView({ userId, space, notes, sources, navigate, onOpenNote,
     </section> : <section className="mt-5" aria-label="Sources linked to this Space">
       {archived || spaceSources.isPending || spaceSources.isError || !links.length ? null : <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
         {atLinkLimit ? <span role="status" className="mr-auto text-sm text-muted">This Space has the maximum of {linkLimit} linked sources.</span> : null}
-        <button type="button" onClick={() => onAddSource(space.id)} disabled={atLinkLimit} className={buttonSecondary}><AppIcon name="upload" className="size-4" />Add new source</button>
+        <button type="button" onClick={() => onAddSource()} disabled={atLinkLimit} className={buttonSecondary}><AppIcon name="upload" className="size-4" />Add new source</button>
         <button type="button" onClick={() => setPicking('source')} disabled={atLinkLimit} className={buttonSecondary}><AppIcon name="link" className="size-4" />Link from Library</button>
       </div>}
       {spaceSources.isPending ? <ListSkeleton rows={3} label="Loading sources" />
@@ -135,7 +141,7 @@ export function SpaceView({ userId, space, notes, sources, navigate, onOpenNote,
           onToggle={(enabledByDefault) => actions.updateLink.mutate({ spaceId: space.id, sourceId: link.sourceId, body: { enabledByDefault } })}
           onPriority={(priority) => actions.updateLink.mutate({ spaceId: space.id, sourceId: link.sourceId, body: { priority } })}
           onUnlink={() => actions.unlink.mutate({ spaceId: space.id, sourceId: link.sourceId })} />)}
-      </ul> : <EmptyState icon="library" title="No sources linked" body="Link Library sources so this Space’s notes and questions can draw on them. Linking never copies the file." action={archived ? undefined : <><button type="button" onClick={() => onAddSource(space.id)} className={buttonPrimary}>Add new source</button><button type="button" onClick={() => setPicking('source')} className={buttonSecondary}>Link from Library</button></>} />}
+      </ul> : <EmptyState icon="library" title="No sources linked" body="Link Library sources so this Space’s notes and questions can draw on them. Linking never copies the file." action={archived ? undefined : <><button type="button" onClick={() => onAddSource()} className={buttonPrimary}>Add new source</button><button type="button" onClick={() => setPicking('source')} className={buttonSecondary}>Link from Library</button></>} />}
     </section>}
 
     <SpaceFormDialog open={editing} onClose={() => setEditing(false)} initial={space} onSubmit={save} />
