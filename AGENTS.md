@@ -58,6 +58,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   state (a menu being open, a draft) local. Components reused outside the workspace
   (`Sidebar`, the form dialogs) stay props-in.
 
+## Commits and pull requests
+
+- Never credit an AI tool as an author. Do not add `Co-Authored-By: Claude …` (or any
+  AI co-author trailer) to commit messages, and do not add "Generated with Claude Code"
+  or similar lines to pull request descriptions or comments.
+
 ## Agent skills
 
 Skills in `.claude/skills/` are mandatory for the tasks they describe — read the matching skill before starting, not after failing:
