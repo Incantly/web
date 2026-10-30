@@ -38,8 +38,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Workspace state lives in React contexts, not in big component files or prop
   chains. Components read it through the hooks in `src/hooks/`
   (`use-navigation`, `use-workspace-ui`, `use-notes`, `use-spaces`, `use-library`,
-  `use-imports`, `use-assistant`), e.g. `import { useNotes } from '@/hooks/use-notes'`,
+  `use-note-bindings`, `use-imports`, `use-assistant`), e.g. `import { useNotes } from '@/hooks/use-notes'`,
   instead of passing it down as props.
+- Components only draw. Behaviour lives in a hook in `src/hooks/`: state that drives
+  a feature, keyboard handling, what a click or Enter does, requests, timers, and
+  derived values like labels and lists (e.g. `use-command-search` for the ⌘K bar,
+  `use-context-search` for content search and index status). What stays out of hooks:
+  - pure calculations (`*Model.ts`), so they stay plain and unit-tested; hooks call them;
+  - the markup itself;
+  - one element's own open/closed state (a menu, a picker dialog).
+- Keep hooks focused: one per feature, not one hook for everything (Vercel
+  `rerender-split-combined-hooks`). Actions are functions the component calls from
+  its handlers, not state watched by an effect (`rerender-move-effect-to-event`).
 - Every API-backed feature's logic lives in its hook file, `src/hooks/use-<feature>.ts`,
   which holds:
   - the value type and the context (made with `createFeatureContext`);

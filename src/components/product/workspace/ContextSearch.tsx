@@ -6,7 +6,7 @@ import { assetsApi } from '../../../lib/api/assets'
 import { apiErrorMessage } from '../../../lib/api/errors'
 import type { EvidenceDto, IndexStatusDto } from '../../../lib/api/context'
 import { groupEvidence, indexBadge, locatorLabel, previewBanners, youtubeLink } from './contextModel'
-import type { ContentSearch } from './useContextSearch'
+import type { ContentSearch } from '@/hooks/use-context-search'
 import { sourceKindMeta, type SourceKind } from './model'
 import { ErrorState, ListSkeleton } from './ui'
 
@@ -59,7 +59,7 @@ function Passage({ item, target, onError }: { item: EvidenceDto; target: Evidenc
   const body = <>
     {where || path ? <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted">{where ? <span className="shrink-0 font-semibold text-foreground">{where}</span> : null}{path && path !== where ? <span className="truncate">{path}</span> : null}</span> : null}
     {/* Passage text is untrusted: rendered as text only. */}
-    <span className="mt-1 line-clamp-4 block whitespace-pre-line break-words text-sm leading-6 text-foreground">{item.text}</span>
+    <span className="mt-1 line-clamp-4 whitespace-pre-line break-words text-sm leading-6 text-foreground">{item.text}</span>
   </>
   const className = 'block w-full min-w-0 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-surface'
   return <li>{youtube

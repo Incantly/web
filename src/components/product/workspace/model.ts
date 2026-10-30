@@ -5,7 +5,6 @@ import type { SpaceDto } from '../../../lib/api/spaces'
 
 export type WorkspaceView =
   | 'home'
-  | 'search'
   | 'notes'
   | 'spaces'
   | 'library'

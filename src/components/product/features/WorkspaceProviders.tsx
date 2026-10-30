@@ -5,13 +5,14 @@ import { AssistantProvider } from './assistant/AssistantProvider'
 import { ImportsProvider } from './imports/ImportsProvider'
 import { LibraryProvider } from './library/LibraryProvider'
 import { NavigationProvider } from './navigation/NavigationProvider'
+import { NoteBindingsProvider } from './note-bindings/NoteBindingsProvider'
 import { NotesProvider } from './notes/NotesProvider'
 import { SpacesProvider } from './spaces/SpacesProvider'
 import { WorkspaceUIProvider } from './workspace-ui/WorkspaceUIProvider'
 
 /**
  * Every workspace feature context, outermost first. Each one may use the ones above it:
- * UI → Navigation → Spaces → Notes → Library → Imports → Assistant.
+ * UI → Navigation → Spaces → Notes → Library → NoteBindings → Imports → Assistant.
  * Each feature's logic lives in `src/hooks/use-<feature>.ts`; its provider runs it once and shares it.
  * A new API-backed feature adds its hook there and its provider here (see AGENTS.md, "Feature contexts").
  */
@@ -21,9 +22,11 @@ export function WorkspaceProviders({ children }: { children: ReactNode }) {
       <SpacesProvider>
         <NotesProvider>
           <LibraryProvider>
-            <ImportsProvider>
-              <AssistantProvider>{children}</AssistantProvider>
-            </ImportsProvider>
+            <NoteBindingsProvider>
+              <ImportsProvider>
+                <AssistantProvider>{children}</AssistantProvider>
+              </ImportsProvider>
+            </NoteBindingsProvider>
           </LibraryProvider>
         </NotesProvider>
       </SpacesProvider>

@@ -320,13 +320,19 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
 
 ## Phase 7: Note context (bindings)
 
-> **Deferred (user, 2026-10-21):** “Leave 7 … until it is implemented.” The Context panel keeps a “Sources for this note — Coming soon” placeholder. The backend routes exist (`/v1/notes/{id}/context-bindings`); build this when asked. “This note” searches already include any bindings the server has.
+> **Built (user, 2026-10-30):** the user asked for it after it was deferred on 2026-10-21. The Context panel's “Sources for this note” section replaces the “Coming soon” placeholder.
 
-- [~] **7.1 Context panel list:** `GET /v1/notes/{id}/context-bindings` (up to 50), showing each Source with kind, status and binding type.
-- [~] **7.2 Add a Source to this note:** a picker from the Library or the note's Space Sources, then `PUT .../context-bindings/{sourceId}` with type (default `AVAILABLE`; "Always include" = `PINNED`; "Show only" = `RELATED`) and revision policy (default `TRACK_LATEST`; "Keep this version" = `PINNED_VERSION` with a READY/PARTIALLY_READY `pinnedSourceVersionId`).
-- [~] **7.3** Change the type or policy (the same `PUT` replaces it) and remove it (`DELETE`).
-- [~] **7.4** Plain-language explanations of Latest vs Pinned version and of the binding types, shown as help text.
-- [~] **7.5** Archived or deleted Sources disappear from pickers; a binding to a Source that is no longer usable shows a warning.
+- [x] **7.1 Context panel list:** `GET /v1/notes/{id}/context-bindings` (up to 50), showing each Source with kind, status and how it's used.
+- [x] **7.2 Add a Source to this note:** a picker of ready Library Sources, with the note's Space Sources first and marked “In this Space”, then `PUT .../context-bindings/{sourceId}` with `AVAILABLE` + `TRACK_LATEST`. Each row's “Use” is “Always include” (`PINNED`), “Use when relevant” (`AVAILABLE`) or “Reference only” (`RELATED`), and its “Version” is “Latest version” (`TRACK_LATEST`) or “Keep this version” (`PINNED_VERSION`, pinned to the Source's `currentReadyVersionId`).
+- [x] **7.3** Changing “Use” or “Version” sends the same `PUT` with the rest of the binding carried over; the unlink button removes it (`DELETE`). `GENERATED_FROM` bindings show “This note was made from this source” and can only be removed.
+- [x] **7.4** “How these settings work” explains each option in plain words.
+- [x] **7.5** Pickers list only `READY`/`PARTIALLY_READY` Sources that aren't already bound. A bound Source that is archived, deleted, failed or blocked shows a warning; one still processing says it's used once ready; a kept version with a newer ready one offers “Use newest”. Library archive, restore, retry, cancel and delete refresh the bindings.
+
+**Implemented:** API in `src/lib/api/bindings.ts`; logic in `src/hooks/use-note-bindings.ts` (`useNoteBindings`), shared by `features/note-bindings/NoteBindingsProvider.tsx` for the open note; pure rules in `workspace/bindingModel.ts` (unit tested); UI in `workspace/NoteSourcesSection.tsx`. Error copy for `NOTE_CONTEXT_BINDING_LIMIT_REACHED`, `NOTE_CONTEXT_BINDING_NOT_FOUND` and `PINNED_SOURCE_VERSION_REQUIRED`/`_NOT_ALLOWED`.
+
+**Verified 2026-10-30 against the local backend:** attached a Source, switched to “Always include”, kept a version (the server pinned the current ready version), went back to “Latest version” (no pinned ID sent), removed it; the picker hid the bound Source. No console errors. At 320, 375, 768, 1024 and 1440 px: no overflow, no clipped control, no target under 44 px. The test bindings were removed.
+
+**Backend gap:** the backend design doc says `RELATED` is “not searched by default”, but `scope-resolver.service.ts` searches every binding type (only `PINNED` gets a higher priority). The UI describes “Reference only” as the design intends; raise it with the backend owner.
 
 ## Phase 8: Context (index status and evidence preview)
 
@@ -346,6 +352,16 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
   - **Where results show:** the Search page searches content on Enter (all notes and sources, or one Space). The note's Context panel has Searchable with "Index now", and "What would the AI see?" with scopes This note, Selected text, This Space (+ notes toggle), Notes and sources I choose (`SELECTED_SOURCES`, or `CUSTOM` once a note is picked, max 50), and All.
   - **Opening a result:** a PDF opens at `#page=N` and audio at `#t=s` (download URL fetched just in time), YouTube at `t=`; a note opens with the cited block range selected and scrolled into view. A passage starting at the note's title starts at the top. Anything else opens the Source drawer.
 - **Library:** the Source drawer reads `/index-status` for its badge.
+
+**Redesign (user, 2026-10-30): ⌘K search bar replaces the Search page and the note panel's preview.**
+- **Why:** "What would the AI see?" only previewed search and duplicated the chat (which already searches a note and its bound Sources) and the Search page. The user asked for a Raycast/Spotlight-style search instead.
+- **⌘K** (or the sidebar's Search) opens `workspace/CommandSearch.tsx` over any page; ⌘K again or Esc closes it. Full screen on phones, a 640 px box from `sm` up. ↑/↓ move, Enter opens.
+- **Names** of notes, Spaces and Library Sources match as you type from data already loaded (`commandSearchModel.ts`, unit tested: every word must appear; leading and word-start matches rank first). No request per keystroke.
+- **Content:** the first row, “Search inside notes and files for …”, sends `LIBRARY` preview only on Enter or click, which keeps the contract's “only after the user explicitly chooses broad search” and the 20-burst, 1-per-3 s limit. `useContentSearch` now reuses a result for the same user and query for 60 s (20 entries in memory), so repeats spend no request.
+- **Also in ⌘K:** “Ask AI about …” opens the chat with the text in its box (`askAssistant` in `use-workspace-ui`), and New note, New Space, Add to Library, Settings.
+- **Removed:** the Search page (`?view=search` now lands on Home) and “What would the AI see?”. The note's Context panel keeps “Sources for this note” and “Searchable” with “Index now”.
+- **Fix:** passage text now clamps to 4 lines (a `block` class had overridden `line-clamp`).
+- **Verified 2026-10-30 (local backend, Chrome):** typing made no preview request; Enter made one, and repeating it made none. Arrows, Enter, Esc, the ⌘K toggle, the sidebar button, opening a note (closes the bar) and “Ask AI” (text lands in the chat box) all worked. No console errors. At 320, 375, 768, 1024 and 1440 px: no overflow, no target under 44 px.
 - **Editor fix:** `DocumentEditor` built its ref API inside `useImperativeHandle`, so `onReady` never fired without a `ref`. The API is now built outside it. Block helpers live in `src/lib/document-editor/blockNavigation.ts`, which keeps ProseMirror positions inside the editor library.
 
 **Live-verified (local backend):**

@@ -1,22 +1,17 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
-import { EvidenceResults } from './ContextSearch'
-import { useContentSearch } from './useContextSearch'
+import type { ReactNode } from 'react'
 import { AppIcon, type IconName } from '../AppIcon'
 import { useCurrentUser } from '../SessionGate'
 import { firstName, greeting } from '../../../lib/identity'
 import type { SpaceRecord } from './model'
-import { sourceKindMeta } from './model'
 import { updatedLabel } from './SpaceViews'
 import { apiErrorMessage } from '../../../lib/api/errors'
 import { useLibrary } from '@/hooks/use-library'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
-import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
-import { WORKSPACE_SEARCH_INPUT_ID } from '@/hooks/use-workspace-shortcuts'
-import { EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, buttonPrimary, buttonSecondary } from './ui'
+import { EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, buttonPrimary, buttonSecondary } from './ui'
 
 /** Loading state of the server notes list. */
 export type ListStatus = { loading: boolean; error: unknown; retry: () => void; hasMore?: boolean; loadMore?: () => void; loadingMore?: boolean }
@@ -91,62 +86,3 @@ export function NotesView() {
   </PageFrame>
 }
 
-export function SearchView() {
-  const { notes } = useNotes()
-  const { spaces } = useSpaces()
-  const { sources } = useLibrary()
-  const { navigate, openSource: onOpenSource, evidenceTarget: target } = useNavigation()
-  const { searchQuery: query, setSearchQuery: setQuery } = useWorkspaceUI()
-  const term = query.trim().toLowerCase()
-  const results = useMemo(() => (term ? {
-    notes: notes.filter((note) => note.title.toLowerCase().includes(term)),
-    spaces: spaces.filter((space) => space.name.toLowerCase().includes(term)),
-    sources: sources.filter((source) => source.title.toLowerCase().includes(term)),
-  } : null), [notes, spaces, sources, term])
-  const total = results ? results.notes.length + results.spaces.length + results.sources.length : 0
-  const search = useContentSearch()
-  const [scope, setScope] = useState('LIBRARY')
-  const [searched, setSearched] = useState('')
-  const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
-  const scopeSpace = scope.startsWith('space:') ? activeSpaces.find((space) => `space:${space.id}` === scope) : undefined
-  const canSearch = Boolean(query.trim()) && query.trim().length <= 1000 && !search.wait
-
-  function submit(event: React.FormEvent) {
-    event.preventDefault()
-    if (!canSearch) return
-    const text = query.trim()
-    setSearched(text)
-    // Searching everything is only sent after this explicit submit, as the API requires.
-    search.run(scopeSpace ? { scope: 'SPACE', spaceId: scopeSpace.id, includeSpaceNotes: true, query: text } : { scope: 'LIBRARY', query: text })
-  }
-
-  return <PageFrame>
-    <PageHeading title="Search" subtitle="Titles match as you type. Press Enter to search inside your notes and Library sources." />
-    <form onSubmit={submit} role="search" className="mt-8 space-y-3">
-      <label className="flex min-h-14 items-center gap-3 rounded-xl border border-default bg-raised px-4 transition-[border-color,box-shadow] focus-within:border-button focus-within:ring-4 focus-within:ring-button/15 motion-reduce:transition-none">
-        <AppIcon name="search" className="size-5 shrink-0 text-muted" />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={1000} id={WORKSPACE_SEARCH_INPUT_ID} placeholder="Search titles, or press Enter to search content" aria-label="Search" className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle" />
-      </label>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex min-w-0 items-center gap-2 text-sm text-muted">In
-          <select value={scopeSpace ? scope : 'LIBRARY'} onChange={(event) => setScope(event.target.value)} aria-label="Search in" className="min-h-11 min-w-0 max-w-[16rem] rounded-xl border border-default bg-surface px-3 text-sm text-foreground">
-            <option value="LIBRARY">All notes and sources</option>
-            {activeSpaces.map((space) => <option key={space.id} value={`space:${space.id}`}>{space.name}</option>)}
-          </select>
-        </label>
-        <button type="submit" disabled={!canSearch || search.pending} className={`${buttonSecondary} ml-auto`}><AppIcon name="search" className="size-4" />{search.pending ? 'Searching…' : search.wait ? `Wait ${search.wait} s` : 'Search content'}</button>
-      </div>
-    </form>
-    <div className="mt-6 space-y-8">
-      {searched || search.pending || search.error ? <section aria-labelledby="content-results">
-        <h2 id="content-results" className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Inside your notes and sources{searched ? ` · “${searched}”` : ''}</h2>
-        <div className="mt-3"><EvidenceResults search={search} target={target} /></div>
-      </section> : null}
-      <p className="sr-only" role="status" aria-live="polite">{results ? `${total} title ${total === 1 ? 'match' : 'matches'}` : ''}</p>
-      {results && total === 0 && !searched ? <p className="py-10 text-center text-sm text-muted">No titles match “{query.trim()}”. Press Enter to search inside your notes and sources.</p> : null}
-      {results?.spaces.length ? <section aria-label="Spaces"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Spaces</h2><div className="mt-1 divide-y divide-default">{results.spaces.map((space) => <Row key={space.id} leading={<SpaceGlyph icon={space.icon} />} title={space.name} meta={space.status === 'ARCHIVED' ? 'Archived' : undefined} onClick={() => navigate(`space:${space.id}`)} />)}</div></section> : null}
-      {results?.notes.length ? <section aria-label="Notes"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Notes</h2><div className="mt-1 divide-y divide-default">{results.notes.map((note) => <Row key={note.id} title={note.title || 'Untitled note'} meta={spaceName(spaces, note.spaceId)} onClick={() => navigate(`note:${note.id}`)} />)}</div></section> : null}
-      {results?.sources.length ? <section aria-label="Library sources"><h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Library</h2><div className="mt-1 divide-y divide-default">{results.sources.map((source) => <Row key={source.id} icon={sourceKindMeta(source.kind).icon} title={source.title} meta={sourceKindMeta(source.kind).label} trailing={<StatusChip status={source.status} stage={source.stage} />} onClick={() => onOpenSource(source.id)} />)}</div></section> : null}
-    </div>
-  </PageFrame>
-}
