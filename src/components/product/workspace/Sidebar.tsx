@@ -79,7 +79,7 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
   </div>
 }
 
-export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; collapsed?: boolean; onClose?: () => void }) {
+export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, onOpenSearch, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; onOpenSearch: () => void; collapsed?: boolean; onClose?: () => void }) {
   const user = useCurrentUser()
   const [open, setOpen] = useState({ spaces: true, library: true })
   const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
@@ -98,7 +98,7 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenS
     <div className="mt-3"><NewMenu collapsed={collapsed} onSelect={onNew} /></div>
 
     <nav className="mt-3 grid gap-0.5" aria-label="Main navigation">
-      <RailItem icon="search" label="Search" collapsed={collapsed} active={view === 'search'} onClick={() => navigate('search')}><span className={`hidden shrink-0 rounded bg-canvas px-1.5 py-0.5 text-[0.65rem] text-subtle sm:block ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>⌘ K</span></RailItem>
+      <RailItem icon="search" label="Search" collapsed={collapsed} active={false} onClick={onOpenSearch}><span className={`hidden shrink-0 rounded bg-canvas px-1.5 py-0.5 text-[0.65rem] text-subtle sm:block ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>⌘ K</span></RailItem>
       <RailItem icon="home" label="Home" collapsed={collapsed} active={view === 'home'} onClick={() => navigate('home')} />
       <RailItem icon="document" label="All notes" collapsed={collapsed} active={view === 'notes'} onClick={() => navigate('notes')}>{notes.length ? <span className={`shrink-0 text-xs text-subtle ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{notes.length}</span> : null}</RailItem>
     </nav>

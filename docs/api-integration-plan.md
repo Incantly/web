@@ -352,6 +352,16 @@ Build the shell the later phases fill. Use clean layouts, consistent icons, desi
   - **Where results show:** the Search page searches content on Enter (all notes and sources, or one Space). The note's Context panel has Searchable with "Index now", and "What would the AI see?" with scopes This note, Selected text, This Space (+ notes toggle), Notes and sources I choose (`SELECTED_SOURCES`, or `CUSTOM` once a note is picked, max 50), and All.
   - **Opening a result:** a PDF opens at `#page=N` and audio at `#t=s` (download URL fetched just in time), YouTube at `t=`; a note opens with the cited block range selected and scrolled into view. A passage starting at the note's title starts at the top. Anything else opens the Source drawer.
 - **Library:** the Source drawer reads `/index-status` for its badge.
+
+**Redesign (user, 2026-10-30): ⌘K search bar replaces the Search page and the note panel's preview.**
+- **Why:** "What would the AI see?" only previewed search and duplicated the chat (which already searches a note and its bound Sources) and the Search page. The user asked for a Raycast/Spotlight-style search instead.
+- **⌘K** (or the sidebar's Search) opens `workspace/CommandSearch.tsx` over any page; ⌘K again or Esc closes it. Full screen on phones, a 640 px box from `sm` up. ↑/↓ move, Enter opens.
+- **Names** of notes, Spaces and Library Sources match as you type from data already loaded (`commandSearchModel.ts`, unit tested: every word must appear; leading and word-start matches rank first). No request per keystroke.
+- **Content:** the first row, “Search inside notes and files for …”, sends `LIBRARY` preview only on Enter or click, which keeps the contract's “only after the user explicitly chooses broad search” and the 20-burst, 1-per-3 s limit. `useContentSearch` now reuses a result for the same user and query for 60 s (20 entries in memory), so repeats spend no request.
+- **Also in ⌘K:** “Ask AI about …” opens the chat with the text in its box (`askAssistant` in `use-workspace-ui`), and New note, New Space, Add to Library, Settings.
+- **Removed:** the Search page (`?view=search` now lands on Home) and “What would the AI see?”. The note's Context panel keeps “Sources for this note” and “Searchable” with “Index now”.
+- **Fix:** passage text now clamps to 4 lines (a `block` class had overridden `line-clamp`).
+- **Verified 2026-10-30 (local backend, Chrome):** typing made no preview request; Enter made one, and repeating it made none. Arrows, Enter, Esc, the ⌘K toggle, the sidebar button, opening a note (closes the bar) and “Ask AI” (text lands in the chat box) all worked. No console errors. At 320, 375, 768, 1024 and 1440 px: no overflow, no target under 44 px.
 - **Editor fix:** `DocumentEditor` built its ref API inside `useImperativeHandle`, so `onReady` never fired without a `ref`. The API is now built outside it. Block helpers live in `src/lib/document-editor/blockNavigation.ts`, which keeps ProseMirror positions inside the editor library.
 
 **Live-verified (local backend):**

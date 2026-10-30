@@ -13,7 +13,7 @@ import { NoteRoute } from './workspace/NoteView'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
 import { useAbandonedUploadCleanup } from './workspace/useAssets'
 import { EmptyState, PageFrame, TopBar, buttonSecondary } from './workspace/ui'
-import { HomeView, NotesView, SearchView } from './workspace/views'
+import { HomeView, NotesView } from './workspace/views'
 import { ConnectionBanner, TopBarLeading, TopBarTrailing, WorkspaceDialogs, WorkspaceSidebar } from './workspace/WorkspaceChrome'
 import { SIDE_PANEL_WIDTH } from './workspace/sidePanel'
 
@@ -82,7 +82,6 @@ function Page() {
   const { view, activeSpaceId, navigate } = useNavigation()
   const { activeSpace, status } = useSpaces()
   if (view === 'home') return <HomeView />
-  if (view === 'search') return <SearchView />
   if (view === 'notes') return <NotesView />
   if (view === 'spaces') return <SpacesView />
   if (view === 'library') return <LibraryView />

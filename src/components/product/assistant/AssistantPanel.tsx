@@ -64,18 +64,19 @@ export function threadKey({ note, space }: AssistantContext) {
  * answered from the user's own material in the chosen scope, with citations back to it.
  */
 export function AssistantPanel() {
-  const { assistantOpen: open, closeAssistant: onClose } = useWorkspaceUI()
+  const { assistantOpen: open, closeAssistant: onClose, assistantPrompt } = useWorkspaceUI()
   const { context } = useAssistant()
   // Contents mount only while open: the small-screen sheet stays in the DOM when closed, and a
   // hidden answer would otherwise play its reveal unseen. Threads persist per note in session
   // storage, so remounting (or moving to another note) restores the right one.
   const key = threadKey(context)
+  // A hand-off from ⌘K ("Ask AI about …") remounts the body so its box starts with that text.
   return <SidePanel open={open} onClose={onClose} title="Chat" bare>
-    {open ? <ChatBody key={key} thread={key} onClose={onClose} context={context} /> : null}
+    {open ? <ChatBody key={`${key}:${assistantPrompt.id}`} thread={key} onClose={onClose} context={context} initialDraft={assistantPrompt.text} /> : null}
   </SidePanel>
 }
 
-function ChatBody({ thread, onClose, context }: { thread: string; onClose: () => void; context: AssistantContext }) {
+function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; onClose: () => void; context: AssistantContext; initialDraft: string }) {
   const userId = useCurrentUser().id
   const { allowance, refreshAllowance } = useAssistant()
   const { notes } = useNotes()
@@ -87,7 +88,10 @@ function ChatBody({ thread, onClose, context }: { thread: string; onClose: () =>
   // A pick holds while it is on offer; otherwise the narrowest context wins. Everything is only ever an explicit pick.
   const scope = choices.find((choice) => choice.kind === picked) ?? choices.find((choice) => choice.kind !== 'LIBRARY') ?? null
   const [mode, setMode] = useState<AiCommand>('ask')
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(initialDraft)
+  const { clearAssistantPrompt } = useWorkspaceUI()
+  // The box has the handed-off text now; moving to another note shouldn't bring it back.
+  useEffect(() => { clearAssistantPrompt() }, [clearAssistantPrompt])
   const limited = allowance.data ? allowance.data.remainingUsd <= 0 : false
   const limitReset = allowance.data ? resetTime(allowance.data.resetsAt) : null
   const lookup = { notes, sources, target }

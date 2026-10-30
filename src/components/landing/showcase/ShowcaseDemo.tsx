@@ -170,7 +170,7 @@ export function ShowcaseDemo({ backdrop }: { backdrop?: ReactNode }) {
   }
 
   const space = demoSpaces.find((item) => item.id === scene.spaceId) ?? null
-  const sidebar = { view: `note:${scene.noteId}` as const, notes: demoNotes, spaces: demoSpaces, sources: demoSources, navigate: noop, onNew: noop, onOpenSource: noop, onOpenSettings: noop }
+  const sidebar = { view: `note:${scene.noteId}` as const, notes: demoNotes, spaces: demoSpaces, sources: demoSources, navigate: noop, onNew: noop, onOpenSource: noop, onOpenSettings: noop, onOpenSearch: noop }
 
   return <>
     <div className="mx-auto mt-11 flex max-w-[72rem] flex-wrap items-center justify-center gap-x-4 gap-y-1 border-b border-default">

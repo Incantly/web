@@ -9,6 +9,7 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
+import { CommandSearch } from './CommandSearch'
 import { AddSourceDialog, SpaceFormDialog } from './dialogs'
 import { ImportDialog, ImportTray } from './imports'
 import { SettingsDialog } from './SettingsDialog'
@@ -78,7 +79,7 @@ export function WorkspaceSidebar({ collapsed, onClose }: { collapsed?: boolean; 
   const { notes, createNote } = useNotes()
   const { spaces, activeSpace } = useSpaces()
   const { sources } = useLibrary()
-  const { openDialog, openImport, openSettings, closeMobileSidebar } = useWorkspaceUI()
+  const { openDialog, openImport, openSettings, openSearch, closeMobileSidebar } = useWorkspaceUI()
   function onNew(action: NewAction) {
     closeMobileSidebar()
     if (action === 'note') createNote({ spaceId: activeSpace?.status === 'ACTIVE' ? activeSpace.id : null })
@@ -87,7 +88,7 @@ export function WorkspaceSidebar({ collapsed, onClose }: { collapsed?: boolean; 
     if (action === 'import-file') openImport({ mode: 'file' })
     if (action === 'import-url') openImport({ mode: 'url' })
   }
-  return <Sidebar view={view} notes={notes} spaces={spaces} sources={sources} navigate={navigate} onNew={onNew} onOpenSource={openSource} onOpenSettings={openSettings} collapsed={collapsed} onClose={onClose} />
+  return <Sidebar view={view} notes={notes} spaces={spaces} sources={sources} navigate={navigate} onNew={onNew} onOpenSource={openSource} onOpenSettings={openSettings} onOpenSearch={openSearch} collapsed={collapsed} onClose={onClose} />
 }
 
 /** Every workspace-level dialog and tray, driven by the UI context. */
@@ -99,6 +100,7 @@ export function WorkspaceDialogs() {
   const { addSource } = useLibrary()
   const { tracker } = useImports()
   return <>
+    <CommandSearch />
     <SettingsDialog open={ui.settingsOpen} onClose={ui.closeSettings} />
     <ImportDialog open={Boolean(ui.importRequest)} mode={ui.importRequest?.mode ?? 'file'} intoNote={ui.importRequest?.intoNote} onClose={ui.closeImport} onStarted={tracker.track} />
     <ImportTray tracker={tracker} onOpenNote={(noteId) => openNote(noteId)} />

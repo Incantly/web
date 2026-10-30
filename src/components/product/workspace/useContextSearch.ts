@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { contextApi, type ContextPreviewRequest, type ContextPreviewResult, type IndexStatusDto } from '../../../lib/api/context'
 import { indexStillBuilding, retryAfterSeconds } from './contextModel'
 import { pollDelay } from './sourceStatus'
+import { useCurrentUser } from '../SessionGate'
 
 export const noteIndexKey = (noteId: string) => ['note-index', noteId] as const
 export const sourceIndexKey = (sourceId: string) => ['source-index', sourceId] as const
@@ -57,11 +58,18 @@ export type ContentSearch = {
   clear: () => void
 }
 
+/** Repeating a search within a minute reuses its result instead of spending another request. */
+const CACHE_MS = 60_000
+const CACHE_SIZE = 20
+const previewCache = new Map<string, { at: number; result: ContextPreviewResult }>()
+
 /**
  * Runs content searches on demand (never per keystroke: the server allows a short burst, then one
- * every few seconds). A new search aborts the previous one; nothing is stored or put in the URL.
+ * every few seconds). A new search aborts the previous one, and a repeat within a minute comes from
+ * memory (per user). Nothing is stored on disk or put in the URL.
  */
 export function useContentSearch(): ContentSearch {
+  const userId = useCurrentUser().id
   const [result, setResult] = useState<ContextPreviewResult | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [pending, setPending] = useState(false)
@@ -71,11 +79,19 @@ export function useContentSearch(): ContentSearch {
 
   const run = useCallback((body: ContextPreviewRequest) => {
     controller.current?.abort()
+    const key = `${userId}:${JSON.stringify(body)}`
+    const cached = previewCache.get(key)
+    if (cached && Date.now() - cached.at < CACHE_MS) { setResult(cached.result); setError(null); setPending(false); return }
     const current = new AbortController()
     controller.current = current
     setPending(true); setError(null)
     contextApi.preview(body, current.signal)
-      .then((next) => { if (!current.signal.aborted) setResult(next) })
+      .then((next) => {
+        previewCache.delete(key)
+        previewCache.set(key, { at: Date.now(), result: next })
+        if (previewCache.size > CACHE_SIZE) previewCache.delete(previewCache.keys().next().value!)
+        if (!current.signal.aborted) setResult(next)
+      })
       .catch((cause) => {
         if (current.signal.aborted) return
         const seconds = retryAfterSeconds(cause)
@@ -83,7 +99,7 @@ export function useContentSearch(): ContentSearch {
         setError(cause)
       })
       .finally(() => { if (controller.current === current) setPending(false) })
-  }, [setWait])
+  }, [setWait, userId])
   const clear = useCallback(() => { controller.current?.abort(); setResult(null); setError(null); setPending(false) }, [])
   return { result, error, pending, wait, run, clear }
 }

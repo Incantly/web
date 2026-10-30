@@ -29,6 +29,17 @@ export type WorkspaceUIValue = {
   assistantOpen: boolean
   toggleAssistant: () => void
   closeAssistant: () => void
+  /** Text handed to the chat box (e.g. "Ask AI about …" in ⌘K); `id` changes with each hand-off. */
+  assistantPrompt: { id: number; text: string }
+  /** Open the chat with this text in its box, ready to edit and send. */
+  askAssistant: (text: string) => void
+  /** The chat took the text; don't put it back if the chat reopens. */
+  clearAssistantPrompt: () => void
+  /** The ⌘K search bar. */
+  searchOpen: boolean
+  openSearch: () => void
+  closeSearch: () => void
+  toggleSearch: () => void
   settingsOpen: boolean
   openSettings: () => void
   closeSettings: () => void
@@ -38,16 +49,13 @@ export type WorkspaceUIValue = {
   importRequest: ImportRequest
   openImport: (request: Exclude<ImportRequest, null>) => void
   closeImport: () => void
-  /** The Search page's query, kept while moving between pages. */
-  searchQuery: string
-  setSearchQuery: (query: string) => void
   inbox: { items: InboxItem[]; dismiss: (id: string) => void }
 }
 
 export const WorkspaceUIContext = createFeatureContext<WorkspaceUIValue>('WorkspaceUI')
 
 /**
- * The workspace chrome's state: sidebar, rail, docked panels, dialogs, search query, inbox. No server
+ * The workspace chrome's state: sidebar, rail, docked panels, dialogs, ⌘K search, inbox. No server
  * state. Runs once, in `WorkspaceUIProvider`, which also hosts the docked panels (`panels`).
  */
 export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>): WorkspaceUIValue {
@@ -59,7 +67,8 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [dialog, setDialog] = useState<FormDialog>(null)
   const [importRequest, setImportRequest] = useState<ImportRequest>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [assistantPrompt, setAssistantPrompt] = useState({ id: 0, text: '' })
   const [inboxItems, setInboxItems] = useState<InboxItem[]>(initialInbox)
   // A right panel pushes the content box from the right. Below 1280px both sides open at once would
   // squeeze it too thin, so the sidebar folds to its icon rail while a panel is open (hover still peeks).
@@ -96,7 +105,14 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     setPanelSlot: panels.setSlot,
     assistantOpen,
     toggleAssistant: () => setAssistantOpen((current) => !current),
-    closeAssistant: () => setAssistantOpen(false),
+    closeAssistant: () => { setAssistantOpen(false); setAssistantPrompt((current) => ({ ...current, text: '' })) },
+    assistantPrompt,
+    askAssistant: (text) => { setMobileOpen(false); setSearchOpen(false); setAssistantPrompt((current) => ({ id: current.id + 1, text })); setAssistantOpen(true) },
+    clearAssistantPrompt: () => setAssistantPrompt((current) => (current.text ? { ...current, text: '' } : current)),
+    searchOpen,
+    openSearch: () => { setMobileOpen(false); setSearchOpen(true) },
+    closeSearch: () => setSearchOpen(false),
+    toggleSearch: () => { setMobileOpen(false); setSearchOpen((current) => !current) },
     settingsOpen,
     openSettings: () => { setMobileOpen(false); setSettingsOpen(true) },
     closeSettings: () => setSettingsOpen(false),
@@ -106,13 +122,11 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     importRequest,
     openImport: (request) => { setMobileOpen(false); setImportRequest(request) },
     closeImport: () => setImportRequest(null),
-    searchQuery,
-    setSearchQuery,
     inbox: { items: inboxItems, dismiss: (id) => setInboxItems((current) => current.filter((item) => item.id !== id)) },
-  }), [mobileOpen, railCollapsed, railPeek, panels.open, panels.setSlot, roomy, toggleRail, schedulePeek, assistantOpen, settingsOpen, dialog, importRequest, searchQuery, inboxItems])
+  }), [mobileOpen, railCollapsed, railPeek, panels.open, panels.setSlot, roomy, toggleRail, schedulePeek, assistantOpen, assistantPrompt, searchOpen, settingsOpen, dialog, importRequest, inboxItems])
 }
 
-/** Workspace chrome: sidebar, rail, docked panels, dialogs, search query, inbox. Must be used inside `WorkspaceProviders`. */
+/** Workspace chrome: sidebar, rail, docked panels, dialogs, ⌘K search, inbox. Must be used inside `WorkspaceProviders`. */
 export function useWorkspaceUI(): WorkspaceUIValue {
   return useFeatureContext(WorkspaceUIContext)
 }
