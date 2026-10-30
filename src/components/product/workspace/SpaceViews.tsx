@@ -102,7 +102,7 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
       <span className="flex items-center gap-2"><AppIcon name="archive" className="size-4" />This Space is archived and read-only. Restore it to make changes.</span>
       {restoreButton}
     </div> : null}
-    <PageHeading eyebrow="Space" icon={<SpaceGlyph icon={space.icon} size="lg" />} title={space.name} subtitle={space.description ?? undefined}
+    <PageHeading eyebrow="Space" icon={<SpaceGlyph icon={space.icon} size="heading" />} title={space.name} subtitle={space.description ?? undefined}
       actions={<>
         {archived ? null : <button type="button" onClick={() => onCreateNote(space.id)} className={buttonPrimary}><AppIcon name="plus" className="size-4" />New note</button>}
         <ActionMenu label="Space actions" items={[

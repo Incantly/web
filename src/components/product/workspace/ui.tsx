@@ -18,16 +18,21 @@ export function PageFrame({ children, wide = false }: { children: ReactNode; wid
   return <div className={`mx-auto w-full ${wide ? 'max-w-[76rem]' : 'max-w-[64rem]'} px-4 py-6 sm:px-8 lg:px-12 lg:py-10`}>{children}</div>
 }
 
+/**
+ * A page title. With an `icon`, the icon is a square exactly as tall as the eyebrow and title beside
+ * it: both are sized from `--heading-title`, so they match at every width, and a subtitle sits under
+ * the text without stretching the icon.
+ */
 export function PageHeading({ eyebrow, title, subtitle, actions, icon }: { eyebrow?: ReactNode; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; icon?: ReactNode }) {
-  return <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-    {/* The icon centres on the eyebrow and title beside it, rather than hanging from the top. */}
-    <div className="flex min-w-0 items-center gap-4">
+  return <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 [--heading-title:clamp(2rem,4.5vw,3.25rem)] [--heading-icon:calc(1.25rem+var(--heading-title)*1.05)]">
+    <div className={`grid min-w-0 items-start gap-x-4 ${icon ? 'grid-cols-[auto_minmax(0,1fr)]' : ''}`}>
       {icon}
       <div className="min-w-0">
-        {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{eyebrow}</p> : null}
-        <h1 className="mt-1 break-words font-display text-[clamp(2rem,4.5vw,3.25rem)] font-normal leading-[1.05] tracking-[-0.045em] text-foreground">{title}</h1>
-        {subtitle ? <p className="mt-2.5 max-w-[42rem] break-words text-sm leading-6 text-muted">{subtitle}</p> : null}
+        {/* Eyebrow line (1rem) + gap (0.25rem) + one title line (1.05 × title size) = --heading-icon. */}
+        {eyebrow ? <p className="text-xs font-semibold uppercase leading-4 tracking-[0.12em] text-muted">{eyebrow}</p> : null}
+        <h1 className={`${eyebrow ? 'mt-1' : ''} break-words font-display text-[length:var(--heading-title)] font-normal leading-[1.05] tracking-[-0.045em] text-foreground`}>{title}</h1>
       </div>
+      {subtitle ? <p className={`${icon ? 'col-start-2' : ''} mt-2.5 max-w-[42rem] break-words text-sm leading-6 text-muted`}>{subtitle}</p> : null}
     </div>
     {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
   </header>
@@ -37,7 +42,8 @@ export function PageHeading({ eyebrow, title, subtitle, actions, icon }: { eyebr
  * Sizes for a Space's icon, so it lines up with whatever sits beside it:
  * - `inline` (18px, no tile): rows of line icons, e.g. the sidebar, where every icon is 18px;
  * - `sm` (24px): breadcrumbs and pickers; `tile` (28px): ⌘K rows, like their other result tiles;
- * - `md` (36px): list rows; `lg` (56px): the Space page heading.
+ * - `md` (36px): list rows; `lg` (56px): large standalone use;
+ * - `heading`: a page heading's icon, as tall as its eyebrow and title (`--heading-icon`, set by `PageHeading`).
  */
 const glyphSizes = {
   inline: { box: 'size-[1.125rem]', emoji: 'text-[0.95rem]', icon: 'size-[1.125rem]' },
@@ -45,6 +51,7 @@ const glyphSizes = {
   tile: { box: 'size-7 rounded-md bg-surface', emoji: 'text-base', icon: 'size-4' },
   md: { box: 'size-9 rounded-lg bg-surface', emoji: 'text-lg', icon: 'size-4' },
   lg: { box: 'size-14 rounded-2xl bg-surface', emoji: 'text-[1.75rem]', icon: 'size-6' },
+  heading: { box: 'size-[var(--heading-icon)] rounded-2xl bg-surface', emoji: 'text-[calc(var(--heading-icon)*0.5)]', icon: 'size-[calc(var(--heading-icon)*0.4)]' },
 } as const
 
 /** A Space's icon: its emoji when set, otherwise the Space glyph, centred in a box of a fixed size. */
