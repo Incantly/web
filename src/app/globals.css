@@ -127,6 +127,8 @@
 
   --font-sans: Arial, Helvetica, sans-serif;
   --font-display: Georgia, 'Times New Roman', serif;
+  /* Space icons and other emoji: the system emoji font, so they draw on the same metrics everywhere. */
+  --font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 
   --color-canvas: var(--ui-canvas);
   --color-surface: var(--ui-surface);

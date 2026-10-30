@@ -20,7 +20,8 @@ export function PageFrame({ children, wide = false }: { children: ReactNode; wid
 
 export function PageHeading({ eyebrow, title, subtitle, actions, icon }: { eyebrow?: ReactNode; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; icon?: ReactNode }) {
   return <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-    <div className="flex min-w-0 items-start gap-4">
+    {/* The icon centres on the eyebrow and title beside it, rather than hanging from the top. */}
+    <div className="flex min-w-0 items-center gap-4">
       {icon}
       <div className="min-w-0">
         {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{eyebrow}</p> : null}
@@ -32,11 +33,26 @@ export function PageHeading({ eyebrow, title, subtitle, actions, icon }: { eyebr
   </header>
 }
 
-/** A Space's icon: its emoji when set, otherwise the Space glyph. */
-export function SpaceGlyph({ icon, size = 'md' }: { icon: string | null; size?: 'sm' | 'md' | 'lg' }) {
-  const box = size === 'lg' ? 'size-14 text-[1.75rem] rounded-2xl' : size === 'md' ? 'size-9 text-lg rounded-lg' : 'size-6 text-sm rounded-md'
-  return <span aria-hidden="true" className={`grid shrink-0 place-items-center bg-surface text-muted ${box}`}>
-    {icon ? <span className="leading-none">{icon}</span> : <AppIcon name="space" className={size === 'lg' ? 'size-6' : 'size-4'} />}
+/**
+ * Sizes for a Space's icon, so it lines up with whatever sits beside it:
+ * - `inline` (18px, no tile): rows of line icons, e.g. the sidebar, where every icon is 18px;
+ * - `sm` (24px): breadcrumbs and pickers; `tile` (28px): ⌘K rows, like their other result tiles;
+ * - `md` (36px): list rows; `lg` (56px): the Space page heading.
+ */
+const glyphSizes = {
+  inline: { box: 'size-[1.125rem]', emoji: 'text-[0.95rem]', icon: 'size-[1.125rem]' },
+  sm: { box: 'size-6 rounded-md bg-surface', emoji: 'text-sm', icon: 'size-4' },
+  tile: { box: 'size-7 rounded-md bg-surface', emoji: 'text-base', icon: 'size-4' },
+  md: { box: 'size-9 rounded-lg bg-surface', emoji: 'text-lg', icon: 'size-4' },
+  lg: { box: 'size-14 rounded-2xl bg-surface', emoji: 'text-[1.75rem]', icon: 'size-6' },
+} as const
+
+/** A Space's icon: its emoji when set, otherwise the Space glyph, centred in a box of a fixed size. */
+export function SpaceGlyph({ icon, size = 'md' }: { icon: string | null; size?: keyof typeof glyphSizes }) {
+  const style = glyphSizes[size]
+  return <span aria-hidden="true" className={`grid shrink-0 place-items-center text-muted ${style.box}`}>
+    {/* The emoji font draws emoji on their own metrics, the same on every system, so they sit centred. */}
+    {icon ? <span className={`font-emoji leading-none ${style.emoji}`}>{icon}</span> : <AppIcon name="space" className={style.icon} />}
   </span>
 }
 
