@@ -12,8 +12,8 @@ import { WorkspaceUIProvider } from './workspace-ui/WorkspaceUIProvider'
 /**
  * Every workspace feature context, outermost first. Each one may use the ones above it:
  * UI → Navigation → Spaces → Notes → Library → Imports → Assistant.
- * Components read them through `src/hooks/use-<feature>.ts`. A new API-backed feature adds its
- * provider here and its hook there (see AGENTS.md, "Feature contexts").
+ * Each feature's logic lives in `src/hooks/use-<feature>.ts`; its provider runs it once and shares it.
+ * A new API-backed feature adds its hook there and its provider here (see AGENTS.md, "Feature contexts").
  */
 export function WorkspaceProviders({ children }: { children: ReactNode }) {
   return <WorkspaceUIProvider>

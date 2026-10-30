@@ -1,9 +1,9 @@
 import { createContext, useContext, type Context } from 'react'
 
 /**
- * One context per feature, named for React DevTools (`Notes.Provider`, …). The provider lives in
- * `features/<feature>/`; its hook lives in `src/hooks/use-<feature>.ts` and reads it with
- * `useFeatureContext`.
+ * One context per feature, named for React DevTools (`Notes.Provider`, …). It lives in the feature's
+ * hook file, `src/hooks/use-<feature>.ts`, beside the logic (`use<Feature>State`) and the reader
+ * (`use<Feature>`, via `useFeatureContext`). The provider in `features/<feature>/` shares it.
  *
  *   export const NotesContext = createFeatureContext<NotesValue>('Notes')
  */

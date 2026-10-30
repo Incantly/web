@@ -40,14 +40,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   (`use-navigation`, `use-workspace-ui`, `use-notes`, `use-spaces`, `use-library`,
   `use-imports`, `use-assistant`), e.g. `import { useNotes } from '@/hooks/use-notes'`,
   instead of passing it down as props.
-- Every API-backed feature gets:
-  - a provider in `src/components/product/features/<feature>/<Feature>Provider.tsx`
-    that exports its context (made with `createFeatureContext`), and is added to
-    `features/WorkspaceProviders.tsx`;
-  - a hook in `src/hooks/use-<feature>.ts` that reads it with `useFeatureContext`.
+- Every API-backed feature's logic lives in its hook file, `src/hooks/use-<feature>.ts`,
+  which holds:
+  - the value type and the context (made with `createFeatureContext`);
+  - `use<Feature>State()`: all the feature's state, queries, effects and actions;
+  - `use<Feature>()`: what components call; it reads the shared value with `useFeatureContext`.
+- Its provider, `src/components/product/features/<feature>/<Feature>Provider.tsx`, is
+  one line: it runs `use<Feature>State()` once and shares the result, so every component
+  sees the same state. Add it to `features/WorkspaceProviders.tsx`. Components never call
+  `use<Feature>State()` themselves (each call would make its own separate copy).
+- A hook with no shared state (e.g. `use-workspace-shortcuts`) needs no provider.
 - New components never call `/v1/*` directly; a few older ones still do (asset
   downloads, note history) and move behind a feature hook when next touched.
-- Providers are thin over React Query: they bundle queries and workspace-level
+- Feature state hooks are thin over React Query: they bundle queries and workspace-level
   actions, and never keep a second copy of server data.
 - Keep pure helpers (`*Model.ts`) as plain, unit-tested functions, and keep local UI
   state (a menu being open, a draft) local. Components reused outside the workspace
