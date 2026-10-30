@@ -232,8 +232,10 @@ code {
   --incantly-document-padding-block: clamp(2.5rem, 8vw, 7rem);
 }
 
+/* Writing starts near the top bar; the roomy bottom padding stays so the last line can scroll up. */
 .incantly-document-editor .ProseMirror {
   font-family: Arial, Helvetica, sans-serif;
+  padding-top: clamp(1.5rem, 4vw, 3rem);
 }
 
 /* Reading view stays quiet: no inset highlight ring when clicking to write. */
