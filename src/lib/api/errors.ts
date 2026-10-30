@@ -69,6 +69,10 @@ const messages: Record<string, string> = {
   SOURCE_PROCESSING_BUSY: 'This source is busy. Try again in a moment.',
   SOURCE_INGESTION_BUSY: 'This source is busy. Try again in a moment.',
   PINNED_SOURCE_VERSION_INVALID: 'That version isn’t ready to pin. Choose a ready version.',
+  PINNED_SOURCE_VERSION_REQUIRED: 'Choose a ready version to keep.',
+  PINNED_SOURCE_VERSION_NOT_ALLOWED: 'A source that follows the latest version can’t also keep one.',
+  NOTE_CONTEXT_BINDING_LIMIT_REACHED: 'This note already has the maximum of 50 sources. Remove one first.',
+  NOTE_CONTEXT_BINDING_NOT_FOUND: 'That source isn’t attached to this note any more.',
 
   ASSET_IN_USE: 'This file is still used in a note or the Library.',
   UPLOAD_EXPIRED: 'The upload took too long. Please try again.',

@@ -60,6 +60,7 @@ export function useLibraryActions(userId: string) {
   const refresh = (sourceId?: string) => Promise.all([
     client.invalidateQueries({ queryKey: libraryKey(userId) }),
     client.invalidateQueries({ queryKey: ['space-sources'] }),
+    client.invalidateQueries({ queryKey: ['note-bindings'] }),
     ...(sourceId ? [client.invalidateQueries({ queryKey: sourceKey(sourceId) }), client.invalidateQueries({ queryKey: processingKey(sourceId) })] : []),
   ])
   const put = (source: SourceDto) => {
@@ -74,6 +75,8 @@ export function useLibraryActions(userId: string) {
     onSuccess: (_result, sourceId) => {
       client.setQueryData<SourceDto[]>(libraryKey(userId), (items) => items?.filter((item) => item.id !== sourceId))
       void client.invalidateQueries({ queryKey: ['space-sources'] })
+      // Deleting a Source also removes its Note bindings.
+      void client.invalidateQueries({ queryKey: ['note-bindings'] })
     },
   })
   const retry = useMutation({ mutationFn: libraryApi.retry, onSuccess: (state, sourceId) => { client.setQueryData(processingKey(sourceId), state); void refresh(sourceId) } })

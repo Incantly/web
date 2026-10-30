@@ -28,6 +28,7 @@ import { useNoteSession } from './useNoteSession'
 import { libraryFollowUp, useServerAssetHost } from './useAssets'
 import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChrome'
 import { NoteContextPanel } from './NoteContextPanel'
+import { NoteSourcesSection } from './NoteSourcesSection'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, TopBar, buttonPrimary, buttonSecondary } from './ui'
 
 const DocumentEditor = dynamic(
@@ -40,13 +41,6 @@ const WorkspaceTableCellMenu = ({ editor, onOpenChange, onResizeStart }: {
   onOpenChange?: (isOpen: boolean) => void
   onResizeStart?: (handle: 'tl' | 'tr' | 'bl' | 'br' | null) => (event: React.MouseEvent) => void
 }) => <TableCellHandleMenu editor={editor} onOpenChange={onOpenChange} onMouseDown={(event) => onResizeStart?.('br')(event)} />
-
-function PanelSection({ icon, title, body }: { icon: IconName; title: string; body: string }) {
-  return <section className="border-b border-default px-5 py-5 last:border-b-0">
-    <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><AppIcon name={icon} className="size-4 text-muted" />{title}</h3>
-    <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
-  </section>
-}
 
 const syncCopy: Record<SyncState['status'], { label: (state: SyncState) => string; icon: IconName; tone: string }> = {
   saved: { label: () => 'Saved', icon: 'checkCircle', tone: 'text-muted' },
@@ -247,7 +241,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     </> : null}
 
     <SidePanel open={contextOpen} onClose={() => setContextOpen(false)} title="Context" description="What this note draws on."><div className="-mx-5 -my-5">
-      <PanelSection icon="link" title="Sources for this note" body="Choose Library sources this note relies on, so questions about it look there first. Coming soon." />
+      <NoteSourcesSection space={space} />
       <NoteContextPanel noteId={noteId} space={space} getEditor={() => editorRef.current} />
     </div></SidePanel>
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />
