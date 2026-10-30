@@ -4,11 +4,10 @@ import { createContext, useCallback, useContext, useEffect, useId, useMemo, useR
 import { createPortal } from 'react-dom'
 import { AppIcon } from '../AppIcon'
 import { Dialog, iconButton } from './ui'
+import { usePanelResize } from '@/hooks/use-panel-resize'
 
 /** Matches the project `lg` breakpoint: from here a right panel docks beside the content box and pushes it. */
 export const DOCK_QUERY = '(min-width: 1024px)'
-/** Width of every docked right panel. */
-export const SIDE_PANEL_WIDTH = 'w-[24rem]'
 
 export function useMediaQuery(query: string) {
   return useSyncExternalStore(
@@ -90,4 +89,16 @@ function DockedPanel({ onClose, title, description, children, footer, bare }: Si
     {footer ? <footer className="flex flex-wrap justify-end gap-2 border-t border-default px-5 pb-4 pt-4">{footer}</footer> : null}
     </>}
   </section>
+}
+
+/**
+ * The docked column's left edge: drag to resize, ←/→ or Home/End from the keyboard, double-click to
+ * reset. Desktop only (the column only exists from `lg`). A thin line shows on hover, focus and drag.
+ */
+export function PanelResizeHandle() {
+  const handle = usePanelResize()
+  return <div {...handle} title="Drag to resize · double-click to reset"
+    className="group absolute inset-y-2 left-0 z-10 w-3 cursor-col-resize touch-none outline-none">
+    <span aria-hidden="true" className="absolute inset-y-6 left-0 w-0.5 rounded-full bg-transparent transition-colors group-hover:bg-strong group-focus-visible:bg-button [[data-panel-resizing]_&]:bg-button motion-reduce:transition-none" />
+  </div>
 }
