@@ -77,7 +77,7 @@ export function TopBarTrailing() {
 export function WorkspaceSidebar({ collapsed, onClose }: { collapsed?: boolean; onClose?: () => void }) {
   const { view, navigate, openSource } = useNavigation()
   const { notes, createNote } = useNotes()
-  const { spaces, activeSpace } = useSpaces()
+  const { spaces, activeSpace, linkSource } = useSpaces()
   const { sources } = useLibrary()
   const { openDialog, openImport, openSettings, openSearch, closeMobileSidebar } = useWorkspaceUI()
   function onNew(action: NewAction) {
@@ -88,7 +88,7 @@ export function WorkspaceSidebar({ collapsed, onClose }: { collapsed?: boolean; 
     if (action === 'import-file') openImport({ mode: 'file' })
     if (action === 'import-url') openImport({ mode: 'url' })
   }
-  return <Sidebar view={view} notes={notes} spaces={spaces} sources={sources} navigate={navigate} onNew={onNew} onOpenSource={openSource} onOpenSettings={openSettings} onOpenSearch={openSearch} collapsed={collapsed} onClose={onClose} />
+  return <Sidebar view={view} notes={notes} spaces={spaces} sources={sources} navigate={navigate} onNew={onNew} onOpenSource={openSource} onOpenSettings={openSettings} onOpenSearch={openSearch} onLinkSource={linkSource} collapsed={collapsed} onClose={onClose} />
 }
 
 /** Every workspace-level dialog and tray, driven by the UI context. */

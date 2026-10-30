@@ -81,7 +81,7 @@ function ResultRow({ id, item, selected, spaces, busy, onHover, onPick }: { id: 
     title = item.note.title || 'Untitled note'
     meta = spaces.find((space) => space.id === item.note.spaceId)?.name ?? `Updated ${updatedLabel(item.note.updatedAt)}`
   } else if (item.kind === 'space') {
-    leading = <SpaceGlyph icon={item.space.icon} size="sm" />
+    leading = <SpaceGlyph icon={item.space.icon} size="tile" />
     title = item.space.name
     meta = item.space.status === 'ARCHIVED' ? 'Archived Space' : 'Space'
   } else if (item.kind === 'source') {

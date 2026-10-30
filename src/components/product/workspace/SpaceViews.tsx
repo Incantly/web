@@ -14,6 +14,7 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
+import { useSpaceDropTarget } from '@/hooks/use-source-drag'
 import { ActionMenu, ConfirmDialog, EmptyState, ErrorState, ListSkeleton, PageFrame, PageHeading, SpaceGlyph, StatusChip, Tabs, buttonPrimary, buttonQuiet, buttonSecondary } from './ui'
 
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
@@ -61,6 +62,7 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
   const { sources } = useLibrary()
   const { navigate, openNote: onOpenNote } = useNavigation()
   const { openDialog } = useWorkspaceUI()
+  const { linkSource } = useSpaces()
   const onCreateNote = (spaceId: string) => createNote({ spaceId })
   // The Add to Library dialog preselects the Space being shown.
   const onAddSource = () => openDialog('source')
@@ -72,6 +74,8 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
   const spaceNotes = useSpaceNotes(space.id)
   const spaceSources = useSpaceSources(space.id)
   const archived = space.status === 'ARCHIVED'
+  // A Library source dragged from the sidebar can be dropped anywhere on the page; then show it landing.
+  const drop = useSpaceDropTarget(archived ? undefined : (sourceId) => linkSource(space.id, sourceId), { onLinked: () => setTab('sources'), spaceName: space.name })
   const busy = actions.archive.isPending || actions.restore.isPending || actions.remove.isPending
 
   const listedNotes = spaceNotes.notes.slice().sort((a, b) => (a.id === space.homeNoteId ? -1 : b.id === space.homeNoteId ? 1 : Date.parse(b.updatedAt) - Date.parse(a.updatedAt)))
@@ -88,12 +92,17 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
   }
   const restoreButton = <button type="button" disabled={busy} onClick={() => actions.restore.mutate(space.id)} className={buttonSecondary}><AppIcon name="restore" className="size-4" />Restore</button>
 
-  return <PageFrame wide>
+  return <div {...drop.dropProps} className="relative min-h-full">
+    {drop.armed ? <div aria-hidden="true" className={`pointer-events-none absolute inset-3 z-10 grid place-items-center rounded-2xl border-2 border-dashed transition-colors motion-reduce:transition-none ${drop.over ? 'border-button bg-raised/90' : 'border-strong bg-raised/60'}`}>
+      <span className="flex items-center gap-2 rounded-full bg-raised px-4 py-2 text-sm font-medium text-foreground shadow-sm"><AppIcon name="link" className="size-4" />{drop.over ? `Drop to add to ${space.name}` : `Drag here to add to ${space.name}`}</span>
+    </div> : null}
+    {drop.busy || drop.feedback ? <p role="status" className={`absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-surface px-3 py-1 text-xs ${drop.feedback?.tone === 'error' ? 'text-danger' : 'text-muted'}`}>{drop.busy ? 'Adding…' : drop.feedback?.text}</p> : null}
+    <PageFrame wide>
     {archived ? <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-default bg-surface px-4 py-3 text-sm text-muted">
       <span className="flex items-center gap-2"><AppIcon name="archive" className="size-4" />This Space is archived and read-only. Restore it to make changes.</span>
       {restoreButton}
     </div> : null}
-    <PageHeading eyebrow="Space" icon={<SpaceGlyph icon={space.icon} size="lg" />} title={space.name} subtitle={space.description ?? undefined}
+    <PageHeading eyebrow="Space" icon={<SpaceGlyph icon={space.icon} size="heading" />} title={space.name} subtitle={space.description ?? undefined}
       actions={<>
         {archived ? null : <button type="button" onClick={() => onCreateNote(space.id)} className={buttonPrimary}><AppIcon name="plus" className="size-4" />New note</button>}
         <ActionMenu label="Space actions" items={[
@@ -155,6 +164,7 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
       render={(source) => <><AppIcon name={sourceKindMeta(source.kind).icon} className="size-4 shrink-0 text-muted" /><span className="min-w-0 flex-1 truncate text-sm text-foreground">{source.title}</span><StatusChip status={source.status} stage={source.stage} /></>}
       onPick={(source) => actions.link.mutate({ spaceId: space.id, sourceId: source.id })} />
   </PageFrame>
+  </div>
 }
 
 function LinkedSourceRow({ link, archived, onToggle, onPriority, onUnlink }: { link: SpaceSourceLinkDto; archived: boolean; onToggle: (value: boolean) => void; onPriority: (value: number) => void; onUnlink: () => void }) {

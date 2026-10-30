@@ -19,6 +19,8 @@ export type SpacesValue = {
   createSpace: (draft: { name: string; description: string; icon: string }) => Promise<void>
   /** Put a note in a Space (used when creating a note inside one). */
   addNoteToSpace: (spaceId: string, noteId: string) => Promise<void>
+  /** Link a Library source to a Space (no copy, no re-upload). `false` when it was already there. */
+  linkSource: (spaceId: string, sourceId: string) => Promise<boolean>
 }
 
 export const SpacesContext = createFeatureContext<SpacesValue>('Spaces')
@@ -39,6 +41,10 @@ export function useSpacesState(): SpacesValue {
   const addNoteToSpace = useCallback(async (spaceId: string, noteId: string) => {
     await actions.addNote.mutateAsync({ spaceId, noteId })
   }, [actions.addNote])
+  const linkSource = useCallback(async (spaceId: string, sourceId: string) => {
+    const { created } = await actions.link.mutateAsync({ spaceId, sourceId })
+    return created
+  }, [actions.link])
 
   return useMemo<SpacesValue>(() => ({
     spaces,
@@ -47,7 +53,8 @@ export function useSpacesState(): SpacesValue {
     noteSpace: openNoteSpaceId ? spaces.find((space) => space.id === openNoteSpaceId) : undefined,
     createSpace,
     addNoteToSpace,
-  }), [spaces, isPending, isError, error, refetch, activeSpaceId, openNoteSpaceId, createSpace, addNoteToSpace])
+    linkSource,
+  }), [spaces, isPending, isError, error, refetch, activeSpaceId, openNoteSpaceId, createSpace, addNoteToSpace, linkSource])
 }
 
 /** `/v1/spaces`: the Spaces list, the open Space, and creating Spaces. Must be used inside `WorkspaceProviders`. */
