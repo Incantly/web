@@ -45,6 +45,8 @@ function Section({ id, icon, title, collapsed, open, onToggle, onOverview, activ
     {collapsed
       ? <RailItem icon={icon} label={title} collapsed active={active} onClick={onOverview} />
       : <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={id} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-raised hover:text-foreground">
+        {/* Same icon and spacing as the rail items, so it lines up with them and with the collapsed rail. */}
+        <AppIcon name={icon} className="mr-1.5 size-[1.125rem] shrink-0" />
         <span className="truncate">{title}</span>
         <AppIcon name="chevron" className={`size-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-90' : ''}`} />
       </button>}
