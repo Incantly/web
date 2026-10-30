@@ -35,15 +35,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Feature contexts (mandatory)
 
-- Workspace state lives in React contexts under `src/components/product/features/`,
-  not in big component files or prop chains. Read state through the hooks
-  (`useNavigation`, `useWorkspaceUI`, `useNotes`, `useSpaces`, `useLibrary`,
-  `useImports`, `useAssistant`) instead of passing it down as props.
-- Every API-backed feature gets its own `<Feature>Provider` and `use<Feature>()`
-  hook in `features/<feature>/`, created with `createFeatureContext`, and is added
-  to `features/WorkspaceProviders.tsx`. New components never call `/v1/*` directly;
-  a few older ones still do (asset downloads, note history) and move behind a
-  feature hook when next touched.
+- Workspace state lives in React contexts, not in big component files or prop
+  chains. Components read it through the hooks in `src/hooks/`
+  (`use-navigation`, `use-workspace-ui`, `use-notes`, `use-spaces`, `use-library`,
+  `use-imports`, `use-assistant`), e.g. `import { useNotes } from '@/hooks/use-notes'`,
+  instead of passing it down as props.
+- Every API-backed feature gets:
+  - a provider in `src/components/product/features/<feature>/<Feature>Provider.tsx`
+    that exports its context (made with `createFeatureContext`), and is added to
+    `features/WorkspaceProviders.tsx`;
+  - a hook in `src/hooks/use-<feature>.ts` that reads it with `useFeatureContext`.
+- New components never call `/v1/*` directly; a few older ones still do (asset
+  downloads, note history) and move behind a feature hook when next touched.
 - Providers are thin over React Query: they bundle queries and workspace-level
   actions, and never keep a second copy of server data.
 - Keep pure helpers (`*Model.ts`) as plain, unit-tested functions, and keep local UI

@@ -6,7 +6,7 @@ import type { SpaceRecord } from '../../workspace/model'
 import { createSpaceVariables, useSpaceActions, useSpaces as useSpacesQuery } from '../../workspace/useSpaces'
 import type { ListStatus } from '../../workspace/views'
 import { createFeatureContext } from '../createFeatureContext'
-import { useNavigation } from '../navigation/NavigationProvider'
+import { useNavigation } from '@/hooks/use-navigation'
 
 export type SpacesValue = {
   spaces: SpaceRecord[]
@@ -21,8 +21,7 @@ export type SpacesValue = {
   addNoteToSpace: (spaceId: string, noteId: string) => Promise<void>
 }
 
-const [SpacesContext, useSpaces] = createFeatureContext<SpacesValue>('Spaces')
-export { useSpaces }
+export const SpacesContext = createFeatureContext<SpacesValue>('Spaces')
 
 /** `/v1/spaces`: the user's Spaces and the workspace-level actions on them. */
 export function SpacesProvider({ children }: { children: ReactNode }) {

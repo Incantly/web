@@ -44,8 +44,7 @@ export type WorkspaceUIValue = {
   inbox: { items: InboxItem[]; dismiss: (id: string) => void }
 }
 
-const [WorkspaceUIContext, useWorkspaceUI] = createFeatureContext<WorkspaceUIValue>('WorkspaceUI')
-export { useWorkspaceUI }
+export const WorkspaceUIContext = createFeatureContext<WorkspaceUIValue>('WorkspaceUI')
 
 /** Which parts of the workspace chrome are open: sidebar, rail, panels, dialogs. No server state. */
 export function WorkspaceUIProvider({ children }: { children: ReactNode }) {

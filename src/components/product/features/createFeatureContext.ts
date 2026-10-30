@@ -1,19 +1,21 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, type Context } from 'react'
 
 /**
- * One context per feature. The context is named for React DevTools (`Notes.Provider`, …), and its hook
- * throws when used outside the provider, so a missing provider fails loudly instead of rendering
- * empty state.
+ * One context per feature, named for React DevTools (`Notes.Provider`, …). The provider lives in
+ * `features/<feature>/`; its hook lives in `src/hooks/use-<feature>.ts` and reads it with
+ * `useFeatureContext`.
  *
- *   const [NotesContext, useNotes] = createFeatureContext<NotesValue>('Notes')
+ *   export const NotesContext = createFeatureContext<NotesValue>('Notes')
  */
-export function createFeatureContext<T>(name: string) {
-  const Context = createContext<T | null>(null)
-  Context.displayName = name
-  function useFeature(): T {
-    const value = useContext(Context)
-    if (value === null) throw new Error(`use${name}() must be used inside <${name}Provider>`)
-    return value
-  }
-  return [Context, useFeature] as const
+export function createFeatureContext<T>(name: string): Context<T | null> {
+  const context = createContext<T | null>(null)
+  context.displayName = name
+  return context
+}
+
+/** Reads a feature context, and fails loudly when its provider is missing instead of rendering empty state. */
+export function useFeatureContext<T>(context: Context<T | null>): T {
+  const value = useContext(context)
+  if (value === null) throw new Error(`${context.displayName ?? 'Feature'} hook used outside <${context.displayName ?? 'Feature'}Provider>`)
+  return value
 }

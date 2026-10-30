@@ -6,10 +6,10 @@ import { aiApi, type AiAllowance } from '../../../../lib/api/ai'
 import type { AssistantContext } from '../../assistant/AssistantPanel'
 import { useCurrentUser } from '../../SessionGate'
 import { createFeatureContext } from '../createFeatureContext'
-import { useNavigation } from '../navigation/NavigationProvider'
-import { useNotes } from '../notes/NotesProvider'
-import { useSpaces } from '../spaces/SpacesProvider'
-import { useWorkspaceUI } from '../workspace-ui/WorkspaceUIProvider'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useNotes } from '@/hooks/use-notes'
+import { useSpaces } from '@/hooks/use-spaces'
+import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 
 export type AssistantValue = {
   /** Today's remaining AI spend (`GET /v1/ai/allowance`), shared by the chat and Settings. */
@@ -20,8 +20,7 @@ export type AssistantValue = {
   context: AssistantContext
 }
 
-const [AssistantStateContext, useAssistant] = createFeatureContext<AssistantValue>('Assistant')
-export { useAssistant }
+export const AssistantStateContext = createFeatureContext<AssistantValue>('Assistant')
 
 export const allowanceKey = (userId: string) => ['ai-allowance', userId] as const
 

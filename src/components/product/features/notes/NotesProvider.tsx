@@ -10,8 +10,8 @@ import { createNoteVariables, useCreateNote, useDeleteNote, useNotesList } from 
 import { noteSyncStore, resumePendingNotes } from '../../workspace/useNoteSession'
 import type { ListStatus } from '../../workspace/views'
 import { createFeatureContext } from '../createFeatureContext'
-import { useNavigation } from '../navigation/NavigationProvider'
-import { useSpaces } from '../spaces/SpacesProvider'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useSpaces } from '@/hooks/use-spaces'
 
 export type NotesValue = {
   notes: NoteRecord[]
@@ -25,8 +25,7 @@ export type NotesValue = {
   shareNote: (noteId: string) => void
 }
 
-const [NotesContext, useNotes] = createFeatureContext<NotesValue>('Notes')
-export { useNotes }
+export const NotesContext = createFeatureContext<NotesValue>('Notes')
 
 /** `/v1/notes`: the notes list and the actions that create, delete and share notes. */
 export function NotesProvider({ children }: { children: ReactNode }) {

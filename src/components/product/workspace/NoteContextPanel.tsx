@@ -8,9 +8,9 @@ import type { ContextPreviewRequest } from '../../../lib/api/context'
 import { EvidenceResults, IndexStatusView } from './ContextSearch'
 import { useContentSearch, useNoteIndexStatus, useReindexNote } from './useContextSearch'
 import { isUsableSource, sourceKindMeta, type SpaceRecord } from './model'
-import { useLibrary } from '../features/library/LibraryProvider'
-import { useNavigation } from '../features/navigation/NavigationProvider'
-import { useNotes } from '../features/notes/NotesProvider'
+import { useLibrary } from '@/hooks/use-library'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useNotes } from '@/hooks/use-notes'
 import { buttonSecondary, inputClass, labelClass } from './ui'
 
 const MAX_PICKED = 50

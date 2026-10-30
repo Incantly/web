@@ -16,8 +16,7 @@ export type ImportsValue = {
   registerNoteReloader: (noteId: string, reload: () => void) => () => void
 }
 
-const [ImportsContext, useImports] = createFeatureContext<ImportsValue>('Imports')
-export { useImports }
+export const ImportsContext = createFeatureContext<ImportsValue>('Imports')
 
 /** `/v1/imports`: file and web-page imports, tracked across reloads. */
 export function ImportsProvider({ children }: { children: ReactNode }) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { useAssistant } from '../features/assistant/AssistantProvider'
+import { useAssistant } from '@/hooks/use-assistant'
 import { isApiError } from '../../../lib/api/errors'
 import { displayName } from '../../../lib/identity'
 import { AppIcon, type IconName } from '../AppIcon'

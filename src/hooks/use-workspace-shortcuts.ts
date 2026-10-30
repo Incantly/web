@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useNavigation } from './navigation/NavigationProvider'
-import { useWorkspaceUI } from './workspace-ui/WorkspaceUIProvider'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 
 /** The Search page's field, focused by ⌘K. */
 export const WORKSPACE_SEARCH_INPUT_ID = 'workspace-search'

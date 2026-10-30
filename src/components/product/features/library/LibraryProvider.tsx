@@ -9,7 +9,7 @@ import { addSourceToLibrary, libraryKey, useLibrarySources, type AddProgress } f
 import { spaceSourcesKey } from '../../workspace/useSpaces'
 import type { ListStatus } from '../../workspace/views'
 import { createFeatureContext } from '../createFeatureContext'
-import { useNotes } from '../notes/NotesProvider'
+import { useNotes } from '@/hooks/use-notes'
 
 export type LibraryValue = {
   sources: SourceRecord[]
@@ -18,8 +18,7 @@ export type LibraryValue = {
   addSource: (input: AddSourceInput, options: { signal?: AbortSignal; onProgress?: (progress: AddProgress) => void }) => Promise<void>
 }
 
-const [LibraryContext, useLibrary] = createFeatureContext<LibraryValue>('Library')
-export { useLibrary }
+export const LibraryContext = createFeatureContext<LibraryValue>('Library')
 
 /** `/v1/library`: the user's Sources (refreshing while any are processing) and adding new ones. */
 export function LibraryProvider({ children }: { children: ReactNode }) {

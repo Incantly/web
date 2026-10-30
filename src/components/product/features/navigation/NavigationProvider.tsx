@@ -5,7 +5,7 @@ import type { BlockRange, EvidenceTarget } from '../../workspace/ContextSearch'
 import type { WorkspaceView } from '../../workspace/model'
 import { searchForView, viewFromSearch, type UrlState } from '../../workspace/viewUrl'
 import { createFeatureContext } from '../createFeatureContext'
-import { useWorkspaceUI } from '../workspace-ui/WorkspaceUIProvider'
+import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 
 type NoteContext = { noteId: string; spaceId: string } | null
 export type FocusBlock = BlockRange & { noteId: string; nonce: number }
@@ -27,8 +27,7 @@ export type NavigationValue = {
   evidenceTarget: EvidenceTarget
 }
 
-const [NavigationContext, useNavigation] = createFeatureContext<NavigationValue>('Navigation')
-export { useNavigation }
+export const NavigationContext = createFeatureContext<NavigationValue>('Navigation')
 
 function noteContextFor({ view, noteSpaceId }: UrlState): NoteContext {
   return view.startsWith('note:') && noteSpaceId ? { noteId: view.slice(5), spaceId: noteSpaceId } : null
