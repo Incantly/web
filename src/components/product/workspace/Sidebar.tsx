@@ -1,13 +1,14 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, type ReactNode } from 'react'
+import { useState, type HTMLAttributes, type ReactNode } from 'react'
 import { AppIcon, type IconName } from '../AppIcon'
 import { useCurrentUser } from '../SessionGate'
 import { displayName, initial } from '../../../lib/identity'
 import type { Navigate, NoteRecord, SourceRecord, SpaceRecord, WorkspaceView } from './model'
 import { sourceKindMeta } from './model'
 import { SpaceGlyph } from './ui'
+import { sourceDragProps, useSpaceDropTarget } from '@/hooks/use-source-drag'
 
 // Labels fade while the rail narrows; icons keep a fixed left offset so they never move.
 const fade = 'transition-opacity duration-200 motion-reduce:transition-none'
@@ -17,9 +18,11 @@ function Label({ collapsed, children, className = '' }: { collapsed: boolean; ch
   return <span className={`min-w-0 flex-1 truncate ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'} ${className}`}>{children}</span>
 }
 
-function RailItem({ icon, leading, label, active, collapsed, onClick, children }: { icon?: IconName; leading?: ReactNode; label: string; active: boolean; collapsed: boolean; onClick: () => void; children?: ReactNode }) {
-  return <button type="button" onClick={onClick} title={collapsed ? label : undefined} aria-current={active ? 'page' : undefined}
-    className={`${railButton} ${collapsed ? 'w-10' : 'w-full'} ${active ? 'bg-raised font-medium text-foreground' : 'text-muted'}`}>
+function RailItem({ icon, leading, label, active, collapsed, onClick, children, extra, className = '' }: { icon?: IconName; leading?: ReactNode; label: string; active: boolean; collapsed: boolean; onClick: () => void; children?: ReactNode
+  /** Drag and drop handlers and attributes. */
+  extra?: HTMLAttributes<HTMLButtonElement>; className?: string }) {
+  return <button type="button" onClick={onClick} title={collapsed ? label : undefined} aria-current={active ? 'page' : undefined} {...extra}
+    className={`${railButton} ${collapsed ? 'w-10' : 'w-full'} ${active ? 'bg-raised font-medium text-foreground' : 'text-muted'} ${className}`}>
     {leading ?? (icon ? <AppIcon name={icon} className="size-[1.125rem] shrink-0" /> : null)}
     <Label collapsed={collapsed}>{label}</Label>
     {children}
@@ -47,6 +50,20 @@ function Section({ id, icon, title, collapsed, open, onToggle, onOverview, activ
       </button>}
     <Foldable open={!collapsed && open}><div id={id} className="mt-0.5 grid gap-0.5">{children}</div></Foldable>
   </div>
+}
+
+/** A Space in the list. While a Library source is dragged it outlines itself, and a drop links the source here. */
+function SpaceRow({ space, active, onOpen, onLinkSource }: { space: SpaceRecord; active: boolean; onOpen: () => void; onLinkSource?: (spaceId: string, sourceId: string) => Promise<boolean> }) {
+  const target = useSpaceDropTarget(onLinkSource ? (sourceId) => onLinkSource(space.id, sourceId) : undefined)
+  // Drawn inside the row: the folding list clips anything outside it.
+  const ring = target.over ? 'bg-raised text-foreground ring-2 ring-inset ring-button' : target.armed ? 'outline-1 outline-dashed -outline-offset-1 outline-strong' : ''
+  return <RailItem leading={space.icon ? <SpaceGlyph icon={space.icon} size="sm" /> : undefined} icon="space" label={space.name} collapsed={false} active={active} onClick={onOpen}
+    extra={target.dropProps} className={ring}>
+    {target.over ? <span className="shrink-0 text-xs text-foreground">Add here</span>
+      : target.busy ? <span className="shrink-0 text-xs text-muted">Adding…</span>
+      : target.feedback ? <span role="status" title={target.feedback.text} className={`max-w-[55%] shrink-0 truncate text-xs ${target.feedback.tone === 'error' ? 'text-danger' : 'text-muted'}`}>{target.feedback.text}</span>
+      : null}
+  </RailItem>
 }
 
 export type NewAction = 'note' | 'space' | 'source' | 'import-file' | 'import-url'
@@ -79,7 +96,9 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
   </div>
 }
 
-export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, onOpenSearch, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; onOpenSearch: () => void; collapsed?: boolean; onClose?: () => void }) {
+export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, onOpenSearch, onLinkSource, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; onOpenSearch: () => void
+  /** Link a dragged Library source to a Space. Without it (the landing preview), nothing drags. */
+  onLinkSource?: (spaceId: string, sourceId: string) => Promise<boolean>; collapsed?: boolean; onClose?: () => void }) {
   const user = useCurrentUser()
   const [open, setOpen] = useState({ spaces: true, library: true })
   const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
@@ -105,13 +124,14 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenS
 
     <Section id="sidebar-spaces" icon="space" title="Spaces" collapsed={collapsed} open={open.spaces} onToggle={() => setOpen((current) => ({ ...current, spaces: !current.spaces }))} onOverview={() => navigate('spaces')} active={view === 'spaces' || view.startsWith('space:')}>
       <RailItem icon="plus" label="New Space" collapsed={false} active={false} onClick={() => onNew('space')} />
-      {activeSpaces.slice(0, LIST_LIMIT).map((space) => <RailItem key={space.id} leading={space.icon ? <SpaceGlyph icon={space.icon} size="sm" /> : undefined} icon="space" label={space.name} collapsed={false} active={view === `space:${space.id}`} onClick={() => navigate(`space:${space.id}`)} />)}
+      {activeSpaces.slice(0, LIST_LIMIT).map((space) => <SpaceRow key={space.id} space={space} active={view === `space:${space.id}`} onOpen={() => navigate(`space:${space.id}`)} onLinkSource={onLinkSource} />)}
       {spaces.length > 0 ? <RailItem icon="chevron" label={activeSpaces.length > LIST_LIMIT ? `All Spaces (${activeSpaces.length})` : 'All Spaces'} collapsed={false} active={view === 'spaces'} onClick={() => navigate('spaces')} /> : null}
     </Section>
 
     <Section id="sidebar-library" icon="library" title="My Library" collapsed={collapsed} open={open.library} onToggle={() => setOpen((current) => ({ ...current, library: !current.library }))} onOverview={() => navigate('library')} active={view === 'library'}>
       <RailItem icon="upload" label="Add to Library" collapsed={false} active={false} onClick={() => onNew('source')} />
-      {librarySources.slice(0, LIST_LIMIT).map((source) => <RailItem key={source.id} icon={sourceKindMeta(source.kind).icon} label={source.title} collapsed={false} active={false} onClick={() => onOpenSource(source.id)} />)}
+      {librarySources.slice(0, LIST_LIMIT).map((source) => <RailItem key={source.id} icon={sourceKindMeta(source.kind).icon} label={source.title} collapsed={false} active={false} onClick={() => onOpenSource(source.id)}
+        extra={onLinkSource && source.status !== 'ARCHIVED' ? { ...sourceDragProps(source.id, source.title), title: 'Drag onto a Space to add it there' } : undefined} className={onLinkSource ? 'cursor-grab active:cursor-grabbing' : ''} />)}
       {sources.length > 0 ? <RailItem icon="chevron" label={librarySources.length > LIST_LIMIT ? `Open Library (${librarySources.length})` : 'Open Library'} collapsed={false} active={view === 'library'} onClick={() => navigate('library')} /> : null}
     </Section>
 
