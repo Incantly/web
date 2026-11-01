@@ -288,9 +288,22 @@ function ImageAlignButtons({ editor }: { editor: Editor }) {
 
 export interface DocumentBubbleToolbarProps extends Omit<DocumentToolbarProps, 'children'> {
   editor?: Editor | null
+  /** App actions on the selected text (e.g. "Add to chat"), shown before the formatting buttons. */
+  leading?: (editor: Editor) => ReactNode
 }
 
-export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...props }: DocumentBubbleToolbarProps) {
+/** A labelled button for the bubble toolbar that keeps the selection (it runs on mousedown, like the format buttons). */
+export function DocumentToolbarAction({ label, onRun, children }: { label: string; onRun: () => void; children: ReactNode }) {
+  return (
+    <Button type="button" variant="ghost" className="incantly-format-button incantly-format-action" aria-label={label} tooltip={label}
+      onMouseDown={(event: MouseEvent<HTMLButtonElement>) => { event.preventDefault(); onRun() }}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onRun() } }}>
+      {children}
+    </Button>
+  )
+}
+
+export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leading, ...props }: DocumentBubbleToolbarProps) {
   const contextualEditor = useDocumentEditor()
   const editor = suppliedEditor ?? contextualEditor
   const state = useFormattingState(editor)
@@ -342,6 +355,7 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, ...pr
           <ImageAlignButtons editor={editor} />
         ) : (
           <>
+            {leading ? <><ToolbarGroup>{leading(editor)}</ToolbarGroup><ToolbarSeparator /></> : null}
             <ToolbarGroup>
             <FormatButton editor={editor} label="Bold" shortcut="Mod-B" active={state.bold} command={toggleMark('bold')}><strong>B</strong></FormatButton>
             <FormatButton editor={editor} label="Italic" shortcut="Mod-I" active={state.italic} command={toggleMark('italic')}><em>I</em></FormatButton>

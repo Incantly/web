@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
-import { DocumentBubbleToolbar, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
+import { DocumentBubbleToolbar, DocumentToolbarAction, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
 import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
 import { TableSelectionOverlay } from '@/components/tiptap-node/table-node/ui/table-selection-overlay'
 import { TableExtendRowColumnButtons } from '@/components/tiptap-node/table-node/ui/table-extend-row-column-button'
@@ -18,9 +18,11 @@ import type { NoteSession } from './useNoteSession'
 import { SidePanel } from './sidePanel'
 import { useNotesCache, useRevisions } from './useNotes'
 import { useCurrentUser } from '../SessionGate'
+import { useAddSelectionToChat } from '@/hooks/use-assistant'
 import { useImports } from '@/hooks/use-imports'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
+import { useNoteSuggestions } from '@/hooks/use-note-suggestions'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { DocumentAssetsProvider } from '../../../lib/document-editor/assetHost'
@@ -29,6 +31,7 @@ import { libraryFollowUp, useServerAssetHost } from './useAssets'
 import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChrome'
 import { NoteContextPanel } from './NoteContextPanel'
 import { NoteSourcesSection } from './NoteSourcesSection'
+import { NoteSuggestionsBar } from './NoteSuggestionsBar'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, TopBar, buttonPrimary, buttonSecondary } from './ui'
 
 const DocumentEditor = dynamic(
@@ -118,7 +121,7 @@ function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open:
           {revisions.data?.map((revision, index) => <li key={revision.id}>
             <button type="button" onClick={() => setPreviewId(revision.id)} className="flex min-h-14 w-full items-center gap-3 rounded-lg px-2 text-left hover:bg-surface">
               <AppIcon name={revision.kind === 'restore' ? 'restore' : revision.kind === 'import' ? 'import' : 'history'} className="size-4 shrink-0 text-muted" />
-              <span className="min-w-0 flex-1"><span className="block text-sm text-foreground">{dateFormat.format(new Date(revision.createdAt))}</span><span className="block text-xs text-muted">Version {revision.revisionNumber}{index === 0 ? ' · Current' : ''}{revision.kind === 'restore' ? ' · Restored' : revision.kind === 'import' ? ' · Imported' : ''}</span></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm text-foreground">{dateFormat.format(new Date(revision.createdAt))}</span><span className="block text-xs text-muted">Version {revision.revisionNumber}{index === 0 ? ' · Current' : ''}{revision.kind === 'restore' ? ' · Restored' : revision.kind === 'import' ? ' · Imported' : revision.origin === 'ai' ? ' · Edited by AI, accepted by you' : ''}</span></span>
               <AppIcon name="chevron" className="size-4 shrink-0 text-subtle" />
             </button>
           </li>)}
@@ -187,6 +190,9 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
   const [editorReady, setEditorReady] = useState(0)
+  const [editor, setEditor] = useState<Editor | null>(null)
+  const review = useNoteSuggestions(noteId, session, editor)
+  const selectionToChat = useAddSelectionToChat(noteId, session)
   const [missingBlock, setMissingBlock] = useState(false)
   // Jump to a cited passage once the editor (re)loads; the nonce repeats a jump to the same block.
   useEffect(() => {
@@ -230,14 +236,16 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     {session.document && (session.phase === 'ready' || session.phase === 'cached') && session.sync?.status !== 'gone' ? <>
       {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
       {missingBlock ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">That passage has changed since it was indexed, so it can’t be highlighted.</p> : null}
+      {selectionToChat.error ? <p role="status" className="mx-auto mt-2 flex w-fit items-center gap-1 rounded-full bg-surface pl-3 text-xs text-muted">{selectionToChat.error}<button type="button" onClick={selectionToChat.dismissError} aria-label="Dismiss" className="grid size-8 place-items-center rounded-full hover:text-foreground"><AppIcon name="close" className="size-3.5" /></button></p> : null}
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
       {/* No full-height stretch: the top bar shares this scroll box, so an empty note would scroll by its height. */}
       <div>
           <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…"
-            onReady={(editor) => { editorRef.current = editor; setEditorReady((value) => value + 1) }}
+            onReady={(ready) => { editorRef.current = ready; setEditor(ready); setEditorReady((value) => value + 1) }}
             onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
-            <DocumentBubbleToolbar /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
+            <DocumentBubbleToolbar leading={(current) => <DocumentToolbarAction label="Add to chat" onRun={() => void selectionToChat.addToChat(current)}><AppIcon name="sparkles" className="size-4" /><span>Add to chat</span></DocumentToolbarAction>} /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
           </DocumentEditor>
+          <NoteSuggestionsBar review={review} />
       </div>
     </> : null}
 

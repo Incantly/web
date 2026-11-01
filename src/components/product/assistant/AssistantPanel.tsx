@@ -2,19 +2,21 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import katex from 'katex'
-import type { AiCommand, AnswerCitation } from '../../../lib/api/ai'
+import type { AiCommand, AnswerCitation, GroundedAnswer, PendingApproval } from '../../../lib/api/ai'
 import { useCurrentUser } from '../SessionGate'
 import { useAssistant } from '@/hooks/use-assistant'
 import { useLibrary } from '@/hooks/use-library'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
+import { useNoteProposalsQuery } from '@/hooks/use-note-suggestions'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { AppIcon, type IconName } from '../AppIcon'
 import type { EvidenceTarget } from '../workspace/ContextSearch'
+import { suggestionBlockId, suggestionCountLabel } from '../workspace/suggestionModel'
 import { sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from '../workspace/model'
 import { SidePanel, useMediaQuery } from '../workspace/sidePanel'
 import { iconButton } from '../workspace/ui'
-import { canRetry, isGroundedAnswer, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
+import { canRetry, chatModes, editsNotStored, stepsSummary, type ActivityStep, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
 import { Citation, citationTargetId, type CitationItem } from './Citations'
 import { PromptInput, type PromptAction } from './PromptInput'
 import { StreamingResponse } from './StreamingResponse'
@@ -35,16 +37,11 @@ export function scopeChoices({ note, space }: AssistantContext): ScopeChoice[] {
 
 const scopeIcon: Record<ScopeKind, IconName> = { NOTE: 'document', SPACE: 'space', SELECTED_SOURCES: 'library', LIBRARY: 'library' }
 
-const modes: PromptAction[] = [
-  { value: 'ask', label: 'Ask with sources', description: 'Answers from your notes and files, cited.', icon: 'quote' },
-  { value: 'practice', label: 'Quiz me', description: 'Practice questions from your material.', icon: 'edit' },
-]
-
 function suggestions(kind: ScopeKind | undefined): { text: string; command: AiCommand; icon: IconName }[] {
   const subject = kind === 'NOTE' ? 'this note' : kind === 'SPACE' ? 'this Space' : 'my notes'
   return [
     { text: `What are the key ideas in ${subject}?`, command: 'ask', icon: 'sparkles' },
-    { text: `Explain the hardest part of ${subject} simply`, command: 'ask', icon: 'quote' },
+    kind === 'NOTE' ? { text: 'Suggest ways to make this note clearer', command: 'note.assist', icon: 'edit' } : { text: `Explain the hardest part of ${subject} simply`, command: 'ask', icon: 'quote' },
     { text: `Quiz me on ${subject}`, command: 'practice', icon: 'edit' },
   ]
 }
@@ -78,7 +75,7 @@ export function AssistantPanel() {
 
 function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; onClose: () => void; context: AssistantContext; initialDraft: string }) {
   const userId = useCurrentUser().id
-  const { allowance, refreshAllowance } = useAssistant()
+  const { allowance, refreshAllowance, selection, clearSelection } = useAssistant()
   const { notes } = useNotes()
   const { sources } = useLibrary()
   const { evidenceTarget: target } = useNavigation()
@@ -86,8 +83,14 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
   const choices = useMemo(() => scopeChoices(context), [context])
   const [picked, setPicked] = useState<ScopeKind | null>(null)
   // A pick holds while it is on offer; otherwise the narrowest context wins. Everything is only ever an explicit pick.
-  const scope = choices.find((choice) => choice.kind === picked) ?? choices.find((choice) => choice.kind !== 'LIBRARY') ?? null
-  const [mode, setMode] = useState<AiCommand>('ask')
+  // Selected note text is read from that note, so it always searches the note.
+  const scope = (selection ? choices.find((choice) => choice.kind === 'NOTE') : undefined) ?? choices.find((choice) => choice.kind === picked) ?? choices.find((choice) => choice.kind !== 'LIBRARY') ?? null
+  const [pickedMode, setMode] = useState<AiCommand | null>(null)
+  const modes = chatModes(scope?.kind)
+  const mode = resolveMode(scope?.kind, pickedMode)
+  // The default needs no chip; a picked mode shows one that turns it off.
+  const chip = mode === modes[0] ? null : mode
+  const menu: PromptAction[] = modes.map((item) => ({ value: item.command, label: item.label, description: item.description, icon: item.icon }))
   const [draft, setDraft] = useState(initialDraft)
   const { clearAssistantPrompt } = useWorkspaceUI()
   // The box has the handed-off text now; moving to another note shouldn't bring it back.
@@ -102,9 +105,13 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
     : tooShort ? 'Type a little more.'
     : draft.length > MAX_PROMPT ? `Keep it under ${MAX_PROMPT.toLocaleString()} characters.` : undefined
 
-  function send(text: string, command: AiCommand = mode) {
+  function send(text: string, command: AiCommand = mode.command) {
     if (!scope || limited) return
-    chat.send(text, scope, command)
+    // Selected text always goes to the note assistant, which answers about it and may suggest edits to it.
+    if (selection && scope.kind === 'NOTE') {
+      chat.send(text, scope, 'note.assist', selection)
+      clearSelection()
+    } else chat.send(text, scope, command)
     setDraft('')
   }
 
@@ -115,17 +122,25 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
     </header>
 
     <Thread turns={chat.turns} scope={scope} lookup={lookup} disabled={!scope || limited}
-      onSuggest={(text, command) => send(text, command)} onRetry={chat.retry} onClarify={chat.clarify} onRevealed={chat.markRevealed} />
+      onSuggest={(text, command) => send(text, command)} onRetry={chat.retry} onClarify={chat.clarify} onRevealed={chat.markRevealed}
+      onApproval={(turn, toolCallId, decision) => void chat.decideApproval(turn, toolCallId, decision)} />
 
     <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
       <PromptInput value={draft} onValueChange={setDraft} onSubmit={(text) => send(text)} maxLength={MAX_PROMPT}
         canSubmit={Boolean(scope) && !limited && draft.trim().length >= MIN_PROMPT}
         loading={Boolean(chat.active)} onStop={chat.active ? () => chat.stop(chat.active!) : undefined}
-        placeholder={mode === 'practice' ? 'What should the quiz cover?' : 'Ask about your notes…'}
-        actions={modes} onAction={(value) => setMode(value as AiCommand)} hint={draft || limited || !scope ? hint : undefined}
-        header={mode === 'practice' ? <div className="px-1"><button type="button" onClick={() => setMode('ask')} aria-label="Quiz mode on. Turn off" className="group inline-flex min-h-11 items-center">
-          <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-2.5 text-xs font-medium text-foreground transition-colors group-hover:bg-canvas">
-            <AppIcon name="edit" className="size-3.5 text-muted" />Quiz me<AppIcon name="close" className="size-3.5 text-muted" /></span></button></div> : null}
+        placeholder={selection ? 'Ask about the selected text, or ask for changes…' : mode.placeholder}
+        actions={menu} onAction={(value) => setMode(value as AiCommand)} hint={draft || limited || !scope ? hint : undefined}
+        header={chip || selection ? <div className="flex flex-col items-start gap-1 px-1">
+          {selection ? <div className="flex w-full min-w-0 items-start gap-2 rounded-xl bg-surface py-1.5 pl-3 pr-0.5">
+            <AppIcon name="quote" className="mt-1 size-3.5 shrink-0 text-muted" />
+            <p className="min-w-0 flex-1 py-0.5 text-xs leading-5 text-muted"><span className="font-medium text-foreground">Selected text</span><span className="line-clamp-2 break-words">{selection.quote}</span></p>
+            <button type="button" onClick={clearSelection} aria-label="Remove selected text" className="-my-1 grid size-11 shrink-0 place-items-center rounded-lg text-muted hover:text-foreground"><AppIcon name="close" className="size-3.5" /></button>
+          </div> : null}
+          {chip ? <button type="button" onClick={() => setMode(null)} aria-label={`${chip.chip} on. Turn off`} className="group inline-flex min-h-11 items-center">
+            <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-2.5 text-xs font-medium text-foreground transition-colors group-hover:bg-canvas">
+              <AppIcon name={chip.icon} className="size-3.5 text-muted" />{chip.chip}<AppIcon name="close" className="size-3.5 text-muted" /></span></button> : null}
+        </div> : null}
         leadingAction={<ScopeMenu choices={choices} value={scope} onChange={setPicked} />} />
     </div>
   </div>
@@ -173,17 +188,18 @@ function ScopeMenu({ choices, value, onChange }: { choices: ScopeChoice[]; value
   </div>
 }
 
-function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify, onRevealed }: {
+function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify, onRevealed, onApproval }: {
   turns: Turn[]; scope: ScopeChoice | null; lookup: Lookup; disabled: boolean
   onSuggest: (text: string, command: AiCommand) => void
   onRetry: (turn: AssistantTurn) => void
   onClarify: ReturnType<typeof useAssistantChat>['clarify']
   onRevealed: (id: string) => void
+  onApproval: (turn: AssistantTurn, toolCallId: string, decision: 'approve' | 'reject') => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
   const last = turns.at(-1)
-  const lastKey = last ? `${last.id}:${last.role === 'assistant' ? `${last.state}:${last.progress ?? ''}` : ''}` : ''
+  const lastKey = last ? `${last.id}:${last.role === 'assistant' ? `${last.state}:${last.progress ?? ''}:${last.approvals?.length ?? 0}:${last.steps?.map((step) => step.state).join() ?? ''}` : ''}` : ''
   // Follow the conversation while the reader is at the bottom; leave them alone if they scrolled up.
   useEffect(() => {
     const element = scroller.current
@@ -191,15 +207,15 @@ function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify,
     element.scrollTo({ top: element.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }, [lastKey, last?.role])
 
-  const status = last?.role === 'assistant' ? (last.state === 'done' ? 'Answer ready.' : last.state === 'failed' ? last.error : last.state === 'clarify' ? 'The assistant needs you to choose.' : last.state === 'canceled' ? 'Stopped.' : last.progress) : ''
+  const status = last?.role === 'assistant' ? (last.approvals?.length ? 'The assistant is waiting for your OK.' : last.state === 'done' ? 'Answer ready.' : last.state === 'failed' ? last.error : last.state === 'clarify' ? 'The assistant needs you to choose.' : last.state === 'canceled' ? 'Stopped.' : last.progress) : ''
 
   return <div ref={scroller} onScroll={(event) => { const element = event.currentTarget; pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 48 }}
     className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
     <p role="status" aria-live="polite" className="sr-only">{status}</p>
     {turns.length ? <ol className="space-y-6 px-4 py-5" aria-label="Conversation">
       {turns.map((turn) => <li key={turn.id} className="min-w-0">
-        {turn.role === 'user' ? <UserBubble text={turn.text} quiz={turn.command === 'practice'} />
-          : <AssistantReply turn={turn} lookup={lookup} onRetry={() => onRetry(turn)} onClarify={(option) => onClarify(turn, option)} onRevealed={() => onRevealed(turn.id)} />}
+        {turn.role === 'user' ? <UserBubble text={turn.text} quote={turn.quote} label={turn.command === 'practice' ? 'Quiz' : null} />
+          : <AssistantReply turn={turn} lookup={lookup} onRetry={() => onRetry(turn)} onClarify={(option) => onClarify(turn, option)} onRevealed={() => onRevealed(turn.id)} onApproval={(toolCallId, decision) => onApproval(turn, toolCallId, decision)} />}
       </li>)}
     </ol> : <Welcome scope={scope} disabled={disabled} onSuggest={onSuggest} />}
   </div>
@@ -222,9 +238,10 @@ function Welcome({ scope, disabled, onSuggest }: { scope: ScopeChoice | null; di
   </div>
 }
 
-function UserBubble({ text, quiz }: { text: string; quiz: boolean }) {
+function UserBubble({ text, quote, label }: { text: string; quote?: string; label: string | null }) {
   return <div className="flex flex-col items-end gap-1">
-    {quiz ? <span className="inline-flex items-center gap-1 text-xs text-muted"><AppIcon name="edit" className="size-3" />Quiz</span> : null}
+    {label ? <span className="inline-flex items-center gap-1 text-xs text-muted"><AppIcon name="edit" className="size-3" />{label}</span> : null}
+    {quote ? <p className="line-clamp-3 max-w-[85%] break-words border-r-2 border-strong pr-3 text-right text-sm leading-6 text-muted">{quote}</p> : null}
     <p className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-surface px-4 py-2.5 text-[0.9375rem] leading-6 text-foreground">{text}</p>
   </div>
 }
@@ -245,15 +262,64 @@ function Notice({ tone = 'muted', children, action }: { tone?: 'muted' | 'danger
 
 const smallButton = 'inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-default bg-raised px-3 text-sm font-medium text-foreground transition-colors hover:border-strong hover:bg-surface'
 
-function AssistantReply({ turn, lookup, onRetry, onClarify, onRevealed }: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void }) {
-  if (turn.state === 'sending' || turn.state === 'running') return <Progress label={turn.progress ?? 'Working…'} />
+/** What the assistant is doing (or did), one line per tool call: a spinner while it runs, then ✓ or ✕. */
+function StepList({ steps }: { steps: ActivityStep[] }) {
+  return <ol className="space-y-1.5" aria-label="Steps">
+    {steps.map((step) => <li key={step.id} className="flex min-w-0 items-start gap-2.5 text-sm leading-6 animate-[citation-in_220ms_ease-out_both] motion-reduce:animate-none">
+      <span aria-hidden="true" className="mt-1 grid size-4 shrink-0 place-items-center">
+        {step.state === 'running' ? <span className="size-3 animate-spin rounded-full border-2 border-default border-t-foreground motion-reduce:animate-none" />
+          : step.state === 'done' ? <AppIcon name="check" className="size-4 text-accent" strokeWidth={2} />
+          : <AppIcon name="close" className="size-4 text-danger" strokeWidth={2} />}
+      </span>
+      <span className={`min-w-0 ${step.state === 'running' ? 'text-foreground' : step.state === 'done' ? 'text-muted' : 'text-danger'}`}>
+        {step.label}{step.state === 'running' ? '…' : ''}{step.detail ? <span className="text-subtle"> · {step.detail}</span> : null}
+        <span className="sr-only">{step.state === 'running' ? ' (in progress)' : step.state === 'done' ? ' (done)' : ' (didn’t work)'}</span>
+      </span>
+    </li>)}
+  </ol>
+}
+
+/** A finished reply keeps its steps folded away under the answer's header. */
+function StepsDisclosure({ steps }: { steps: ActivityStep[] }) {
+  if (!steps.length) return null
+  return <details className="group mb-2">
+    <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm text-muted transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+      <AppIcon name="chevron" className="size-3.5 transition-transform group-open:rotate-90 motion-reduce:transition-none" />{stepsSummary(steps)}
+    </summary>
+    <div className="pb-2 pl-1"><StepList steps={steps} /></div>
+  </details>
+}
+
+function AssistantReply(props: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void }) {
+  const { turn } = props
+  const live = turn.state === 'sending' || turn.state === 'running'
+  return <>
+    {!live && turn.steps?.length ? <StepsDisclosure steps={turn.steps} /> : null}
+    <ReplyBody {...props} />
+  </>
+}
+
+function ReplyBody({ turn, lookup, onRetry, onClarify, onRevealed, onApproval }: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void }) {
+  if (turn.state === 'sending' || turn.state === 'running') return <div className="space-y-3">
+    {turn.steps?.length ? <StepList steps={turn.steps} /> : null}
+    {turn.steps?.some((step) => step.state === 'running') ? null : <Progress label={turn.progress ?? 'Working…'} />}
+    {turn.approvals?.map((approval) => <ApprovalCard key={approval.toolCallId} approval={approval} busy={turn.deciding === approval.toolCallId} disabled={Boolean(turn.deciding)} onDecide={(decision) => onApproval(approval.toolCallId, decision)} />)}
+    {turn.approvalError ? <p role="alert" className="text-sm text-danger">{turn.approvalError}</p> : null}
+  </div>
   if (turn.state === 'clarify') return <div className="space-y-2.5">
     <p className="text-sm text-foreground">Did you want…</p>
     <div className="flex flex-col items-start gap-2">{turn.options?.map((option) => <button key={option.command} type="button" onClick={() => onClarify(option)} className={smallButton}>{option.description}</button>)}</div>
   </div>
   if (turn.state === 'failed') return <Notice tone="danger" action={canRetry(turn.failureCode) ? <button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Try again</button> : null}>{turn.error ?? 'Something went wrong.'}</Notice>
   if (turn.state === 'canceled') return <Notice action={<button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Ask again</button>}>Stopped.</Notice>
-  if (isGroundedAnswer(turn.job)) return <GroundedReply turn={turn} lookup={lookup} onRetry={onRetry} onRevealed={onRevealed} />
+  if (isGroundedAnswer(turn.job)) return <GroundedReply turn={turn} result={turn.job.result} lookup={lookup} onRetry={onRetry} onRevealed={onRevealed} />
+  if (isNoteAssist(turn.job)) return <div className="space-y-3">
+    <GroundedReply turn={turn} result={turn.job.result} lookup={lookup} onRetry={onRetry} onRevealed={onRevealed} />
+    {editsNotStored(turn.job.result.proposalIds, turn.steps) ? <Notice tone="danger" action={<button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Try again</button>}>
+      The assistant couldn’t turn this into a suggested edit, so nothing in your note changed.
+    </Notice> : null}
+    {turn.job.result.proposalIds.length && turn.request.scope.scope.noteId ? <SuggestionsLink noteId={turn.request.scope.scope.noteId} proposalIds={turn.job.result.proposalIds} lookup={lookup} /> : null}
+  </div>
   if (isPracticeQuestions(turn.job)) return <PracticeReply turn={turn} lookup={lookup} onRetry={onRetry} />
   return <Notice>This answer can’t be shown here yet.</Notice>
 }
@@ -366,14 +432,41 @@ function useReveal(total: number, skip: boolean, onDone: () => void) {
   return instant ? total : chars
 }
 
-function GroundedReply({ turn, lookup, onRetry, onRevealed }: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onRevealed: () => void }) {
-  const result = isGroundedAnswer(turn.job) ? turn.job.result : null
+/** A cited answer: the grounded answer, or the note assistant's reply (which has no sufficiency). */
+type CitedResult = { answer: string; citations: AnswerCitation[]; sufficiency?: GroundedAnswer['sufficiency'] }
+
+/** An action the assistant wants to take, with the server's own preview of it. Never approved for the user. */
+function ApprovalCard({ approval, busy, disabled, onDecide }: { approval: PendingApproval; busy: boolean; disabled: boolean; onDecide: (decision: 'approve' | 'reject') => void }) {
+  const expires = approval.expiresAt ? resetTime(approval.expiresAt) : null
+  return <div role="group" aria-label="The assistant asks for your OK" className="rounded-xl border border-strong bg-raised p-3.5">
+    <p className="flex items-center gap-2 text-xs font-medium text-muted"><AppIcon name="alert" className="size-3.5" />Needs your OK{expires ? ` · until ${expires}` : ''}</p>
+    <p className="mt-1.5 text-[0.9375rem] font-medium text-foreground">{approval.preview.title}</p>
+    {approval.preview.changes.length ? <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm leading-6 text-muted marker:text-subtle">{approval.preview.changes.map((change, index) => <li key={index}>{change}</li>)}</ul> : null}
+    <div className="mt-3 flex flex-wrap justify-end gap-2">
+      <button type="button" disabled={disabled} onClick={() => onDecide('reject')} className={smallButton}>Don’t allow</button>
+      <button type="button" disabled={disabled} onClick={() => onDecide('approve')} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-button px-3 text-sm font-medium text-inverse transition-colors hover:bg-button-hover disabled:opacity-50">{busy ? 'Sending…' : 'Allow'}</button>
+    </div>
+  </div>
+}
+
+/** "2 suggested changes in the note", with a way to jump to the first one still open. */
+function SuggestionsLink({ noteId, proposalIds, lookup }: { noteId: string; proposalIds: string[]; lookup: Lookup }) {
+  const proposals = useNoteProposalsQuery(noteId)
+  const open = (proposals.data ?? []).filter((proposal) => proposalIds.includes(proposal.id)).flatMap((proposal) => proposal.changes.filter((change) => change.state === null))
+  const first = open.map(suggestionBlockId).find(Boolean)
+  return <div className="flex items-center gap-3 rounded-xl border border-default bg-surface p-2 pl-3">
+    <AppIcon name="sparkles" className="size-4 shrink-0 text-accent" />
+    <p className="min-w-0 flex-1 text-sm text-foreground">{proposals.isPending ? 'Suggested changes in the note' : open.length ? `${suggestionCountLabel(open.length)} in the note` : 'Suggestions reviewed'}</p>
+    {first ? <button type="button" onClick={() => lookup.target.openNote(noteId, { blockId: first, endBlockId: first })} className={smallButton}>Review</button> : null}
+  </div>
+}
+
+function GroundedReply({ turn, result, lookup, onRetry, onRevealed }: { turn: AssistantTurn; result: CitedResult; lookup: Lookup; onRetry: () => void; onRevealed: () => void }) {
   const idPrefix = `answer-${turn.id}`
   const { segments, order } = useMemo(() => segmentAnswer(result?.answer ?? '', new Set(result?.citations.map((item: AnswerCitation) => item.ref))), [result])
   const total = textLength(segments)
   const chars = useReveal(total, Boolean(turn.revealed), onRevealed)
   const cite = useCiteFocus(idPrefix)
-  if (!result) return null
   if (result.sufficiency === 'NOT_FOUND') return notFound(turn, onRetry)
   const items = resolveCitations(order, result.citations, turn.passages).map((item) => toItem(item, lookup))
   const plain = segments.map((segment) => (segment.kind === 'text' ? segment.text : '')).join('').trim()

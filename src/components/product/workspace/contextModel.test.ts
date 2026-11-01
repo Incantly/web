@@ -3,7 +3,7 @@ import { ApiError } from '../../../lib/api/errors'
 import type { EvidenceDto, IndexStatusDto } from '../../../lib/api/context'
 import { formatTimestamp, groupEvidence, indexBadge, indexStillBuilding, locatorLabel, previewBanners, retryAfterSeconds, youtubeLink } from './contextModel'
 
-const status = (overrides: Partial<IndexStatusDto>): IndexStatusDto => ({ lexicalReady: false, vectorReady: false, building: false, indexedVersion: 0, passageCount: 0, failureCode: null, ...overrides })
+const status = (overrides: Partial<IndexStatusDto>): IndexStatusDto => ({ lexicalReady: false, vectorReady: false, building: false, indexedVersion: 0, passageCount: 0, embeddedPassageCount: 0, searchReadiness: 'NONE', failureCode: null, ...overrides })
 
 function evidence(id: string, citation: Partial<EvidenceDto['citation']>): EvidenceDto {
   return { evidenceId: id, text: `text ${id}`, tokenCount: 3, citation: { kind: 'SOURCE', noteId: null, noteRevisionId: null, sourceId: null, sourceVersionId: null, title: 'T', headingPath: [], blockId: 'b', endBlockId: 'b', page: null, startMs: null, endMs: null, sourceKind: null, assetId: null, locator: { type: 'BLOCK' }, ...citation } as EvidenceDto['citation'] }

@@ -41,3 +41,35 @@ export function revealBlockRange(editor: Editor | null, startId: string, endId: 
   if (element instanceof HTMLElement) element.scrollIntoView({ block: 'center' })
   return true
 }
+
+/** A selected stretch of one text block: its canonical ID and offsets into its text (a hard break counts as one). */
+export type SelectedTextRange = { nodeId: string; from: number; to: number }
+
+/**
+ * The current selection as per-block text ranges (at most `limit`), for sending a selection by
+ * reference instead of by text. Blocks without a stable ID and empty stretches are skipped.
+ */
+export function selectedTextRanges(editor: Editor | null, limit = 20): SelectedTextRange[] {
+  if (!editor || editor.isDestroyed) return []
+  const { from, to, empty } = editor.state.selection
+  if (empty) return []
+  const ranges: SelectedTextRange[] = []
+  editor.state.doc.nodesBetween(from, to, (node, pos) => {
+    if (ranges.length >= limit) return false
+    if (!node.isTextblock) return true
+    const id = node.attrs?.id
+    const start = pos + 1
+    const rangeFrom = Math.max(from, start) - start
+    const rangeTo = Math.min(to, start + node.content.size) - start
+    if (typeof id === 'string' && NODE_ID.test(id) && rangeTo > rangeFrom) ranges.push({ nodeId: id, from: rangeFrom, to: rangeTo })
+    return false
+  })
+  return ranges
+}
+
+/** The selected text, for showing what was picked (never sent to the server). */
+export function selectedText(editor: Editor | null): string {
+  if (!editor || editor.isDestroyed) return ''
+  const { from, to } = editor.state.selection
+  return editor.state.doc.textBetween(from, to, '\n', ' ').trim()
+}

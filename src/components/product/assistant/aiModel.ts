@@ -1,11 +1,34 @@
-import type { AiCommand, AiJob, AiJobEvent, AiScope, AnswerCitation, CitedPassage, ClarificationOption, GroundedAnswer, PracticeQuestions } from '../../../lib/api/ai'
+import type { AiCommand, AiJob, AiJobEvent, AiScope, AnswerCitation, CitedPassage, ClarificationOption, GroundedAnswer, NoteAssistResult, NoteSelection, PendingApproval, PracticeQuestions } from '../../../lib/api/ai'
 
 export type ScopeKind = AiScope['kind']
+
+/** A mode in the chat's "+" menu: the explicit task each message is sent as. `icon` is an AppIcon name. */
+export type ChatMode = { command: AiCommand; label: string; description: string; icon: 'sparkles' | 'quote' | 'edit'; chip: string; placeholder: string }
+
+const noteAssistant: ChatMode = { command: 'note.assist', label: 'Help with this note', description: 'Answers, explains and suggests edits you accept or reject.', icon: 'sparkles', chip: 'Note assistant', placeholder: 'Ask anything, or ask for changes…' }
+const askWithSources: ChatMode = { command: 'ask', label: 'Ask with sources', description: 'Answers only from your notes and files, cited.', icon: 'quote', chip: 'Sources only', placeholder: 'Ask about your notes…' }
+const quiz: ChatMode = { command: 'practice', label: 'Quiz me', description: 'Practice questions from your material.', icon: 'edit', chip: 'Quiz me', placeholder: 'What should the quiz cover?' }
+
+/**
+ * The modes on offer for a scope, default first. On one note the note assistant is the default: it
+ * can explain beyond the note and suggest edits, where "Ask with sources" only answers from the
+ * user's material (and says so when it doesn't cover the question).
+ */
+export function chatModes(kind: ScopeKind | undefined): ChatMode[] {
+  return kind === 'NOTE' ? [noteAssistant, askWithSources, quiz] : [askWithSources, quiz]
+}
+
+/** The mode a message goes out as: the user's pick while it is on offer, else the scope's default. */
+export function resolveMode(kind: ScopeKind | undefined, picked: AiCommand | null): ChatMode {
+  const modes = chatModes(kind)
+  return modes.find((mode) => mode.command === picked) ?? modes[0]
+}
 
 /** What the assistant may search, with the label shown on the scope pill. */
 export type ScopeChoice = { kind: ScopeKind; scope: AiScope; label: string }
 
-export type UserTurn = { id: string; role: 'user'; text: string; command?: AiCommand }
+/** `quote` is the selected note text shown above the message; only the selection's ranges are sent. */
+export type UserTurn = { id: string; role: 'user'; text: string; command?: AiCommand; quote?: string }
 
 export type AssistantState = 'sending' | 'running' | 'done' | 'clarify' | 'failed' | 'canceled'
 
@@ -14,7 +37,7 @@ export type AssistantTurn = {
   role: 'assistant'
   state: AssistantState
   /** The request this turn answers, kept so "Try again" and clarification can resend it. */
-  request: { text: string; scope: ScopeChoice; command?: AiCommand }
+  request: { text: string; scope: ScopeChoice; command?: AiCommand; selection?: NoteSelection }
   jobId?: string
   /** Progress copy from the latest job event. */
   progress?: string
@@ -28,9 +51,92 @@ export type AssistantTurn = {
   failureCode?: string | null
   /** Set once the answer has been revealed, so a restored thread does not replay it. */
   revealed?: boolean
+  /** What the assistant did, step by step, from its tool events. */
+  steps?: ActivityStep[]
+  /** Actions the assistant is waiting on the user to approve (job WAITING_APPROVAL). */
+  approvals?: PendingApproval[]
+  /** The job's `stateVersion` when the approvals were read; sent back with a decision. */
+  stateVersion?: number
+  /** The approval being decided right now. */
+  deciding?: string
+  approvalError?: string
 }
 
 export type Turn = UserTurn | AssistantTurn
+
+/** One thing the assistant did: a tool call, from its TOOL_STARTED and TOOL_FINISHED events. */
+export type ActivityStep = { id: string; tool: string; state: 'running' | 'done' | 'refused' | 'failed'; label: string; detail?: string }
+
+type ToolCopy = { running: string; done: string; failed: string; detail?: (data: Record<string, unknown>) => string | undefined }
+
+const count = (value: unknown, one: string, many: string) => (typeof value === 'number' ? `${value.toLocaleString()} ${value === 1 ? one : many}` : undefined)
+
+/** Plain words for each tool the backend reports (docs: AiJobEventDto.data). Unknown tools read as "Working". */
+const tools: Record<string, ToolCopy> = {
+  read_note_blocks: { running: 'Reading your note', done: 'Read your note', failed: 'Couldn’t read your note', detail: (data) => count(data.blocks, 'paragraph', 'paragraphs') },
+  knowledge_search: { running: 'Searching your material', done: 'Searched your material', failed: 'Couldn’t search your material', detail: (data) => (data.evidence === 0 ? 'nothing relevant' : count(data.evidence, 'passage', 'passages')) },
+  library_overview: { running: 'Looking through your library', done: 'Looked through your library', failed: 'Couldn’t look through your library', detail: (data) => count(data.files, 'file', 'files') },
+  read_pages: { running: 'Reading pages', done: 'Read pages', failed: 'Couldn’t read those pages', detail: (data) => count(data.evidence, 'passage', 'passages') },
+  propose_note_edits: { running: 'Preparing suggested edits', done: 'Suggested edits', failed: 'Couldn’t prepare the edits', detail: (data) => count(data.changes, 'change', 'changes') },
+  web_search: { running: 'Searching the web', done: 'Searched the web', failed: 'Couldn’t search the web', detail: (data) => count(data.results, 'result', 'results') },
+  read_web_page: { running: 'Reading a web page', done: 'Read a web page', failed: 'Couldn’t read the web page' },
+  list_images: { running: 'Looking through your images', done: 'Looked through your images', failed: 'Couldn’t look through your images', detail: (data) => (data.images === 0 ? 'none found' : count(data.images, 'image', 'images')) },
+  web_task: { running: 'Researching on the web', done: 'Researched on the web', failed: 'Couldn’t finish the web research', detail: (data) => count(data.sources, 'source', 'sources') },
+}
+/** Why a step didn't work, in plain words (TOOL_FINISHED `reason`). Unknown codes show no detail. */
+const refusalReasons: Record<string, string> = {
+  invalid_markdown: 'the formatting didn’t convert',
+  unsupported_markdown: 'it used formatting notes don’t support',
+  invalid_link: 'a link wasn’t allowed',
+  invalid_math: 'the maths didn’t parse',
+  invalid_image: 'an image wasn’t valid',
+  unknown_asset: 'that image isn’t in your library',
+  too_large: 'it was too long',
+  not_markdown: 'the content wasn’t in a usable form',
+  unknown_block: 'it pointed at the wrong paragraph',
+  invalid_change: 'the change was incomplete',
+}
+
+const unknownTool: ToolCopy = { running: 'Working', done: 'Worked on a step', failed: 'A step didn’t work' }
+
+/**
+ * Folds tool events into the list of steps shown in the chat: TOOL_STARTED adds a running step,
+ * TOOL_FINISHED (paired by `callId`) marks it done, refused or failed with its counts. Other events
+ * leave the list as it is. Events carry codes and numbers only, so every label comes from here.
+ */
+export function activitySteps(steps: readonly ActivityStep[], event: Pick<AiJobEvent, 'type' | 'data'>): ActivityStep[] {
+  if (event.type !== 'TOOL_STARTED' && event.type !== 'TOOL_FINISHED') return steps as ActivityStep[]
+  const data = event.data ?? {}
+  const id = typeof data.callId === 'string' ? data.callId : `step-${String(data.step ?? steps.length)}`
+  const tool = typeof data.tool === 'string' ? data.tool : 'unknown'
+  const copy = tools[tool] ?? unknownTool
+  const existing = steps.findIndex((step) => step.id === id)
+  if (event.type === 'TOOL_STARTED') {
+    if (existing >= 0) return steps as ActivityStep[]
+    return [...steps, { id, tool, state: 'running', label: copy.running }]
+  }
+  const outcome = data.outcome === 'refused' || data.outcome === 'failed' ? data.outcome : 'done'
+  const detail = outcome === 'done' ? copy.detail?.(data) : refusalReasons[String(data.reason ?? '')]
+  const finished: ActivityStep = { id, tool, state: outcome, label: outcome === 'done' ? copy.done : copy.failed, ...(detail ? { detail } : {}) }
+  return existing >= 0 ? steps.map((step, index) => (index === existing ? finished : step)) : [...steps, finished]
+}
+
+/**
+ * The note assistant tried to suggest edits but none was stored: every `propose_note_edits` call
+ * was refused or failed and the result lists no proposals. Its reply may still read as if it
+ * edited the note, so the chat says plainly that nothing changed.
+ */
+export function editsNotStored(proposalIds: readonly string[], steps: readonly ActivityStep[] = []) {
+  const tries = steps.filter((step) => step.tool === 'propose_note_edits')
+  return proposalIds.length === 0 && tries.length > 0 && tries.every((step) => step.state === 'refused' || step.state === 'failed')
+}
+
+/** "3 steps" for the collapsed list under a finished answer. */
+export function stepsSummary(steps: readonly ActivityStep[]) {
+  const problems = steps.filter((step) => step.state === 'refused' || step.state === 'failed').length
+  const total = steps.length === 1 ? '1 step' : `${steps.length} steps`
+  return problems ? `${total} · ${problems} didn’t work` : total
+}
 
 export const TERMINAL: ReadonlySet<AiJob['status']> = new Set(['COMPLETED', 'FAILED', 'CANCELED', 'EXPIRED'])
 
@@ -38,14 +144,18 @@ export const TERMINAL: ReadonlySet<AiJob['status']> = new Set(['COMPLETED', 'FAI
 export function eventLabel(event: Pick<AiJobEvent, 'type' | 'data'>): string | null {
   switch (event.type) {
     case 'ACCEPTED': return 'Starting…'
+    // Steps say nothing about what runs; tool events (activitySteps) do.
     case 'STEP_STARTED':
-    case 'STEP_COMPLETED': {
-      const step = typeof event.data?.step === 'number' ? event.data.step : 1
-      return step <= 1 && event.type === 'STEP_STARTED' ? 'Searching your material…' : 'Writing…'
-    }
+    case 'STEP_COMPLETED': return 'Thinking…'
     case 'CHILDREN_STARTED': return 'Reading your files…'
     case 'CHILDREN_FINISHED': return 'Writing…'
     case 'WAITING_TURN': return 'Queued behind your other requests…'
+    case 'APPROVAL_REQUESTED': return 'Waiting for your OK…'
+    case 'APPROVED':
+    case 'TOOL_RESUMED': return 'Continuing…'
+    case 'REJECTED': return 'Continuing without that…'
+    case 'APPROVAL_EXPIRED': return 'The request to approve expired.'
+    case 'TOOL_WAITING': return 'Waiting on a tool…'
     case 'DEFERRED': return event.data?.code === 'AI_PROVIDER_UNAVAILABLE' ? 'AI is unavailable right now. Still retrying…' : 'Busy, retrying shortly…'
     default: return null
   }
@@ -70,6 +180,8 @@ const failures: Record<string, string> = {
   AI_TASK_UNKNOWN: 'That request isn’t supported yet.',
   AI_TASK_NOT_SUPPORTED: 'That request isn’t supported yet.',
   AI_JOB_INPUT_INVALID: 'Questions can be 2 to 2,000 characters.',
+  AI_SELECTION_NEEDS_NOTE: 'Selected text can only be sent while searching this note.',
+  AI_APPROVAL_EXPIRED: 'The assistant stopped because its request to approve expired. Ask again.',
 }
 
 /** Copy for a job's `failureCode` (or status when there is none). Unknown codes read as a generic failure. */
@@ -131,6 +243,15 @@ export function textLength(segments: AnswerSegment[]) {
 
 export function isGroundedAnswer(job: AiJob | undefined): job is AiJob & { result: GroundedAnswer } {
   return job?.jobType === 'agent.grounded_answer' && Boolean(job.result) && 'answer' in (job.result as object)
+}
+
+export function isNoteAssist(job: AiJob | undefined): job is AiJob & { result: NoteAssistResult } {
+  return job?.jobType === 'agent.note_assist' && Boolean(job.result) && 'answer' in (job.result as object)
+}
+
+/** Events after which the job's pending approvals may have changed. */
+export function touchesApprovals(event: Pick<AiJobEvent, 'type'>) {
+  return event.type === 'APPROVAL_REQUESTED' || event.type === 'APPROVED' || event.type === 'REJECTED' || event.type === 'APPROVAL_EXPIRED'
 }
 
 export function isPracticeQuestions(job: AiJob | undefined): job is AiJob & { result: PracticeQuestions } {

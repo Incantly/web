@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
-import { useCallback, useMemo } from 'react'
+import type { Editor } from '@tiptap/core'
+import { useCallback, useMemo, useState } from 'react'
 import type { AssistantContext } from '@/components/product/assistant/AssistantPanel'
 import { useCurrentUser } from '@/components/product/SessionGate'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
@@ -9,7 +10,12 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
-import { aiApi, type AiAllowance } from '@/lib/api/ai'
+import type { NoteSession } from '@/components/product/workspace/useNoteSession'
+import { aiApi, type AiAllowance, type SelectionRange } from '@/lib/api/ai'
+import { selectedText, selectedTextRanges } from '@/lib/document-editor/blockNavigation'
+
+/** Text picked in the note editor and attached to the next chat message. Only the ranges are sent; `quote` is for display. */
+export type ChatSelection = { noteId: string; revisionNumber: number; ranges: SelectionRange[]; quote: string }
 
 export type AssistantValue = {
   /** Today's remaining AI spend (`GET /v1/ai/allowance`), shared by the chat and Settings. */
@@ -18,6 +24,11 @@ export type AssistantValue = {
   refreshAllowance: () => void
   /** What the chat is about right now: the open note, and the Space it belongs to. */
   context: AssistantContext
+  /** Text attached from the open note, if any. */
+  selection: ChatSelection | null
+  /** Attach text from the note and open the chat. */
+  attachSelection: (selection: ChatSelection) => void
+  clearSelection: () => void
 }
 
 export const AssistantStateContext = createFeatureContext<AssistantValue>('Assistant')
@@ -28,7 +39,8 @@ export const allowanceKey = (userId: string) => ['ai-allowance', userId] as cons
 export function useAssistantState(): AssistantValue {
   const user = useCurrentUser()
   const client = useQueryClient()
-  const { assistantOpen, settingsOpen } = useWorkspaceUI()
+  const { assistantOpen, settingsOpen, openAssistant } = useWorkspaceUI()
+  const [attached, setAttached] = useState<ChatSelection | null>(null)
   const { activeNoteId } = useNavigation()
   const { activeNote } = useNotes()
   const { activeSpace, noteSpace } = useSpaces()
@@ -41,10 +53,37 @@ export function useAssistantState(): AssistantValue {
     space: activeSpace ?? noteSpace,
   }), [activeNoteId, noteTitle, activeSpace, noteSpace])
 
-  return useMemo<AssistantValue>(() => ({ allowance, refreshAllowance, context }), [allowance, refreshAllowance, context])
+  // Belongs to one note: moving to another note hides it.
+  const selection = attached && attached.noteId === activeNoteId ? attached : null
+  const attachSelection = useCallback((next: ChatSelection) => { setAttached(next); openAssistant() }, [openAssistant])
+  const clearSelection = useCallback(() => setAttached(null), [])
+
+  return useMemo<AssistantValue>(() => ({ allowance, refreshAllowance, context, selection, attachSelection, clearSelection }), [allowance, refreshAllowance, context, selection, attachSelection, clearSelection])
 }
 
 /** `/v1/ai`: the shared AI allowance and what the chat is about. Must be used inside `WorkspaceProviders`. */
 export function useAssistant(): AssistantValue {
   return useFeatureContext(AssistantStateContext)
+}
+
+const QUOTE_MAX = 160
+
+/**
+ * "Add to chat" in the note editor: sends the note's pending edits (the server reads the selected
+ * text from the saved note), then attaches the selection by block IDs and offsets and opens the chat.
+ */
+export function useAddSelectionToChat(noteId: string, session: NoteSession) {
+  const { attachSelection } = useAssistant()
+  const [error, setError] = useState<string | null>(null)
+  const addToChat = useCallback(async (editor: Editor | null) => {
+    const ranges = selectedTextRanges(editor)
+    if (!ranges.length) { setError('Select some text in the note first.'); return }
+    const text = selectedText(editor)
+    const quote = text.length > QUOTE_MAX ? `${text.slice(0, QUOTE_MAX).trimEnd()}…` : text
+    setError(null)
+    const state = await session.flush()
+    if (!state || state.pending > 0) { setError('Your latest edits haven’t saved yet. Try again once the note says Saved.'); return }
+    attachSelection({ noteId, revisionNumber: state.revisionNumber, ranges, quote })
+  }, [attachSelection, noteId, session])
+  return { addToChat, error, dismissError: () => setError(null) }
 }
