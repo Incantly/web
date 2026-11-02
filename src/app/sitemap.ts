@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const legalUpdated = new Date(legalEntity.lastUpdatedIso)
   return [
     { url: url('/'), lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
+    { url: url('/pricing'), lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: url('/terms'), lastModified: legalUpdated, changeFrequency: 'yearly', priority: 0.3 },
     { url: url('/privacy'), lastModified: legalUpdated, changeFrequency: 'yearly', priority: 0.3 },
     { url: url('/cookies'), lastModified: legalUpdated, changeFrequency: 'yearly', priority: 0.3 },

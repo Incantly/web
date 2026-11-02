@@ -2,15 +2,17 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useAssistant } from '@/hooks/use-assistant'
+import { useBilling } from '@/hooks/use-billing'
 import { isApiError } from '../../../lib/api/errors'
 import { displayName } from '../../../lib/identity'
 import { AppIcon, type IconName } from '../AppIcon'
 import { useCurrentUser } from '../SessionGate'
 import { SignOutButton } from '../SignOutButton'
+import { BillingMessage, CancelPlanButton, ManageBillingButton, MarketingEmailToggle, PlanLink, RefundButton, ResumePlanButton, UsageValue } from './BillingControls'
 import { iconButton } from './ui'
 
 type Row = { id: string; label: string; description?: string; keywords?: string; control: ReactNode }
-type Section = { id: string; label: string; icon: IconName; rows: Row[] }
+type Section = { id: string; label: string; icon: IconName; rows: Row[]; lead?: ReactNode }
 
 /** The keyboard shortcuts the workspace actually handles. */
 const SHORTCUTS: { keys: string[]; label: string }[] = [
@@ -37,6 +39,7 @@ function resetTime(iso: string) {
 function useSections(): Section[] {
   const user = useCurrentUser()
   const { allowance } = useAssistant()
+  const billing = useBilling()
   const resets = allowance.data ? resetTime(allowance.data.resetsAt) : null
   const allowanceValue = allowance.isPending ? 'Checking…'
     : allowance.data ? `$${allowance.data.remainingUsd.toFixed(2)} left today`
@@ -53,11 +56,22 @@ function useSections(): Section[] {
       id: 'account', label: 'Account', icon: 'user', rows: [
         { id: 'name', label: 'Name', keywords: 'profile', control: <Value>{displayName(user)}</Value> },
         { id: 'email', label: 'Email', keywords: 'profile address', control: <Value>{user.email}</Value> },
+        { id: 'emails', label: 'Product emails', description: 'News about Incantly and plan offers. Billing emails are always sent.', keywords: 'marketing newsletter unsubscribe', control: <MarketingEmailToggle /> },
         { id: 'sign-in', label: 'Sign-in', description: 'Connect Google for faster sign-in, or sign out of this device.', keywords: 'google sign out logout', control: <SignOutButton /> },
       ],
     },
     {
+      id: 'billing', label: 'Plan & billing', icon: 'card', lead: <BillingMessage />, rows: [
+        { id: 'plan', label: billing.planLabel, description: billing.planStatus, keywords: 'subscription upgrade pro max free pricing', control: <PlanLink /> },
+        ...(billing.can.resume ? [{ id: 'resume', label: 'Keep your plan', description: 'Undo the cancellation so your plan keeps renewing.', keywords: 'subscription resume', control: <ResumePlanButton /> }] : []),
+        ...(billing.can.manage ? [{ id: 'manage', label: 'Billing details', description: 'Invoices, receipts and your card, handled by Polar.', keywords: 'invoice receipt card payment polar portal', control: <ManageBillingButton /> }] : []),
+        ...(billing.can.cancel ? [{ id: 'cancel', label: 'Cancel plan', description: 'Move to Free at the end of the period you paid for.', keywords: 'subscription downgrade', control: <CancelPlanButton /> }] : []),
+        ...(billing.can.refund ? [{ id: 'refund', label: 'Refund', description: 'Within 5 days of a payment. Ends your paid plan straight away.', keywords: 'money back', control: <RefundButton /> }] : []),
+      ],
+    },
+    {
       id: 'usage', label: 'Usage', icon: 'sparkles', rows: [
+        ...billing.usage.rows.map((row) => ({ id: `usage-${row.key}`, label: row.label, keywords: 'limit quota plan', control: <UsageValue value={row.value} reset={row.reset} state={row.state} /> })),
         { id: 'allowance', label: 'AI allowance', description: allowance.data?.limitedBy === 'global' ? 'Limited by overall service demand today.' : 'An estimate of what the assistant can still spend today.', keywords: 'chat assistant limit quota', control: <Value>{allowanceValue}</Value> },
         { id: 'reset', label: 'Resets', description: 'Your allowance renews every day.', keywords: 'limit', control: <Value>{resets ?? '—'}</Value> },
       ],
@@ -100,7 +114,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     ? sections.map((section) => ({ ...section, rows: section.rows.filter((row) => `${section.label} ${row.label} ${row.description ?? ''} ${row.keywords ?? ''}`.toLowerCase().includes(term)) })).filter((section) => section.rows.length)
     : sections.filter((section) => section.id === active)
 
-  return <dialog ref={ref} aria-labelledby={titleId} onClose={onClose} onCancel={(event) => { event.preventDefault(); onClose() }}
+  return <dialog ref={ref} aria-labelledby={titleId} onClose={(event) => { if (event.target === event.currentTarget) onClose() }} onCancel={(event) => { if (event.target !== event.currentTarget) return; event.preventDefault(); onClose() }}
     onClick={(event) => { if (event.target === ref.current) onClose() }}
     className="m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden border-default bg-raised p-0 text-foreground shadow-xl backdrop:bg-foreground/30 open:flex open:flex-col sm:m-auto sm:h-[min(42rem,calc(100dvh-2rem))] sm:w-[min(60rem,calc(100vw-2rem))] sm:rounded-[1.15rem] sm:border">
     {open ? <>
@@ -131,6 +145,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 md:px-8">
           {matches.length ? matches.map((section) => <section key={section.id} aria-labelledby={`settings-${section.id}`} className="mb-8 last:mb-0">
             <h3 id={`settings-${section.id}`} className="font-display text-lg text-foreground">{section.label}</h3>
+            {section.lead}
             <div className="mt-2">{section.rows.map((row) => <SettingRow key={row.id} row={row} />)}</div>
           </section>) : <p role="status" className="py-10 text-center text-sm text-muted">No settings match “{query.trim()}”.</p>}
         </div>

@@ -45,6 +45,11 @@ describe('commandGroups', () => {
     expect(commandGroups('g', data).at(-1)?.items.some((item) => item.kind === 'ask')).toBe(false)
   })
 
+  it('offers Ask AI only where the chat is available', () => {
+    expect(commandGroups('garden', data).at(-1)?.items.some((item) => item.kind === 'ask')).toBe(true)
+    expect(commandGroups('garden', { ...data, canAsk: false }).at(-1)?.items.some((item) => item.kind === 'ask')).toBe(false)
+  })
+
   it('finds actions by their keywords', () => {
     expect(ids('upload').at(-1)).toEqual(['actions', ['ask', 'action:add-source']])
   })

@@ -24,6 +24,10 @@ export type AssistantValue = {
   refreshAllowance: () => void
   /** What the chat is about right now: the open note, and the Space it belongs to. */
   context: AssistantContext
+  /** The chat is only offered on a note; elsewhere its button, ⌘J and "Ask AI" do nothing. */
+  available: boolean
+  /** The chat panel is showing: opened, and on a note. */
+  open: boolean
   /** Text attached from the open note, if any. */
   selection: ChatSelection | null
   /** Attach text from the note and open the chat. */
@@ -45,7 +49,7 @@ export function useAssistantState(): AssistantValue {
   const { activeNote } = useNotes()
   const { activeSpace, noteSpace } = useSpaces()
   // Only fetched while something that shows it is open.
-  const allowance = useQuery({ queryKey: allowanceKey(user.id), queryFn: ({ signal }) => aiApi.allowance(signal), enabled: assistantOpen || settingsOpen, staleTime: 60_000, retry: false })
+  const allowance = useQuery({ queryKey: allowanceKey(user.id), queryFn: ({ signal }) => aiApi.allowance(signal), enabled: (assistantOpen && Boolean(activeNoteId)) || settingsOpen, staleTime: 60_000, retry: false })
   const refreshAllowance = useCallback(() => { void client.invalidateQueries({ queryKey: allowanceKey(user.id) }) }, [client, user.id])
   const noteTitle = activeNote?.title ?? ''
   const context = useMemo<AssistantContext>(() => ({
@@ -58,7 +62,9 @@ export function useAssistantState(): AssistantValue {
   const attachSelection = useCallback((next: ChatSelection) => { setAttached(next); openAssistant() }, [openAssistant])
   const clearSelection = useCallback(() => setAttached(null), [])
 
-  return useMemo<AssistantValue>(() => ({ allowance, refreshAllowance, context, selection, attachSelection, clearSelection }), [allowance, refreshAllowance, context, selection, attachSelection, clearSelection])
+  const available = Boolean(activeNoteId)
+  const open = assistantOpen && available
+  return useMemo<AssistantValue>(() => ({ allowance, refreshAllowance, context, available, open, selection, attachSelection, clearSelection }), [allowance, refreshAllowance, context, available, open, selection, attachSelection, clearSelection])
 }
 
 /** `/v1/ai`: the shared AI allowance and what the chat is about. Must be used inside `WorkspaceProviders`. */

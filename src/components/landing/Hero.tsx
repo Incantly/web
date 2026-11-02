@@ -15,28 +15,6 @@ function HeroFrame({ children }: HeroFrameProps) {
   )
 }
 
-function HeroNavigation() {
-  return (
-    <header className="flex min-h-[4.75rem] items-center justify-between gap-4 px-[clamp(1.25rem,4vw,5.5rem)] pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
-      <a className="flex flex-none items-center gap-2 whitespace-nowrap font-display text-[clamp(1.45rem,2vw,1.8rem)] tracking-[-0.055em] text-foreground no-underline" href="#top" aria-label="Incantly home">
-        <Image src="/incantly-logo.svg" alt="" width={24} height={33} className="h-[1.75rem] w-auto" aria-hidden="true" /> incantly
-      </a>
-
-      <nav className="hidden items-center gap-[clamp(1.5rem,2.8vw,2.5rem)] text-[0.875rem] lg:flex" aria-label="Primary navigation">
-        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#product">Product</a>
-        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#how-it-works">How it works</a>
-        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#learners">For learners</a>
-        <a className="text-foreground no-underline underline-offset-4 transition-[background-color,color,transform] duration-[180ms] hover:text-button hover:underline hover:decoration-button hover:decoration-wavy focus-visible:text-button focus-visible:underline focus-visible:decoration-button focus-visible:decoration-wavy" href="#about">About</a>
-      </nav>
-
-      <div className="flex flex-none items-center gap-2 sm:gap-3">
-        {signInOpen() ? <a className="hidden min-h-11 items-center px-2 text-[0.8125rem] font-medium text-foreground no-underline underline-offset-4 hover:underline focus-visible:underline sm:inline-flex" href="/auth">Sign in</a> : null}
-        <WaitlistButton className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-[0.625rem] border border-button bg-button px-[0.9rem] py-2.5 text-[0.8125rem] font-medium text-inverse transition-[background-color,color,transform] duration-[180ms] hover:bg-button-hover focus-visible:bg-button-hover sm:px-[1.15rem]">Join waitlist</WaitlistButton>
-      </div>
-    </header>
-  )
-}
-
 function HeroArtwork() {
   return (
     <div className="relative mb-2 grid w-[clamp(18rem,31.5vw,24.75rem)] place-items-center" aria-hidden="true">
@@ -82,7 +60,6 @@ function HeroPossibilities() {
 
 export const Hero = {
   Frame: HeroFrame,
-  Navigation: HeroNavigation,
   Artwork: HeroArtwork,
   Content: HeroContent,
   Possibilities: HeroPossibilities,

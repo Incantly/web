@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { AppIcon } from '../AppIcon'
 import { InboxPopover } from '../InboxPopover'
+import { useAssistant } from '@/hooks/use-assistant'
+import { useBilling } from '@/hooks/use-billing'
 import { useImports } from '@/hooks/use-imports'
 import { useLibrary } from '@/hooks/use-library'
 import { useNavigation } from '@/hooks/use-navigation'
@@ -14,6 +16,7 @@ import { AddSourceDialog, SpaceFormDialog } from './dialogs'
 import { ImportDialog, ImportTray } from './imports'
 import { SettingsDialog } from './SettingsDialog'
 import { Sidebar, type NewAction } from './Sidebar'
+import { PlansDialog } from './PlansDialog'
 import { OfflineBanner } from './ui'
 
 /**
@@ -59,13 +62,14 @@ export function TopBarLeading() {
   </>
 }
 
-/** Chat and inbox at the end of the top bar. */
+/** Chat (on a note only) and inbox at the end of the top bar. */
 export function TopBarTrailing() {
-  const { assistantOpen, toggleAssistant, inbox } = useWorkspaceUI()
+  const { toggleAssistant, inbox } = useWorkspaceUI()
+  const { available, open } = useAssistant()
   const { createNote } = useNotes()
   return <>
-    <button type="button" onClick={toggleAssistant} aria-pressed={assistantOpen} aria-label="Chat with AI" title="Chat with AI (⌘J)"
-      className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface hover:text-foreground ${assistantOpen ? 'bg-surface text-foreground' : 'text-muted'}`}><AppIcon name="sparkles" className="size-5" /></button>
+    {available ? <button type="button" onClick={toggleAssistant} aria-pressed={open} aria-label="Chat with AI" title="Chat with AI (⌘J)"
+      className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface hover:text-foreground ${open ? 'bg-surface text-foreground' : 'text-muted'}`}><AppIcon name="sparkles" className="size-5" /></button> : null}
     <InboxPopover items={inbox.items} createFrom={(item) => { createNote({ title: item.title }); inbox.dismiss(item.id) }} dismiss={inbox.dismiss} />
   </>
 }
@@ -79,7 +83,9 @@ export function WorkspaceSidebar({ collapsed, onClose }: { collapsed?: boolean; 
   const { notes, createNote } = useNotes()
   const { spaces, activeSpace, linkSource } = useSpaces()
   const { sources } = useLibrary()
-  const { openDialog, openImport, openSettings, openSearch, closeMobileSidebar } = useWorkspaceUI()
+  const { openDialog, openImport, openSettings, openSearch, openPlans, closeMobileSidebar } = useWorkspaceUI()
+  const billing = useBilling()
+  const plan = billing.ready ? { label: `${billing.planName} plan`, onUpgrade: billing.showUpgrade ? openPlans : undefined } : undefined
   function onNew(action: NewAction) {
     closeMobileSidebar()
     if (action === 'note') createNote({ spaceId: activeSpace?.status === 'ACTIVE' ? activeSpace.id : null })
@@ -88,7 +94,7 @@ export function WorkspaceSidebar({ collapsed, onClose }: { collapsed?: boolean; 
     if (action === 'import-file') openImport({ mode: 'file' })
     if (action === 'import-url') openImport({ mode: 'url' })
   }
-  return <Sidebar view={view} notes={notes} spaces={spaces} sources={sources} navigate={navigate} onNew={onNew} onOpenSource={openSource} onOpenSettings={openSettings} onOpenSearch={openSearch} onLinkSource={linkSource} collapsed={collapsed} onClose={onClose} />
+  return <Sidebar view={view} notes={notes} spaces={spaces} sources={sources} navigate={navigate} onNew={onNew} onOpenSource={openSource} onOpenSettings={openSettings} onOpenSearch={openSearch} onLinkSource={linkSource} plan={plan} collapsed={collapsed} onClose={onClose} />
 }
 
 /** Every workspace-level dialog and tray, driven by the UI context. */
@@ -102,6 +108,7 @@ export function WorkspaceDialogs() {
   return <>
     <CommandSearch />
     <SettingsDialog open={ui.settingsOpen} onClose={ui.closeSettings} />
+    <PlansDialog />
     <ImportDialog open={Boolean(ui.importRequest)} mode={ui.importRequest?.mode ?? 'file'} intoNote={ui.importRequest?.intoNote} onClose={ui.closeImport} onStarted={tracker.track} />
     <ImportTray tracker={tracker} onOpenNote={(noteId) => openNote(noteId)} />
     <SpaceFormDialog open={ui.dialog === 'space'} onClose={ui.closeDialog} onSubmit={createSpace} />

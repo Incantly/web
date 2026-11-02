@@ -61,8 +61,9 @@ export function threadKey({ note, space }: AssistantContext) {
  * answered from the user's own material in the chosen scope, with citations back to it.
  */
 export function AssistantPanel() {
-  const { assistantOpen: open, closeAssistant: onClose, assistantPrompt } = useWorkspaceUI()
-  const { context } = useAssistant()
+  const { closeAssistant: onClose, assistantPrompt } = useWorkspaceUI()
+  // Leaving the note hides the chat; it comes back if it was still open on the next note.
+  const { context, open } = useAssistant()
   // Contents mount only while open: the small-screen sheet stays in the DOM when closed, and a
   // hidden answer would otherwise play its reveal unseen. Threads persist per note in session
   // storage, so remounting (or moving to another note) restores the right one.

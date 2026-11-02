@@ -54,7 +54,7 @@ function ranked<T>(items: T[], name: (item: T) => string, query: string, limit: 
  * and files (it only runs on Enter), name matches from data already loaded, then "Ask AI" and the
  * matching actions. Nothing here calls the backend.
  */
-export function commandGroups(query: string, data: { notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[] }): CommandGroup[] {
+export function commandGroups(query: string, data: { notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; canAsk?: boolean }): CommandGroup[] {
   const text = query.trim()
   const actions = (filter: string) => commandActions
     .filter((entry) => !filter || matchScore(`${entry.label} ${entry.keywords}`, filter) > 0)
@@ -75,7 +75,7 @@ export function commandGroups(query: string, data: { notes: NoteRecord[]; spaces
     { id: 'notes', label: 'Notes', items: ranked(data.notes, (note) => note.title || 'Untitled note', text, PER_GROUP.notes).map<CommandItem>((note) => ({ kind: 'note', id: `note:${note.id}`, note })) },
     { id: 'spaces', label: 'Spaces', items: ranked(data.spaces, (space) => space.name, text, PER_GROUP.spaces).map<CommandItem>((space) => ({ kind: 'space', id: `space:${space.id}`, space })) },
     { id: 'sources', label: 'Library', items: ranked(data.sources, (source) => source.title, text, PER_GROUP.sources).map<CommandItem>((source) => ({ kind: 'source', id: `source:${source.id}`, source })) },
-    { id: 'actions', label: 'Actions', items: [...(text.length >= MIN_CONTENT_QUERY ? [{ kind: 'ask', id: 'ask', query: text } as CommandItem] : []), ...actions(text)] },
+    { id: 'actions', label: 'Actions', items: [...(data.canAsk !== false && text.length >= MIN_CONTENT_QUERY ? [{ kind: 'ask', id: 'ask', query: text } as CommandItem] : []), ...actions(text)] },
   )
   return groups.filter((group) => group.items.length)
 }

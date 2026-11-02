@@ -51,6 +51,10 @@ export type WorkspaceUIValue = {
   settingsOpen: boolean
   openSettings: () => void
   closeSettings: () => void
+  /** The Plans dialog (upgrade, switch or downgrade without leaving the workspace). Opening it closes Settings. */
+  plansOpen: boolean
+  openPlans: () => void
+  closePlans: () => void
   dialog: FormDialog
   openDialog: (dialog: Exclude<FormDialog, null>) => void
   closeDialog: () => void
@@ -73,6 +77,7 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
   const peekTimer = useRef<number | undefined>(undefined)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [plansOpen, setPlansOpen] = useState(false)
   const [dialog, setDialog] = useState<FormDialog>(null)
   const [importRequest, setImportRequest] = useState<ImportRequest>(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -136,6 +141,9 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     settingsOpen,
     openSettings: () => { setMobileOpen(false); setSettingsOpen(true) },
     closeSettings: () => setSettingsOpen(false),
+    plansOpen,
+    openPlans: () => { setMobileOpen(false); setSettingsOpen(false); setPlansOpen(true) },
+    closePlans: () => setPlansOpen(false),
     dialog,
     openDialog: (next) => { setMobileOpen(false); setDialog(next) },
     closeDialog: () => setDialog(null),
@@ -143,7 +151,7 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     openImport: (request) => { setMobileOpen(false); setImportRequest(request) },
     closeImport: () => setImportRequest(null),
     inbox: { items: inboxItems, dismiss: (id) => setInboxItems((current) => current.filter((item) => item.id !== id)) },
-  }), [mobileOpen, railCollapsed, railPeek, panels.open, panels.setSlot, panelWidth, setPanelWidth, contentMin, roomy, toggleRail, schedulePeek, assistantOpen, assistantPrompt, searchOpen, settingsOpen, dialog, importRequest, inboxItems])
+  }), [mobileOpen, railCollapsed, railPeek, panels.open, panels.setSlot, panelWidth, setPanelWidth, contentMin, roomy, toggleRail, schedulePeek, assistantOpen, assistantPrompt, searchOpen, settingsOpen, plansOpen, dialog, importRequest, inboxItems])
 }
 
 /** Workspace chrome: sidebar, rail, docked panels, dialogs, ⌘K search, inbox. Must be used inside `WorkspaceProviders`. */

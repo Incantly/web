@@ -101,9 +101,13 @@ function NewMenu({ collapsed, onSelect }: { collapsed: boolean; onSelect: (actio
   </div>
 }
 
-export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, onOpenSearch, onLinkSource, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; onOpenSearch: () => void
+export type SidebarPlan = { label: string; onUpgrade?: () => void }
+
+export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenSource, onOpenSettings, onOpenSearch, onLinkSource, plan, collapsed = false, onClose }: { view: WorkspaceView; notes: NoteRecord[]; spaces: SpaceRecord[]; sources: SourceRecord[]; navigate: Navigate; onNew: (action: NewAction) => void; onOpenSource: (sourceId: string) => void; onOpenSettings: () => void; onOpenSearch: () => void
   /** Link a dragged Library source to a Space. Without it (the landing preview), nothing drags. */
-  onLinkSource?: (spaceId: string, sourceId: string) => Promise<boolean>; collapsed?: boolean; onClose?: () => void }) {
+  onLinkSource?: (spaceId: string, sourceId: string) => Promise<boolean>
+  /** The account's plan under the name, and an Upgrade link when there's one to offer. */
+  plan?: SidebarPlan; collapsed?: boolean; onClose?: () => void }) {
   const user = useCurrentUser()
   const [open, setOpen] = useState({ spaces: true, library: true })
   const activeSpaces = spaces.filter((space) => space.status === 'ACTIVE')
@@ -140,11 +144,20 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenS
     </Section>
 
     <div className="mt-auto border-t border-default pt-2">
-      <RailItem icon="settings" label="Settings" collapsed={collapsed} active={false} onClick={onOpenSettings} />
-      <div className="mt-1 flex min-h-11 items-center gap-2 overflow-hidden whitespace-nowrap px-[0.45rem]" title={collapsed ? displayName(user) : undefined}>
+      {plan?.onUpgrade ? <button type="button" onClick={plan.onUpgrade} title={collapsed ? 'Upgrade' : undefined} aria-label={collapsed ? 'Upgrade your plan' : undefined}
+        className={`mb-1.5 flex min-h-11 items-center gap-2 overflow-hidden whitespace-nowrap rounded-[0.625rem] bg-button px-[0.6875rem] text-sm font-semibold text-inverse transition-[width,background-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-button-hover focus-visible:bg-button-hover motion-reduce:transition-none ${collapsed ? 'w-10' : 'w-full justify-center'}`}>
+        <AppIcon name="sparkles" className="size-[1.125rem] shrink-0" /><span className={`${fade} ${collapsed ? 'sr-only' : ''}`}>Upgrade</span>
+      </button> : null}
+      {/* The account row is the way into Settings. */}
+      <button type="button" onClick={onOpenSettings} title={collapsed ? `${displayName(user)} · Settings` : undefined} aria-label={`${displayName(user)}${plan ? `, ${plan.label}` : ''}. Open settings`}
+        className={`flex min-h-11 items-center gap-2 overflow-hidden whitespace-nowrap rounded-lg px-[0.45rem] py-1 text-left transition-[width,background-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-raised focus-visible:bg-raised motion-reduce:transition-none ${collapsed ? 'w-10' : 'w-full'}`}>
         <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-full bg-button text-xs font-semibold text-inverse">{initial(user)}</span>
-        <Label collapsed={collapsed} className="text-sm font-medium text-foreground">{displayName(user)}</Label>
-      </div>
+        <span className={`flex min-w-0 flex-1 flex-col ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
+          <span className="truncate text-sm font-medium text-foreground">{displayName(user)}</span>
+          {plan ? <span className="truncate text-xs text-muted">{plan.label}</span> : null}
+        </span>
+        <AppIcon name="settings" className={`size-[1.125rem] shrink-0 text-muted ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`} />
+      </button>
     </div>
   </aside>
 }
