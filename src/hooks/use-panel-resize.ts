@@ -10,7 +10,7 @@ import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
  * page doesn't re-render on every pointer move; it's saved to state (and this device) on release.
  */
 export function usePanelResize() {
-  const { panelWidth, setPanelWidth, rail } = useWorkspaceUI()
+  const { panelWidth, setPanelWidth, rail, contentMin } = useWorkspaceUI()
   const sidebar = sidebarWidth(rail.expanded)
   const drag = useRef<{ startX: number; startWidth: number; width: number; root: HTMLElement } | null>(null)
 
@@ -29,7 +29,7 @@ export function usePanelResize() {
     'aria-orientation': 'vertical' as const,
     'aria-label': 'Resize panel',
     'aria-valuemin': PANEL_MIN,
-    'aria-valuemax': panelMaxWidth(typeof window === 'undefined' ? 0 : window.innerWidth, sidebar),
+    'aria-valuemax': panelMaxWidth(typeof window === 'undefined' ? 0 : window.innerWidth, sidebar, contentMin),
     'aria-valuenow': panelWidth,
     tabIndex: 0,
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
@@ -49,7 +49,7 @@ export function usePanelResize() {
       const current = drag.current
       if (!current) return
       // The edge is on the panel's left, so moving left makes it wider.
-      current.width = clampPanelWidth(current.startWidth + current.startX - event.clientX, window.innerWidth, sidebar)
+      current.width = clampPanelWidth(current.startWidth + current.startX - event.clientX, window.innerWidth, sidebar, contentMin)
       current.root.style.setProperty('--panel-width', `${current.width}px`)
     },
     onPointerUp: finish,
@@ -57,7 +57,7 @@ export function usePanelResize() {
     onLostPointerCapture: finish,
     onDoubleClick: () => setPanelWidth(PANEL_DEFAULT),
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-      const max = panelMaxWidth(window.innerWidth, sidebar)
+      const max = panelMaxWidth(window.innerWidth, sidebar, contentMin)
       const next = event.key === 'ArrowLeft' ? panelWidth + PANEL_KEY_STEP
         : event.key === 'ArrowRight' ? panelWidth - PANEL_KEY_STEP
         : event.key === 'Home' ? PANEL_MIN
@@ -65,7 +65,7 @@ export function usePanelResize() {
         : null
       if (next === null) return
       event.preventDefault()
-      setPanelWidth(clampPanelWidth(next, window.innerWidth, sidebar))
+      setPanelWidth(clampPanelWidth(next, window.innerWidth, sidebar, contentMin))
     },
   }
 }

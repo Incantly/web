@@ -26,13 +26,13 @@ export function Workspace() {
 /** Layout only: sidebar, content box, right-hand panel column, and the workspace dialogs. */
 function WorkspaceShell() {
   const user = useCurrentUser()
-  const { mobileOpen, closeMobileSidebar, rail, panelsOpen, setPanelSlot, panelWidth } = useWorkspaceUI()
+  const { mobileOpen, closeMobileSidebar, rail, panelsOpen, setPanelSlot, panelWidth, contentMin } = useWorkspaceUI()
   const panelColumn = dockedPanelWidth(sidebarWidth(rail.expanded))
   const { activeNoteId } = useNavigation()
   useWorkspaceShortcuts()
   useAbandonedUploadCleanup(user.id)
 
-  return <main data-workspace style={{ '--panel-width': `${panelWidth}px` } as CSSProperties} className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
+  return <main data-workspace style={{ '--panel-width': `${panelWidth}px`, '--content-min': `${contentMin}px` } as CSSProperties} className="min-h-svh bg-surface lg:flex lg:h-svh lg:overflow-hidden">
     <div className={`relative hidden h-svh shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:block ${rail.expanded ? 'w-[17.5rem]' : 'w-16'}`}>
       <div
         id="workspace-sidebar"
