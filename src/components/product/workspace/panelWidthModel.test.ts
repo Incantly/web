@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PANEL_DEFAULT, PANEL_MAX, PANEL_MIN, clampPanelWidth, dockedPanelWidth, panelMaxWidth, parsePanelWidth } from './panelWidthModel'
+import { CONTENT_MIN, PANEL_DEFAULT, PANEL_MAX, PANEL_MIN, clampPanelWidth, contentMinWidth, dockedPanelWidth, panelMaxWidth, parsePanelWidth } from './panelWidthModel'
 
 describe('panelMaxWidth', () => {
   it('allows the full maximum on a wide screen', () => {
@@ -16,6 +16,21 @@ describe('panelMaxWidth', () => {
   })
 })
 
+describe('contentMinWidth', () => {
+  it('keeps the usual minimum for a continuous note', () => {
+    expect(contentMinWidth(null)).toBe(CONTENT_MIN)
+  })
+
+  it('leaves room for the whole sheet in Pages mode', () => {
+    // A4 portrait is 793.7px wide
+    expect(contentMinWidth(793.7)).toBe(842)
+    // so on a 1440px window with the sidebar open the panel stops at 1440 − 280 − 842 − 8
+    expect(panelMaxWidth(1440, 280, contentMinWidth(793.7))).toBe(PANEL_MIN)
+    expect(panelMaxWidth(1680, 280, contentMinWidth(793.7))).toBe(550)
+    expect(clampPanelWidth(640, 1680, 280, contentMinWidth(793.7))).toBe(550)
+  })
+})
+
 describe('clampPanelWidth', () => {
   it('keeps a drag inside the limits', () => {
     expect(clampPanelWidth(200, 1440, 64)).toBe(PANEL_MIN)
@@ -26,7 +41,7 @@ describe('clampPanelWidth', () => {
 
 describe('dockedPanelWidth', () => {
   it('builds a CSS clamp from the chosen width and the room left', () => {
-    expect(dockedPanelWidth(64)).toBe('clamp(384px, calc(100vw - 672px), var(--panel-width, 384px))')
+    expect(dockedPanelWidth(64)).toBe('clamp(384px, calc(100vw - 72px - var(--content-min, 600px)), var(--panel-width, 384px))')
   })
 })
 

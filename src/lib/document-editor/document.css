@@ -680,14 +680,86 @@
   .incantly-document-toolbar { overflow-x: auto; flex-wrap: nowrap; }
   .incantly-document-editor .ProseMirror { overflow-wrap: anywhere; }
 }
-.incantly-calculated-page-break {
-  border-top: 1px dashed color-mix(in srgb, currentColor 25%, transparent);
-  height: 24px;
-  margin: 18px -32px;
-  pointer-events: none;
-  content-visibility: auto;
-  contain-intrinsic-size: 24px;
+/* Pages mode: the note drawn as sheets of its paper size. The page chrome between sheets is a
+   decoration (see paginationExtension.ts); its sizes arrive as --incantly-page-* properties.
+   The sheets sit on the same background as Continuous mode: only a hairline and a soft shadow
+   mark the paper's edge. */
+.incantly-document-editor .ProseMirror[data-page-mode='paginated'] {
+  --incantly-paged-left: min(var(--incantly-page-margin-left), 8vw);
+  --incantly-paged-right: min(var(--incantly-page-margin-right), 8vw);
+  --incantly-paged-shadow: 0 1px 2px color-mix(in srgb, var(--ui-text) 6%, transparent), 0 4px 16px color-mix(in srgb, var(--ui-text) 6%, transparent);
+  width: min(calc(100% - 2rem), var(--incantly-page-width));
+  min-height: 0;
+  margin-block: 1.5rem 3rem;
+  padding: 0 var(--incantly-paged-right) 0 var(--incantly-paged-left);
+  background: var(--incantly-document-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 2px;
+  box-shadow: var(--incantly-paged-shadow);
 }
+
+.incantly-document-editor .ProseMirror[data-page-mode='paginated'] > :nth-last-child(2) {
+  margin-block-end: 0;
+}
+
+.incantly-document-editor .ProseMirror > .incantly-page-chrome {
+  margin: 0 calc(-1 * var(--incantly-paged-right) - 1px) 0 calc(-1 * var(--incantly-paged-left) - 1px);
+  color: var(--ui-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.incantly-page-chrome__top,
+.incantly-page-chrome__bottom {
+  padding-inline: calc(var(--incantly-paged-left) + 1px) calc(var(--incantly-paged-right) + 1px);
+  overflow: hidden;
+}
+
+.incantly-page-chrome__top {
+  box-sizing: border-box;
+  height: var(--incantly-page-margin-top);
+  padding-top: min(var(--incantly-page-header-distance), var(--incantly-page-margin-top));
+}
+
+.incantly-page-chrome__bottom {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-sizing: content-box;
+  height: max(0px, calc(var(--incantly-page-margin-bottom) - var(--incantly-page-footer-distance)));
+  padding-bottom: min(var(--incantly-page-footer-distance), var(--incantly-page-margin-bottom));
+}
+
+.incantly-page-chrome__gap {
+  position: relative;
+  height: 1.5rem;
+  /* Wider than the paper, so it hides the sheet's side edges and shadow between pages. */
+  margin-inline: -1.5rem;
+  background: var(--incantly-document-surface);
+}
+
+/* The bottom edge of the page above and the top edge of the page below. */
+.incantly-page-chrome__gap::before,
+.incantly-page-chrome__gap::after {
+  content: '';
+  position: absolute;
+  inset-inline: 1.5rem;
+  height: 1px;
+  background: var(--ui-border);
+}
+
+.incantly-page-chrome__gap::before {
+  top: 0;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--ui-text) 6%, transparent);
+}
+
+.incantly-page-chrome__gap::after {
+  bottom: 0;
+}
+
 
 .incantly-page-safe-area {
   position: absolute;
@@ -1468,4 +1540,185 @@ a.incantly-asset__button {
   gap: 0.375rem;
   padding-inline: 0.5rem;
   white-space: nowrap;
+}
+
+/* Header/footer editor (components/HeaderFooterTextEditor.tsx). */
+.incantly-hf {
+  border: 1px solid var(--ui-border);
+  border-radius: 0.75rem;
+  background: var(--ui-surface-raised);
+}
+
+.incantly-hf:focus-within {
+  border-color: var(--ui-border-strong);
+}
+
+.incantly-hf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.incantly-hf-toolbar button {
+  display: inline-grid;
+  place-items: center;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
+  color: var(--ui-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.incantly-hf-toolbar button:hover:not(:disabled),
+.incantly-hf-toolbar button[aria-pressed='true'] {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+.incantly-hf-toolbar button:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+/* Field chips under the text: a 44 px target around a small pill, like the chat's chips. */
+.incantly-hf-insert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.25rem;
+  padding: 0 0.5rem;
+  border-top: 1px solid var(--ui-border);
+}
+
+.incantly-hf-insert-label {
+  margin-right: 0.25rem;
+  color: var(--ui-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.incantly-hf-insert button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+.incantly-hf-insert button > span {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  color: var(--ui-text);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  transition: border-color 120ms ease-out, background-color 120ms ease-out;
+}
+
+.incantly-hf-insert button:hover:not(:disabled) > span {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface);
+}
+
+.incantly-hf-insert button:focus-visible {
+  outline: none;
+}
+
+.incantly-hf-insert button:focus-visible > span {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+.incantly-hf-insert button:disabled > span {
+  opacity: 0.5;
+}
+
+.incantly-hf-editor {
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  color: var(--ui-text);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  outline: none;
+}
+
+.incantly-hf-editor p {
+  margin: 0;
+}
+
+.incantly-hf.is-empty .incantly-hf-editor {
+  position: relative;
+}
+
+.incantly-hf.is-empty .incantly-hf-editor::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  inset: 0.625rem 0.875rem auto;
+  color: var(--ui-text-muted);
+  pointer-events: none;
+}
+
+.incantly-hf-field {
+  display: inline-block;
+  margin: 0 0.125rem;
+  padding: 0 0.375rem;
+  border-radius: 0.375rem;
+  background: var(--ui-feature-research);
+  color: var(--ui-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.375rem;
+  user-select: none;
+}
+
+.incantly-hf-field.ProseMirror-selectednode {
+  outline: 2px solid var(--ui-focus);
+}
+
+/* Export preview: print pages drawn as sheets, hidden until laid out (then shrunk to fit). */
+.incantly-export-preview {
+  min-height: 10rem;
+}
+
+.incantly-export-preview:not([data-ready]) > div {
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
+.incantly-export-preview .incantly-print-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.incantly-export-preview .incantly-print-page {
+  flex: none;
+  border: 1px solid var(--ui-border);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-text) 6%, transparent), 0 4px 16px color-mix(in srgb, var(--ui-text) 6%, transparent);
+}
+
+/* Printing an export preview prints its pages only (see printPagedPreview). */
+@media print {
+  html.incantly-printing,
+  html.incantly-printing body {
+    background: var(--ui-surface-raised);
+  }
+
+  html.incantly-printing body > :not(.incantly-print-root) {
+    display: none !important;
+  }
+
+  html.incantly-printing .incantly-print-root .incantly-print-page {
+    break-after: page;
+  }
+
+  html.incantly-printing .incantly-print-root .incantly-print-page:last-child {
+    break-after: auto;
+  }
 }

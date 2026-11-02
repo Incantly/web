@@ -90,7 +90,7 @@ const ALIGN_ICON_LINES: Record<'left' | 'center' | 'right', Array<[number, numbe
 }
 
 /** Word-style alignment glyph: icon plus an accessible name via the button label. */
-function AlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
+export function AlignIcon({ alignment }: { alignment: 'left' | 'center' | 'right' }) {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" aria-hidden="true">

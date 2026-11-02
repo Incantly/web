@@ -23,6 +23,10 @@ import { useImports } from '@/hooks/use-imports'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useNoteSuggestions } from '@/hooks/use-note-suggestions'
+import { useHeaderFooter } from '@/hooks/use-header-footer'
+import { usePageSetup } from '@/hooks/use-page-setup'
+import { useNoteExport } from '@/hooks/use-note-export'
+import { ExportDialog } from './ExportDialog'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { DocumentAssetsProvider } from '../../../lib/document-editor/assetHost'
@@ -32,6 +36,7 @@ import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChro
 import { NoteContextPanel } from './NoteContextPanel'
 import { NoteSourcesSection } from './NoteSourcesSection'
 import { NoteSuggestionsBar } from './NoteSuggestionsBar'
+import { PageSetupPanel } from './PageSetupPanel'
 import { ActionMenu, ConfirmDialog, Dialog, EmptyState, ErrorState, ListSkeleton, PageFrame, SpaceGlyph, TopBar, buttonPrimary, buttonSecondary } from './ui'
 
 const DocumentEditor = dynamic(
@@ -187,6 +192,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const onDelete = () => deleteNote(noteId)
   const onBack = () => navigate('notes')
   const [contextOpen, setContextOpen] = useState(false)
+  const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
   const [editorReady, setEditorReady] = useState(0)
@@ -203,8 +209,11 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
   const editable = session.phase === 'ready' && session.sync?.status !== 'gone'
+  const pageSetup = usePageSetup(editor, editable)
+  const headerFooter = useHeaderFooter(editor, editable)
   // The loaded document keeps its original title; a rename made here wins until the list catches up.
   const shownTitle = renamed ?? (title || session.document?.metadata.title || '')
+  const noteExport = useNoteExport(editor, session.document ?? null, shownTitle)
   const rename = (next: string) => { setRenamed(next.trim()); session.rename(next) }
 
   return <>
@@ -219,6 +228,8 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
         <ActionMenu label="Note actions" items={[
           { label: 'Find in note', icon: 'search', hint: '⌘F', onSelect: () => setFindOpen(true), disabled: !session.document },
           { label: 'Note context', icon: 'link', onSelect: () => setContextOpen(true) },
+          { label: 'Page setup', icon: 'paper', onSelect: () => setPageSetupOpen(true), disabled: !session.document },
+          { label: 'Export…', icon: 'upload', onSelect: noteExport.show, disabled: !editor },
           { label: 'Version history', icon: 'history', onSelect: () => setDialog('history'), disabled: session.phase !== 'ready' },
           { label: 'Import file into note', icon: 'import', onSelect: () => onImport('file'), disabled: !editable },
           { label: 'Import web page into note', icon: 'globe', onSelect: () => onImport('url'), disabled: !editable },
@@ -253,6 +264,10 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
       <NoteSourcesSection />
       <NoteContextPanel noteId={noteId} />
     </div></SidePanel>
+    <SidePanel open={pageSetupOpen} onClose={() => { setPageSetupOpen(false); pageSetup.clearError() }} title="Page setup" description="Paper, margins, headers and footers for this note.">
+      <PageSetupPanel state={pageSetup} headerFooter={headerFooter} />
+    </SidePanel>
+    <ExportDialog state={noteExport} onOpenPageSetup={() => { noteExport.close(); setPageSetupOpen(true) }} />
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />
     <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} />
     <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel="Delete note" title={`Delete “${shownTitle || 'this note'}”?`}

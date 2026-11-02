@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { InboxItem } from '@/components/product/InboxPopover'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
 import type { ImportMode } from '@/components/product/workspace/imports'
-import { PANEL_WIDTH_KEY, parsePanelWidth } from '@/components/product/workspace/panelWidthModel'
+import { CONTENT_MIN, PANEL_WIDTH_KEY, parsePanelWidth } from '@/components/product/workspace/panelWidthModel'
 import { useMediaQuery, type useSidePanelHost } from '@/components/product/workspace/sidePanel'
 
 type FormDialog = 'space' | 'source' | null
@@ -30,6 +30,9 @@ export type WorkspaceUIValue = {
   /** The docked panel width the user chose (px), remembered on this device. The layout may show it narrower on a small window. */
   panelWidth: number
   setPanelWidth: (width: number) => void
+  /** How narrow the content box may get beside a panel; the open note raises it for a sheet in Pages mode. */
+  contentMin: number
+  setContentMin: (width: number) => void
   assistantOpen: boolean
   toggleAssistant: () => void
   openAssistant: () => void
@@ -81,6 +84,7 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     setPanelWidthState(width)
     try { window.localStorage.setItem(PANEL_WIDTH_KEY, String(width)) } catch { /* not remembered, still applied */ }
   }, [])
+  const [contentMin, setContentMin] = useState(CONTENT_MIN)
   // A right panel pushes the content box from the right. Below 1280px both sides open at once would
   // squeeze it too thin, so the sidebar folds to its icon rail while a panel is open (hover still peeks).
   const roomy = useMediaQuery('(min-width: 1280px)')
@@ -116,6 +120,8 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     setPanelSlot: panels.setSlot,
     panelWidth,
     setPanelWidth,
+    contentMin,
+    setContentMin,
     assistantOpen,
     toggleAssistant: () => setAssistantOpen((current) => !current),
     openAssistant: () => { setMobileOpen(false); setSearchOpen(false); setAssistantOpen(true) },
@@ -137,7 +143,7 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     openImport: (request) => { setMobileOpen(false); setImportRequest(request) },
     closeImport: () => setImportRequest(null),
     inbox: { items: inboxItems, dismiss: (id) => setInboxItems((current) => current.filter((item) => item.id !== id)) },
-  }), [mobileOpen, railCollapsed, railPeek, panels.open, panels.setSlot, panelWidth, setPanelWidth, roomy, toggleRail, schedulePeek, assistantOpen, assistantPrompt, searchOpen, settingsOpen, dialog, importRequest, inboxItems])
+  }), [mobileOpen, railCollapsed, railPeek, panels.open, panels.setSlot, panelWidth, setPanelWidth, contentMin, roomy, toggleRail, schedulePeek, assistantOpen, assistantPrompt, searchOpen, settingsOpen, dialog, importRequest, inboxItems])
 }
 
 /** Workspace chrome: sidebar, rail, docked panels, dialogs, ⌘K search, inbox. Must be used inside `WorkspaceProviders`. */
