@@ -143,7 +143,7 @@ export function Dialog({ open, onClose, title, description, children, footer, va
     ? 'ml-auto mr-0 h-dvh max-h-none max-w-none w-[min(30rem,100vw)] rounded-none sm:rounded-l-[1.15rem]'
     : 'm-auto max-h-[min(44rem,calc(100dvh-2rem))] w-[min(34rem,calc(100vw-2rem))] rounded-[1.15rem]'
 
-  return <dialog ref={ref} aria-labelledby={titleId} onClose={onClose} onCancel={(event) => { event.preventDefault(); onClose() }}
+  return <dialog ref={ref} aria-labelledby={titleId} onClose={(event) => { if (event.target === event.currentTarget) onClose() }} onCancel={(event) => { if (event.target !== event.currentTarget) return; event.preventDefault(); onClose() }}
     onClick={(event) => { if (event.target === ref.current) onClose() }}
     className={`${shape} border border-default bg-raised p-0 text-foreground shadow-xl backdrop:bg-foreground/30 open:flex open:flex-col`}>
     {bare ? <><h2 id={titleId} className="sr-only">{title}</h2>{children}</> : <>

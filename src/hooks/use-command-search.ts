@@ -5,6 +5,7 @@ import type { EvidenceTarget } from '@/components/product/workspace/ContextSearc
 import { commandGroups, moveActive, type CommandGroup, type CommandItem } from '@/components/product/workspace/commandSearchModel'
 import { useContentSearch, type ContentSearch } from '@/hooks/use-context-search'
 import { useLibrary } from '@/hooks/use-library'
+import { useAssistant } from '@/hooks/use-assistant'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
@@ -50,6 +51,7 @@ export function useCommandSearch(onClose: () => void): CommandSearchValue {
   const { sources } = useLibrary()
   const { navigate, openNote, openSource, evidenceTarget } = useNavigation()
   const { openDialog, openSettings, askAssistant } = useWorkspaceUI()
+  const { available: canAsk } = useAssistant()
   const content = useContentSearch()
   const [query, setText] = useState('')
   const [active, setActive] = useState(0)
@@ -57,7 +59,7 @@ export function useCommandSearch(onClose: () => void): CommandSearchValue {
   const listId = useId()
 
   const deferredQuery = useDeferredValue(query)
-  const groups = useMemo(() => commandGroups(deferredQuery, { notes, spaces, sources }), [deferredQuery, notes, spaces, sources])
+  const groups = useMemo(() => commandGroups(deferredQuery, { notes, spaces, sources, canAsk }), [deferredQuery, notes, spaces, sources, canAsk])
   const items = useMemo(() => groups.flatMap((group) => group.items), [groups])
   const sections = useMemo(() => {
     let index = 0

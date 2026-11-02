@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'alert' | 'archive' | 'arrowUp' | 'audio' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'copy' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'keyboard' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pause' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'stop' | 'table' | 'trash' | 'unlink' | 'upload' | 'user' | 'video'
+export type IconName = 'alert' | 'archive' | 'arrowUp' | 'audio' | 'card' | 'check' | 'checkCircle' | 'chevron' | 'clipboard' | 'clock' | 'close' | 'code' | 'copy' | 'document' | 'edit' | 'file' | 'globe' | 'history' | 'home' | 'import' | 'inbox' | 'journal' | 'keyboard' | 'library' | 'link' | 'math' | 'menu' | 'minus' | 'more' | 'panel' | 'paper' | 'pause' | 'pdf' | 'pin' | 'play' | 'plus' | 'quote' | 'restore' | 'search' | 'settings' | 'share' | 'space' | 'sparkles' | 'stop' | 'table' | 'trash' | 'unlink' | 'upload' | 'user' | 'video'
 
 const paths: Record<IconName, ReactNode> = {
   alert: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></>,
@@ -31,6 +31,7 @@ const paths: Record<IconName, ReactNode> = {
   upload: <><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></>,
   video: <><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></>,
   archive: <><path d="M4 7h16v13H4z"/><path d="M3 4h18v3H3zM9 11h6"/></>,
+  card: <><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></>,
   check: <path d="m5 13 4 4L19 7"/>,
   chevron: <path d="m9 18 6-6-6-6"/>,
   close: <path d="M6 6l12 12M18 6 6 18"/>,

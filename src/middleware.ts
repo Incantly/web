@@ -3,7 +3,7 @@ import { getSessionCookie } from 'better-auth/cookies'
 import { hasValidStamp, stampClientIdentity, validSecret } from './lib/auth/clientIdentity'
 import { signInOpen } from './lib/signIn'
 
-const protectedPaths = ['/notes', '/workspace', '/dashboard', '/pro']
+const protectedPaths = ['/notes', '/workspace', '/dashboard', '/pro', '/billing']
 const backendPaths = ['/api/auth', '/v1']
 // Endpoints that start or finish a sign-in; refused while sign-in is closed.
 const signInPaths = ['/api/auth/sign-in', '/api/auth/email-otp', '/api/auth/callback']
@@ -81,7 +81,8 @@ export async function middleware(request: NextRequest) {
   if (isProtected && !hasSession) {
     if (!signInOpen()) return NextResponse.redirect(new URL('/', request.url))
     const login = new URL('/auth', request.url)
-    login.searchParams.set('next', request.nextUrl.pathname)
+    // Keep the query: a checkout return (`/billing/success?intent=…`) needs it after sign-in.
+    login.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search)
     return NextResponse.redirect(login)
   }
 
@@ -90,7 +91,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/notes/:path*', '/workspace/:path*', '/dashboard/:path*', '/pro/:path*', '/auth/:path*',
+    '/notes/:path*', '/workspace/:path*', '/dashboard/:path*', '/pro/:path*', '/billing/:path*', '/auth/:path*',
     '/api/auth/:path*', '/v1/:path*',
   ],
 }

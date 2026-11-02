@@ -103,6 +103,23 @@ const messages: Record<string, string> = {
   CONTEXT_SCOPE_INVALID: 'Choose what to search first.',
   CONTEXT_SCOPE_TOO_LARGE: 'That’s too much to search at once. Narrow it down.',
   CONTEXT_QUERY_INVALID: 'Type what you’re looking for (up to 1,000 characters).',
+
+  EMAIL_NOT_VERIFIED: 'Verify your email address first, then try again.',
+  ALREADY_SUBSCRIBED: 'You already have a paid plan. Switch plans from its card instead.',
+  CHECKOUT_PENDING: 'Your last checkout is still being confirmed. Try again in a moment.',
+  PLAN_NOT_AVAILABLE: 'That plan isn’t available right now.',
+  PAYMENT_FAILED: 'Your card was declined, so your plan didn’t change. Update your card and try again.',
+  SUBSCRIPTION_CANCELING: 'Your plan is set to end. Resume it first, then switch.',
+  NO_ACTIVE_SUBSCRIPTION: 'You don’t have a paid plan to change.',
+  SUBSCRIPTION_ALREADY_ENDED: 'This plan has already ended.',
+  NO_BILLING_CUSTOMER: 'There’s no billing account yet. Choose a plan first.',
+  BILLING_PROVIDER_UNAVAILABLE: 'Payments are unavailable right now. Please try again shortly.',
+  BILLING_MISCONFIGURED: 'Payments are unavailable right now. Please try again shortly.',
+  BILLING_DISABLED: 'Paid plans aren’t open yet.',
+  REFUND_WINDOW_EXPIRED: 'Refunds are available within 5 days of a payment, and that window has passed.',
+  NO_REFUNDABLE_CHARGE: 'There’s no recent payment to refund.',
+  REFUND_ALREADY_REQUESTED: 'A refund for this payment is already on its way.',
+  REFUND_LIMIT_REACHED: 'You’ve had a refund in the last 12 months. Contact support and we’ll help.',
 }
 
 export function apiErrorMessage(error: unknown): string {

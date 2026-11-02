@@ -1,9 +1,10 @@
 import { Hero } from './Hero'
+import { SiteHeader } from './SiteHeader'
 
 export function IncantlyHero() {
   return (
     <Hero.Frame>
-      <Hero.Navigation />
+      <SiteHeader current="home" />
       <div className="relative flex min-h-0 w-full flex-1 flex-col items-center px-[clamp(1.25rem,5vw,7rem)] pb-9 pt-5 sm:pb-[3.25rem] sm:pt-[2.25rem] lg:pt-[clamp(5rem,12svh,18rem)]">
         <div className="hidden font-display text-[1.5rem] italic leading-[1.05] text-button lg:absolute lg:left-[clamp(4rem,11vw,14rem)] lg:top-[42%] lg:block lg:max-w-[11rem] lg:-rotate-[9deg]" aria-hidden="true">
           <span>Start with a thought</span>

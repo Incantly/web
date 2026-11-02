@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { legalEntity } from '../../lib/legal/company'
 import { IncantlyFooter } from '../landing/Footer'
+import { SiteHeader } from '../landing/SiteHeader'
 
 export type LegalSection = { id: string; title: string; body: ReactNode }
 
@@ -55,21 +55,15 @@ export function LegalDocument({ title, intro, sections, current }: { title: stri
   </ol>
 
   return <>
-    <header className="border-b border-default bg-canvas pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex max-w-[76rem] flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:px-6">
-        <Link href="/" className="flex min-h-11 items-center gap-2 font-display text-[1.6rem] tracking-[-0.04em] text-foreground no-underline" aria-label="Incantly home">
-          <Image src="/incantly-logo.svg" alt="" width={20} height={28} className="h-7 w-auto" /> incantly
-        </Link>
+    <SiteHeader />
+
+    <main className="mx-auto max-w-[76rem] pb-16 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[clamp(1rem,4vw,2.5rem)] sm:px-6">
+      <div className="max-w-[46rem]">
         <nav aria-label="Legal documents" className="-mx-2 flex flex-wrap">
           {pages.map((page) => <Link key={page.href} href={page.href} aria-current={page.href === current ? 'page' : undefined}
             className="flex min-h-11 items-center rounded-lg px-2 text-sm text-muted no-underline hover:text-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground">{page.label}</Link>)}
         </nav>
-      </div>
-    </header>
-
-    <main className="mx-auto max-w-[76rem] pb-16 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[clamp(2rem,6vw,4rem)] sm:px-6">
-      <div className="max-w-[46rem]">
-        <p className="m-0 text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-subtle">Legal · {legalEntity.product}</p>
+        <p className="m-0 mt-6 text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-subtle">Legal · {legalEntity.product}</p>
         <h1 className="mt-3 font-display text-[clamp(2.25rem,6vw,3.75rem)] font-normal leading-[1.02] tracking-[-0.04em] text-foreground">{title}</h1>
         <p className="mt-4 text-sm text-muted">Last updated {legalEntity.lastUpdated}</p>
         <div className={`mt-6 ${prose}`}>{intro}</div>
