@@ -102,6 +102,141 @@
         ]
       }
     },
+    "/v1/assets/uploads/batch": {
+      "post": {
+        "description": "One call for a dropped folder: up to 50 files and 2 GiB in total, each with the same type and size rules and the same upload instructions as POST /v1/assets/uploads.\n\nResults are per file, in request order. A rejected file (for example 422 ASSET_TYPE_NOT_ALLOWED) has `ok: false` with its `status` and `code` and never blocks the others.\n\nThen upload the files in parallel, 4–6 at a time, straight to storage, and complete each one as it finishes (POST /v1/assets/uploads/{uploadId}/complete). Then create the Sources in one call with POST /v1/library/sources/batch.\n\nIdempotency: retry the whole batch with the same Idempotency-Key and body to get the same reservations. Rate limited per user.",
+        "operationId": "AssetsController_reserveBatch",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReserveUploadBatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadBatchDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_IDEMPOTENCY_KEY. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_IDEMPOTENCY_KEY"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_REQUEST_ORIGIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST_ORIGIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "UPLOAD_BATCH_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "UPLOAD_BATCH_TOO_LARGE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED. Honor Retry-After."
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Reserve up to 50 direct uploads at once (folder upload)",
+        "tags": [
+          "assets"
+        ]
+      }
+    },
     "/v1/assets/uploads": {
       "post": {
         "description": "Enforces the backend type/size policy, chooses the immutable object key, and returns short-lived MinIO/R2 PUT instructions. The browser never supplies a storage key. Files over 16 MiB use 8 MiB multipart parts; maximum size is 250 MiB.",
@@ -2716,7 +2851,7 @@
     },
     "/v1/library/sources": {
       "post": {
-        "description": "Creates the Source, its immutable version 1, optional Space links, and a durable ingestion job in one transaction. Adding an Asset, Note revision, or web URL that is already in the Library returns that existing Source (and links any requested Spaces) instead of duplicating bytes or processing. The returned Source starts PENDING; poll GET until READY, PARTIALLY_READY, FAILED, or QUARANTINED. Passive text and Note revisions become READY quickly; PDFs, web pages, YouTube captions, and audio pass through PROCESSING stages on the worker pool. Images stay at AWAITING_PROCESSOR (no OCR). Never treat a non-ready Source as searchable.",
+        "description": "Creates the Source, its immutable version 1, optional Space links, and a durable ingestion job in one transaction. Adding an Asset, Note revision, or web URL that is already in the Library returns that existing Source (and links any requested Spaces) instead of duplicating bytes or processing. The returned Source starts PENDING; poll GET until READY, PARTIALLY_READY, FAILED, or QUARANTINED. Passive text and Note revisions become READY quickly; PDFs, Word (DOCX) and PowerPoint (PPTX) files, web pages, YouTube captions, and audio pass through PROCESSING stages on the worker pool. Images and scanned PDFs are not read (no OCR): images stay at AWAITING_PROCESSOR and scanned PDFs fail with PDF_NO_TEXT_LAYER. Never treat a non-ready Source as searchable.",
         "operationId": "SourcesController_create",
         "parameters": [
           {
@@ -3030,6 +3165,121 @@
           }
         ],
         "summary": "List Library Sources",
+        "tags": [
+          "library"
+        ]
+      }
+    },
+    "/v1/library/sources/batch": {
+      "post": {
+        "description": "One call after a folder upload: up to 50 Sources (usually one FILE per completed Asset, with the same optional spaceIds). Each item follows the rules of POST /v1/library/sources: deduplication, Space links, and a durable ingestion job.\n\nResults are per item, in request order. A rejected item has `ok: false` with its `status` and `code` (for example 404 ASSET_NOT_FOUND) and never blocks the others.\n\nFiles are processed in parallel, a few per user at a time; the rest wait their turn. Poll GET /v1/library/sources/{sourceId}/processing for each and enable \"ask about this file\" once index.searchReadiness is KEYWORD.\n\nIdempotency: retry the whole batch with the same Idempotency-Key and body to get the same Sources. Rate limited per user.",
+        "operationId": "SourcesController_createBatch",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSourceBatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceBatchDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_IDEMPOTENCY_KEY",
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_REQUEST_ORIGIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST_ORIGIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED. Honor Retry-After."
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Add up to 50 Sources at once (folder upload)",
         "tags": [
           "library"
         ]
@@ -4546,7 +4796,7 @@
     },
     "/v1/ai/requests": {
       "post": {
-        "description": "Routes the request to a task (a cited answer, or practice questions) and starts a background job over the given scope. The scope is checked now and again on every search while the job runs; the server, never the model, decides what may be searched.\n\nRouting: an explicit `command` always wins and costs nothing. Otherwise keyword rules and the surface default decide; when the optional AI router is enabled on the server it may decide instead, and for a near tie it returns 200 CLARIFICATION_REQUIRED with a closed set of options (no job is created). Show the options; resend the same text and scope with the chosen `command`, `clarified: true`, and a new Idempotency-Key.\n\nResponses: 202 with `outcome: JOB` (follow it with GET /v1/ai/jobs/{jobId}/events), or 200 with `outcome: CLARIFICATION_REQUIRED`.\n\nIdempotency: a retry with the same Idempotency-Key and body returns the original job (`created: false`) without routing or charging again; the same key with a different body is 409 IDEMPOTENCY_KEY_REUSED. Use one key per user action and reuse it only for retries of that action.\n\nSpend: the job is charged to the user’s daily AI allowance as it runs; if the allowance runs out the job fails with AI_DAILY_LIMIT_REACHED (see GET /v1/ai/allowance). Rate limited per user.",
+        "description": "Routes the request to a task (a cited answer, practice questions, or the note assistant for a `selection`, which may propose inline edits) and starts a background job over the given scope. The scope is checked now and again on every search while the job runs; the server, never the model, decides what may be searched.\n\nRouting: an explicit `command` always wins and costs nothing. Otherwise keyword rules and the surface default decide; when the optional AI router is enabled on the server it may decide instead, and for a near tie it returns 200 CLARIFICATION_REQUIRED with a closed set of options (no job is created). Show the options; resend the same text and scope with the chosen `command`, `clarified: true`, and a new Idempotency-Key.\n\nResponses: 202 with `outcome: JOB` (follow it with GET /v1/ai/jobs/{jobId}/events), or 200 with `outcome: CLARIFICATION_REQUIRED`.\n\nIdempotency: a retry with the same Idempotency-Key and body returns the original job (`created: false`) without routing or charging again; the same key with a different body is 409 IDEMPOTENCY_KEY_REUSED. Use one key per user action and reuse it only for retries of that action.\n\nSpend: the job is charged to the user’s daily AI allowance as it runs; if the allowance runs out the job fails with AI_DAILY_LIMIT_REACHED (see GET /v1/ai/allowance). Rate limited per user.\n\nDurability: the job runs on the server whether or not the client stays connected. Keep the job id, but if it is lost, GET /v1/ai/jobs lists the user’s jobs; finished ones the user has not opened have `seenAt: null`.\n\nWeb: `webSearch: true` lets a cited answer also search the public web, when the server has a web vendor configured. Web search runs only while the job’s data may go to that vendor, and never sends the learner’s material.",
         "operationId": "AiController_submit",
         "parameters": [
           {
@@ -4587,6 +4837,27 @@
                     "scope": {
                       "kind": "SPACE",
                       "spaceId": "space:91ab…"
+                    }
+                  }
+                },
+                "noteSelection": {
+                  "summary": "Help with selected text in a Note (may propose edits)",
+                  "value": {
+                    "surface": "note",
+                    "text": "Make this clearer",
+                    "scope": {
+                      "kind": "NOTE",
+                      "noteId": "note:2f6c…"
+                    },
+                    "selection": {
+                      "revisionNumber": 12,
+                      "ranges": [
+                        {
+                          "nodeId": "node:8a1f…",
+                          "from": 0,
+                          "to": 84
+                        }
+                      ]
                     }
                   }
                 },
@@ -4738,7 +5009,7 @@
             }
           },
           "422": {
-            "description": "CONTEXT_SCOPE_INVALID, CONTEXT_SCOPE_TOO_LARGE, AI_TASK_UNKNOWN, AI_TASK_NOT_SUPPORTED, AI_JOB_INPUT_INVALID",
+            "description": "CONTEXT_SCOPE_INVALID, CONTEXT_SCOPE_TOO_LARGE, AI_TASK_UNKNOWN, AI_TASK_NOT_SUPPORTED, AI_JOB_INPUT_INVALID, AI_SELECTION_NEEDS_NOTE",
             "content": {
               "application/json": {
                 "schema": {
@@ -4754,7 +5025,8 @@
                         "CONTEXT_SCOPE_TOO_LARGE",
                         "AI_TASK_UNKNOWN",
                         "AI_TASK_NOT_SUPPORTED",
-                        "AI_JOB_INPUT_INVALID"
+                        "AI_JOB_INPUT_INVALID",
+                        "AI_SELECTION_NEEDS_NOTE"
                       ]
                     }
                   }
@@ -4777,9 +5049,157 @@
         ]
       }
     },
+    "/v1/ai/jobs": {
+      "get": {
+        "description": "The user’s own jobs, newest first, as summaries without results. Use it to find answers that finished while the user was away (`status: COMPLETED` and `seenAt: null`), or the jobs about one Note or Space (`subjectKind` and `subjectId`).\n\nPagination: pass `nextCursor` as `cursor` until it is null. Filtering by a Note or Space the user cannot access returns an empty list, not an error.\n\nRead a job’s result with GET /v1/ai/jobs/{jobId}; mark it opened with POST /v1/ai/jobs/{jobId}/seen.",
+        "operationId": "AiController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACCEPTED",
+                "RUNNING",
+                "WAITING",
+                "WAITING_APPROVAL",
+                "WAITING_TOOL",
+                "COMPLETED",
+                "FAILED",
+                "CANCELED",
+                "EXPIRED"
+              ]
+            }
+          },
+          {
+            "name": "jobType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "agent.grounded_answer",
+                "agent.practice_questions",
+                "agent.note_assist"
+              ]
+            }
+          },
+          {
+            "name": "subjectKind",
+            "required": false,
+            "in": "query",
+            "description": "Only jobs about this kind of thing (from the scope they ran over).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NOTE",
+                "SPACE",
+                "SOURCES",
+                "LIBRARY"
+              ]
+            }
+          },
+          {
+            "name": "subjectId",
+            "required": false,
+            "in": "query",
+            "description": "Only jobs about this Note or Space (needs subjectKind NOTE or SPACE). A Note or Space you cannot access simply returns no jobs.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "The `nextCursor` of the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiJobListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "AI_JOB_CURSOR_INVALID, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AI_JOB_CURSOR_INVALID",
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "List the user’s AI jobs",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/v1/ai/jobs/{jobId}": {
       "get": {
-        "description": "Returns the job and, once COMPLETED, its `result` (shape by `jobType`). Prefer polling the events endpoint while a job runs and reading the job once it is terminal. Another user’s job returns 404, like a missing one.",
+        "description": "Returns the job and, once COMPLETED, its `result` (shape by `jobType`). Prefer polling the events endpoint (or the stream) while a job runs and reading the job once it is terminal. Another user’s job returns 404, like a missing one. If the user lost access to the Note or Space the job ran over, `result` is null and `resultWithheld` is true.",
         "operationId": "AiController_job",
         "parameters": [
           {
@@ -4879,7 +5299,7 @@
     },
     "/v1/ai/jobs/{jobId}/events": {
       "get": {
-        "description": "Returns progress and terminal events after `after`, oldest first, at most 200 per call. Poll about every 1 second at first, backing off to 3–5 seconds; stop when `done` is true, then read the job. DEFERRED and WAITING_TURN mean the job is queued behind a provider limit or the user’s other jobs: keep polling. Events carry codes and numbers only, never text.",
+        "description": "Returns progress and terminal events after `after`, oldest first, at most 200 per call. Poll about every 1 second at first, backing off to 3–5 seconds; stop when `done` is true, then read the job. DEFERRED and WAITING_TURN mean the job is queued behind a provider limit or the user’s other jobs: keep polling. Agent jobs emit TOOL_STARTED and TOOL_FINISHED per tool call (paired by `data.callId`) so the chat can list what the assistant is doing; see AiJobEventDto.data for each tool’s fields, and show unknown tools as a generic step. Events carry codes and numbers only, never text.",
         "operationId": "AiController_events",
         "parameters": [
           {
@@ -4983,6 +5403,524 @@
           }
         ],
         "summary": "Follow an AI job’s progress",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/jobs/{jobId}/stream": {
+      "get": {
+        "description": "The same events as GET …/events, pushed as they happen: each SSE message has `id` (the event `seq`), `event` (the event type), and `data` (the event JSON). A `done` event ({status}) closes the stream once the job is terminal; a `timeout` event closes long streams.\n\nReconnect with the `Last-Event-ID` header (EventSource does this) or `?after=<seq>` and nothing is lost or repeated. Use EventSource with credentials; on error fall back to polling. At most a few open streams per user (429 RATE_LIMITED beyond that). Events carry codes and numbers only, never text.",
+        "operationId": "AiController_stream",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return events with `seq` greater than this. Start at -1, then pass the last `seq` you received.",
+            "schema": {
+              "minimum": -1,
+              "default": -1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/event-stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: `id: <seq>`, `event: <AiJobEvent type | done | timeout | error>`, `data: <JSON>`."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "AI_JOB_NOT_FOUND",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AI_JOB_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED. Wait for the Retry-After header (seconds) when present.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "RATE_LIMITED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Follow an AI job live (server-sent events)",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/jobs/{jobId}/seen": {
+      "post": {
+        "description": "Records that the user looked at the job, so lists can show which finished answers are new. Idempotent: the first time is kept.",
+        "operationId": "AiController_seen",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiJobDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_REQUEST_ORIGIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST_ORIGIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "AI_JOB_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AI_JOB_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Mark a job opened",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/jobs/{jobId}/approvals": {
+      "get": {
+        "description": "When a job is WAITING_APPROVAL, the action it proposes (a write to the user’s data or a call to an outside service), with a server-written preview of exactly what will change and when the request expires. Show the preview as plain text and ask the user; never approve on their behalf.\n\nEmpty unless the job is WAITING_APPROVAL. Keep `stateVersion` to send with the decision.",
+        "operationId": "AiController_approvals",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiApprovalsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "AI_JOB_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AI_JOB_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Actions waiting for the user’s approval",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/jobs/{jobId}/approvals/{toolCallId}": {
+      "post": {
+        "description": "Records the user’s decision on one proposed action and resumes the job. `approve` runs exactly the previewed action once; `reject` tells the assistant the user declined, and it continues without it.\n\nIdempotent: repeating the same decision returns the job unchanged. A different earlier decision, an expired request, or a stale `stateVersion` is 409 AI_JOB_STATE_CHANGED: reload the job and its approvals. One decision covers one action; there is no \"approve all\".\n\nOnly the job’s owner can decide, and approving needs the user to still have access to what the job is about. Rate limited per user.",
+        "operationId": "AiController_decide",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toolCallId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiJobDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_REQUEST_ORIGIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST_ORIGIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "AI_JOB_NOT_FOUND, AI_APPROVAL_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AI_JOB_NOT_FOUND",
+                        "AI_APPROVAL_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "AI_JOB_STATE_CHANGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AI_JOB_STATE_CHANGED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED. Wait for the Retry-After header (seconds)."
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Approve or reject a proposed action",
         "tags": [
           "ai"
         ]
@@ -5295,6 +6233,588 @@
         "summary": "Today’s remaining AI allowance",
         "tags": [
           "ai"
+        ]
+      }
+    },
+    "/v1/notes/{noteId}/proposals": {
+      "get": {
+        "description": "Proposals still waiting on a decision, newest first (at most 20). Load them when a note-assistant job finishes (its result lists `proposalIds`) and when the note opens.\n\nDraw each change as a decoration over the editor, never as document content: diff `baseText` against `text` for editText; outline inserted, deleted, and moved blocks. Text is the learner’s own note text and the assistant’s plain text: render it as text, never as HTML, and do not make links in it clickable until accepted.\n\nIf the block in the editor no longer matches `baseText`, show the change as possibly stale; the server decides when it is accepted.",
+        "operationId": "NoteProposalsController_list",
+        "parameters": [
+          {
+            "name": "noteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteProposalListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOTE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Open edit suggestions for a note",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/v1/notes/{noteId}/proposals/{proposalId}": {
+      "get": {
+        "description": "The proposal with every change and its state (null while undecided).",
+        "operationId": "NoteProposalsController_get",
+        "parameters": [
+          {
+            "name": "noteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "proposalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteProposalDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOTE_NOT_FOUND, NOTE_PROPOSAL_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_NOT_FOUND",
+                        "NOTE_PROPOSAL_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "One edit suggestion, including decided ones",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/v1/notes/{noteId}/proposals/{proposalId}/decisions": {
+      "post": {
+        "description": "Accepted changes are applied, in proposal order, as one note revision with origin `ai` against the current head. A change whose block the user edited since still applies when the two edits touch different text; otherwise it becomes STALE (with `reason`) and nothing of it is applied. Offer “Ask the assistant to redo this part” for a stale change: a new request with that block selected.\n\nRejected changes are recorded and never applied. `all` accepts or rejects every undecided change.\n\nIdempotent: a retry, or deciding an already decided change, returns the stored states without applying anything twice. 409 NOTE_PROPOSAL_DECISION_IN_PROGRESS means another decision on this proposal is being applied: retry shortly. After a 200, load the note at `currentRevisionNumber`; do not reapply the change locally.\n\nRate limited per user.",
+        "operationId": "NoteProposalsController_decide",
+        "parameters": [
+          {
+            "name": "noteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "proposalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalDecisionResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_REQUEST_ORIGIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST_ORIGIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOTE_NOT_FOUND, NOTE_PROPOSAL_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_NOT_FOUND",
+                        "NOTE_PROPOSAL_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "NOTE_PROPOSAL_EXPIRED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_PROPOSAL_EXPIRED",
+                        "NOTE_PROPOSAL_DECISION_IN_PROGRESS",
+                        "NOTE_TRANSACTION_CONFLICT"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "NOTE_PROPOSAL_CHANGE_UNKNOWN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_PROPOSAL_CHANGE_UNKNOWN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED. Wait for the Retry-After header (seconds)."
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Accept or reject suggested changes",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/v1/notes/{noteId}/proposals/{proposalId}/changes/{changeId}/undo": {
+      "post": {
+        "description": "Reverses one accepted change as a new revision with origin `ai`. It applies only while the changed block is still exactly as the change left it; otherwise 409 PROPOSAL_UNDO_STALE (restore an earlier revision from history instead).\n\nIdempotent: undoing an undone change returns it unchanged. Rate limited per user.",
+        "operationId": "NoteProposalsController_undo",
+        "parameters": [
+          {
+            "name": "noteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "proposalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalUndoResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SESSION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "SESSION_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_REQUEST_ORIGIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_REQUEST_ORIGIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOTE_NOT_FOUND, NOTE_PROPOSAL_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_NOT_FOUND",
+                        "NOTE_PROPOSAL_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PROPOSAL_UNDO_STALE, PROPOSAL_UNDO_NOT_ALLOWED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "PROPOSAL_UNDO_STALE",
+                        "PROPOSAL_UNDO_NOT_ALLOWED",
+                        "NOTE_PROPOSAL_DECISION_IN_PROGRESS",
+                        "NOTE_TRANSACTION_CONFLICT"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "NOTE_PROPOSAL_CHANGE_UNKNOWN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "NOTE_PROPOSAL_CHANGE_UNKNOWN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED. Wait for the Retry-After header (seconds)."
+          }
+        },
+        "security": [
+          {
+            "cookieSession": []
+          }
+        ],
+        "summary": "Undo an accepted change",
+        "tags": [
+          "notes"
         ]
       }
     },
@@ -14124,7 +15644,7 @@
   },
   "info": {
     "title": "Incantly API",
-    "description": "Frontend integration guide\n\nThis is a private developer reference, not an application login page. The documentation password must never be embedded in browser code or NEXT_PUBLIC variables. Try-it-out is disabled to prevent accidental writes and bypassing the auth forwarding boundary.\n\nHealth endpoints use the backend origin. Authentication endpoints must be called on the public web origin through /api/auth/*, using the Better Auth client and cookie credentials. The web server signs client identity for the backend; never create that signature or expose AUTH_PROXY_SECRET in a browser. Documentation credentials do not authorize API operations.\n\nEmail signup/login is passwordless. Request a six-digit OTP, then submit email and OTP; collect the display name for first signup. Codes expire in five minutes, permit three wrong attempts, and rotate on resend. Google uses sign-in/social and the configured callback. Account creation requires identity proof. Sessions use HttpOnly cookies. Never store session/OAuth tokens in localStorage or IndexedDB. JSON session tokens are removed by the backend response adapter even if generic SDK schemas mention them.\n\nSend JSON for POST requests and preserve the exact allowed Origin and cookies. Auth JSON bodies are limited to 16 KiB. Callback URLs must match the configured origin allowlist. On 429 respect Retry-After; do not retry OTP submission blindly. Infrastructure failures return 503. UNTRUSTED_PROXY (403) means the request bypassed the trusted web entry point; UNTRUSTED_ORIGIN (403), INVALID_JSON (400), BODY_TOO_LARGE (413), RATE_LIMITED (429), and AUTH_UNAVAILABLE (503) are stable adapter codes. SDK errors remain intact.\n\nDo not trust client-provided roles or IDs. Session identity does not replace note or asset ownership checks. Notes endpoints support immutable checkpoints, revisions, restore, deletion, and typed transaction synchronization; IndexedDB input is always untrusted. Asset endpoints support direct MinIO/R2 upload reservations, verified completion, short-lived downloads, abort, and retention-aware deletion. Presigned URLs are credentials: never persist or log them. Library Sources, Spaces, Note context bindings, and Context preview cover the study material the AI may use. AI endpoints (/v1/ai) create background jobs (a cited answer or practice questions) over an explicit scope: submit with an Idempotency-Key, poll the job's events until done, then read the result and its cited passages; a near tie between tasks returns CLARIFICATION_REQUIRED with a closed set of options. AI text and passages are untrusted: render as text or sanitized Markdown, never raw HTML. Daily AI spend is capped per user (AI_DAILY_LIMIT_REACHED). Billing, collaboration, sharing, and tenant APIs are not implemented yet. Generated users scaffolding is not a supported product API and is intentionally excluded. Public health probes have no credentials or parameters. New endpoints must document schemas, examples, auth, stable errors, side effects, retry/idempotency rules and limits beside the implementation.",
+    "description": "Frontend integration guide\n\nThis is a private developer reference, not an application login page. The documentation password must never be embedded in browser code or NEXT_PUBLIC variables. Try-it-out is disabled to prevent accidental writes and bypassing the auth forwarding boundary.\n\nHealth endpoints use the backend origin. Authentication endpoints must be called on the public web origin through /api/auth/*, using the Better Auth client and cookie credentials. The web server signs client identity for the backend; never create that signature or expose AUTH_PROXY_SECRET in a browser. Documentation credentials do not authorize API operations.\n\nEmail signup/login is passwordless. Request a six-digit OTP, then submit email and OTP; collect the display name for first signup. Codes expire in five minutes, permit three wrong attempts, and rotate on resend. Google uses sign-in/social and the configured callback. Account creation requires identity proof. Sessions use HttpOnly cookies. Never store session/OAuth tokens in localStorage or IndexedDB. JSON session tokens are removed by the backend response adapter even if generic SDK schemas mention them.\n\nSend JSON for POST requests and preserve the exact allowed Origin and cookies. Auth JSON bodies are limited to 16 KiB. Callback URLs must match the configured origin allowlist. On 429 respect Retry-After; do not retry OTP submission blindly. Infrastructure failures return 503. UNTRUSTED_PROXY (403) means the request bypassed the trusted web entry point; UNTRUSTED_ORIGIN (403), INVALID_JSON (400), BODY_TOO_LARGE (413), RATE_LIMITED (429), and AUTH_UNAVAILABLE (503) are stable adapter codes. SDK errors remain intact.\n\nDo not trust client-provided roles or IDs. Session identity does not replace note or asset ownership checks. Notes endpoints support immutable checkpoints, revisions, restore, deletion, and typed transaction synchronization; IndexedDB input is always untrusted. Asset endpoints support direct MinIO/R2 upload reservations, verified completion, short-lived downloads, abort, and retention-aware deletion. Presigned URLs are credentials: never persist or log them. Library Sources, Spaces, Note context bindings, and Context preview cover the study material the AI may use. AI endpoints (/v1/ai) create background jobs (a cited answer, practice questions, or the note assistant for selected text) over an explicit scope: submit with an Idempotency-Key, poll the job's events until done, then read the result and its cited passages; a near tie between tasks returns CLARIFICATION_REQUIRED with a closed set of options. AI text and passages are untrusted: render as text or sanitized Markdown, never raw HTML. Daily AI spend is capped per user (AI_DAILY_LIMIT_REACHED). The note assistant may propose inline edits (/v1/notes/{noteId}/proposals): nothing changes until the owner accepts a change, which becomes an ai-origin revision that can be undone. Billing, collaboration, sharing, and tenant APIs are not implemented yet. Generated users scaffolding is not a supported product API and is intentionally excluded. Public health probes have no credentials or parameters. New endpoints must document schemas, examples, auth, stable errors, side effects, retry/idempotency rules and limits beside the implementation.",
     "version": "1",
     "contact": {}
   },
@@ -14321,6 +15841,8 @@
               "image/webp",
               "image/gif",
               "application/pdf",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation",
               "audio/mpeg",
               "audio/mp4",
               "audio/ogg",
@@ -14349,6 +15871,23 @@
         "required": [
           "contentType",
           "byteLength"
+        ]
+      },
+      "ReserveUploadBatchDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Up to 50 files (2 GiB in total), for example a dropped folder. Same rules per file as POST /v1/assets/uploads.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReserveUploadDto"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "UploadPartInstructionDto": {
@@ -14430,6 +15969,47 @@
           "mode",
           "expiresAt",
           "parts"
+        ]
+      },
+      "UploadBatchItemDto": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "description": "Position of the file in the request."
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "reservation": {
+            "$ref": "#/components/schemas/UploadReservationDto"
+          },
+          "status": {
+            "type": "number",
+            "description": "HTTP status the single-file endpoint would have returned."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable code for a rejected file, e.g. ASSET_TYPE_NOT_ALLOWED or IDEMPOTENCY_KEY_REUSED."
+          }
+        },
+        "required": [
+          "index",
+          "ok"
+        ]
+      },
+      "UploadBatchDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadBatchItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "CompletedPartDto": {
@@ -14744,8 +16324,10 @@
               "import",
               "restore",
               "migration",
-              "system"
-            ]
+              "system",
+              "ai"
+            ],
+            "description": "`ai`: an agent proposal change the owner accepted, or its undo. Show it as \"Edited by AI, accepted by you\"."
           },
           "kind": {
             "type": "string",
@@ -15001,6 +16583,15 @@
       "ProcessingIndexDto": {
         "type": "object",
         "properties": {
+          "searchReadiness": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "KEYWORD",
+              "FULL"
+            ],
+            "description": "NONE: not searchable yet. KEYWORD: keyword search works (the agent can already answer from this file). FULL: meaning-based search too. Enable \"ask about this file\" from KEYWORD."
+          },
           "lexicalReady": {
             "type": "boolean"
           },
@@ -15016,17 +16607,23 @@
           "passageCount": {
             "type": "number"
           },
+          "embeddedPassageCount": {
+            "type": "number",
+            "description": "Passages embedded so far; with passageCount, a progress bar from KEYWORD to FULL."
+          },
           "failureCode": {
             "type": "string",
             "nullable": true
           }
         },
         "required": [
+          "searchReadiness",
           "lexicalReady",
           "vectorReady",
           "building",
           "indexedVersion",
           "passageCount",
+          "embeddedPassageCount",
           "failureCode"
         ]
       },
@@ -15391,6 +16988,64 @@
           "updatedAt",
           "archivedAt",
           "versions"
+        ]
+      },
+      "CreateSourceBatchDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Up to 50 Sources, for example one per file of a folder upload. Same rules per item as POST /v1/library/sources.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateSourceDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SourceBatchItemDto": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "description": "Position of the item in the request."
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceDto"
+          },
+          "status": {
+            "type": "number",
+            "description": "HTTP status the single-item endpoint would have returned."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable code for a rejected item, e.g. ASSET_NOT_FOUND or SPACE_SOURCE_LIMIT_REACHED."
+          }
+        },
+        "required": [
+          "index",
+          "ok"
+        ]
+      },
+      "SourceBatchDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceBatchItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "SourcePageDto": {
@@ -15878,6 +17533,15 @@
       "IndexStatusDto": {
         "type": "object",
         "properties": {
+          "searchReadiness": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "KEYWORD",
+              "FULL"
+            ],
+            "description": "NONE: not searchable. KEYWORD: keyword search works. FULL: semantic search too."
+          },
           "lexicalReady": {
             "type": "boolean",
             "description": "Keyword search is available."
@@ -15897,17 +17561,23 @@
           "passageCount": {
             "type": "number"
           },
+          "embeddedPassageCount": {
+            "type": "number",
+            "description": "Passages embedded so far."
+          },
           "failureCode": {
             "type": "string",
             "nullable": true
           }
         },
         "required": [
+          "searchReadiness",
           "lexicalReady",
           "vectorReady",
           "building",
           "indexedVersion",
           "passageCount",
+          "embeddedPassageCount",
           "failureCode"
         ]
       },
@@ -15963,6 +17633,22 @@
             "type": "number",
             "nullable": true,
             "description": "Start offset in milliseconds, for audio and video."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "library",
+              "web"
+            ],
+            "description": "`web` for W1R2-style refs (a web result); absent on older library citations."
+          },
+          "url": {
+            "type": "string",
+            "description": "Web citations only: the page URL as the vendor reported it, checked to be http(s) without credentials. Make it a link only from here (rel=\"noopener noreferrer\"), never from URLs in the answer text."
+          },
+          "title": {
+            "type": "string",
+            "description": "Web citations only: the page title (plain text)."
           }
         },
         "required": [
@@ -15980,7 +17666,7 @@
         "properties": {
           "answer": {
             "type": "string",
-            "description": "The answer. Plain text written by the model from the learner’s material; render it as text (or sanitized Markdown), never as raw HTML.",
+            "description": "The answer. Plain text written by the model from the learner’s material (and web results when opted in); render it as text, or sanitized Markdown with images disabled and no remote content loaded, never as raw HTML. Show links only from `citations[].url`; render any other URL in the text as plain text, because untrusted web content could have planted it to leak data.",
             "example": "Photosynthesis releases oxygen [S1E1]."
           },
           "sufficiency": {
@@ -16054,6 +17740,33 @@
           "questions"
         ]
       },
+      "NoteAssistResultDto": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string",
+            "description": "The assistant’s reply; untrusted text (render as text or sanitized Markdown)."
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitationDto"
+            }
+          },
+          "proposalIds": {
+            "description": "Edit proposals it stored for this note: load GET /v1/notes/{noteId}/proposals and draw them inline. Empty when it only answered.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "answer",
+          "citations",
+          "proposalIds"
+        ]
+      },
       "AiScopeDto": {
         "type": "object",
         "properties": {
@@ -16090,6 +17803,54 @@
           "kind"
         ]
       },
+      "SelectionRangeDto": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "description": "The block (canonical node ID) the selection touches."
+          },
+          "from": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000,
+            "description": "Start offset in the block’s text, in UTF-16 units as in `replaceText`."
+          },
+          "to": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000,
+            "description": "End offset."
+          }
+        },
+        "required": [
+          "nodeId",
+          "from",
+          "to"
+        ]
+      },
+      "NoteSelectionDto": {
+        "type": "object",
+        "properties": {
+          "revisionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "description": "The note revision the editor shows."
+          },
+          "ranges": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectionRangeDto"
+            }
+          }
+        },
+        "required": [
+          "revisionNumber",
+          "ranges"
+        ]
+      },
       "AiRequestDto": {
         "type": "object",
         "properties": {
@@ -16116,9 +17877,11 @@
               "ask",
               "answer.grounded",
               "practice",
-              "study.practice"
+              "study.practice",
+              "edit",
+              "note.assist"
             ],
-            "description": "An explicit task from a UI control (for example a \"Quiz me\" button), or the option the user picked after CLARIFICATION_REQUIRED. When present, no classifier runs and nothing is charged for routing. `ask` and `answer.grounded` mean a cited answer; `practice` and `study.practice` mean practice questions.",
+            "description": "An explicit task from a UI control (for example a \"Quiz me\" button), or the option the user picked after CLARIFICATION_REQUIRED. When present, no classifier runs and nothing is charged for routing. `ask` and `answer.grounded` mean a cited answer; `practice` and `study.practice` mean practice questions; `edit` and `note.assist` mean the note assistant (NOTE scope only), which may propose inline edits.",
             "example": "ask"
           },
           "scope": {
@@ -16128,6 +17891,19 @@
             "type": "boolean",
             "description": "Set to true when resending after CLARIFICATION_REQUIRED (together with `command`). The server never asks twice.",
             "default": false
+          },
+          "webSearch": {
+            "type": "boolean",
+            "description": "Let the assistant search the public web for this request, when the server has web tools enabled. Off by default: show it as an explicit choice (\"Search the web too\"). The question, never the learner’s material, may be sent to the web vendor; web results are cited as W1R2-style refs.",
+            "default": false
+          },
+          "selection": {
+            "description": "Text the user selected in the note editor: block IDs and offsets, never the text itself (the server reads it). Needs `scope.kind: NOTE`. Without a `command` it selects the note assistant, which may answer and may propose inline edits (GET /v1/notes/{noteId}/proposals).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NoteSelectionDto"
+              }
+            ]
           }
         },
         "required": [
@@ -16179,6 +17955,29 @@
           "options"
         ]
       },
+      "JobSubjectDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "NOTE",
+              "SPACE",
+              "SOURCES",
+              "LIBRARY"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "description": "The Note or Space; null for several Sources or the library."
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ]
+      },
       "AiJobDto": {
         "type": "object",
         "properties": {
@@ -16190,7 +17989,8 @@
             "type": "string",
             "enum": [
               "agent.grounded_answer",
-              "agent.practice_questions"
+              "agent.practice_questions",
+              "agent.note_assist"
             ],
             "description": "Decides the shape of `result`."
           },
@@ -16200,6 +18000,8 @@
               "ACCEPTED",
               "RUNNING",
               "WAITING",
+              "WAITING_APPROVAL",
+              "WAITING_TOOL",
               "COMPLETED",
               "FAILED",
               "CANCELED",
@@ -16219,9 +18021,12 @@
               },
               {
                 "$ref": "#/components/schemas/PracticeQuestionsResultDto"
+              },
+              {
+                "$ref": "#/components/schemas/NoteAssistResultDto"
               }
             ],
-            "description": "Only when COMPLETED: GroundedAnswerResult for agent.grounded_answer, PracticeQuestionsResult for agent.practice_questions."
+            "description": "Only when COMPLETED: GroundedAnswerResult for agent.grounded_answer, PracticeQuestionsResult for agent.practice_questions, NoteAssistResult for agent.note_assist."
           },
           "failureCode": {
             "type": "string",
@@ -16232,7 +18037,34 @@
           "deadlineAt": {
             "format": "date-time",
             "type": "string",
-            "description": "The job stops (EXPIRED) if not finished by then."
+            "description": "The job stops (EXPIRED) if not finished by then. Waiting for an approval or an external tool moves it later."
+          },
+          "stateVersion": {
+            "type": "number",
+            "description": "Increases on every change. Send it with an approval decision to prove you saw the current state."
+          },
+          "subject": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobSubjectDto"
+              }
+            ]
+          },
+          "webAllowed": {
+            "type": "boolean",
+            "description": "The request opted in to web search."
+          },
+          "seenAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When the user marked the finished job seen (POST …/seen)."
+          },
+          "resultWithheld": {
+            "type": "boolean",
+            "description": "True when the job finished but the user no longer has access to what it was about: `result` is withheld."
           },
           "createdAt": {
             "format": "date-time",
@@ -16252,6 +18084,11 @@
           "result",
           "failureCode",
           "deadlineAt",
+          "stateVersion",
+          "subject",
+          "webAllowed",
+          "seenAt",
+          "resultWithheld",
           "createdAt",
           "completedAt"
         ]
@@ -16317,6 +18154,90 @@
           "decision"
         ]
       },
+      "AiJobSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "RUNNING",
+              "WAITING",
+              "WAITING_APPROVAL",
+              "WAITING_TOOL",
+              "COMPLETED",
+              "FAILED",
+              "CANCELED",
+              "EXPIRED"
+            ]
+          },
+          "subject": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobSubjectDto"
+              }
+            ]
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "seenAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "jobType",
+          "status",
+          "subject",
+          "failureCode",
+          "seenAt",
+          "createdAt",
+          "completedAt"
+        ]
+      },
+      "AiJobListDto": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiJobSummaryDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pass as `cursor` for the next (older) page; null at the end."
+          }
+        },
+        "required": [
+          "jobs",
+          "nextCursor"
+        ]
+      },
       "AiJobEventDto": {
         "type": "object",
         "properties": {
@@ -16334,19 +18255,34 @@
               "DEFERRED",
               "CHILDREN_STARTED",
               "CHILDREN_FINISHED",
+              "APPROVAL_REQUESTED",
+              "APPROVED",
+              "REJECTED",
+              "APPROVAL_EXPIRED",
+              "TOOL_WAITING",
+              "TOOL_RESUMED",
               "COMPLETED",
               "FAILED",
               "CANCELED",
-              "EXPIRED"
-            ]
+              "EXPIRED",
+              "TOOL_STARTED",
+              "TOOL_FINISHED"
+            ],
+            "description": "Treat unknown types as progress and keep following; new types are added over time."
           },
           "data": {
             "type": "object",
             "additionalProperties": true,
             "nullable": true,
-            "description": "Small details only (step number, reason code, retry time); never text.",
+            "description": "Small details only (step number, reason code, retry time, counts); never text, URLs, or IDs from your content. Safe to show to the job owner and to log. TOOL_STARTED: {step, callId, tool, effect}. TOOL_FINISHED: {step, callId, tool, effect, outcome, reason?, …counts}. `callId` pairs the two; `effect` is read | propose | write | external; `outcome` is ok | refused | failed; `reason` is a code when the outcome is not ok. Counts by tool (outcome ok): read_note_blocks {blocks, totalBlocks}; knowledge_search {evidence, sufficiency}; library_overview {files, totalFiles, processing}; read_pages {evidence, truncated}; propose_note_edits {changes}; web_search {results}; read_web_page {chars}; web_task {sources}. Show an unknown tool as a generic \"Working…\". Hidden tools (the final answer tools submit_answer and submit_questions) never emit events.",
             "example": {
-              "step": 1
+              "step": 1,
+              "callId": "3f1c2a9e-8d4b-4c11-9a51-0c2f7d6e4b10",
+              "tool": "knowledge_search",
+              "effect": "read",
+              "outcome": "ok",
+              "evidence": 3,
+              "sufficiency": "SUFFICIENT"
             }
           },
           "createdAt": {
@@ -16370,6 +18306,8 @@
               "ACCEPTED",
               "RUNNING",
               "WAITING",
+              "WAITING_APPROVAL",
+              "WAITING_TOOL",
               "COMPLETED",
               "FAILED",
               "CANCELED",
@@ -16397,6 +18335,102 @@
           "events",
           "nextAfter",
           "done"
+        ]
+      },
+      "ToolPreviewDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Server-written; plain text."
+          },
+          "changes": {
+            "description": "Each change, in plain words.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "changes"
+        ]
+      },
+      "PendingApprovalDto": {
+        "type": "object",
+        "properties": {
+          "toolCallId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tool": {
+            "type": "string",
+            "description": "The tool that would run."
+          },
+          "preview": {
+            "$ref": "#/components/schemas/ToolPreviewDto"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "After this the job fails with AI_APPROVAL_EXPIRED."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "toolCallId",
+          "tool",
+          "preview",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "AiApprovalsDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stateVersion": {
+            "type": "number"
+          },
+          "approvals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingApprovalDto"
+            }
+          }
+        },
+        "required": [
+          "jobId",
+          "stateVersion",
+          "approvals"
+        ]
+      },
+      "ApprovalDecisionDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          },
+          "stateVersion": {
+            "type": "number",
+            "description": "The job’s `stateVersion` from when you showed the approval. A stale value is 409 AI_JOB_STATE_CHANGED: reload the job and its approvals."
+          }
+        },
+        "required": [
+          "decision",
+          "stateVersion"
         ]
       },
       "CitedPassageDto": {
@@ -16494,6 +18528,303 @@
           "remainingUsd",
           "limitedBy",
           "resetsAt"
+        ]
+      },
+      "BlockPositionDto": {
+        "type": "object",
+        "properties": {
+          "afterNodeId": {
+            "type": "string"
+          },
+          "beforeNodeId": {
+            "type": "string"
+          }
+        }
+      },
+      "ProposalChangeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "c1"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "editText",
+              "insertBlocks",
+              "replaceBlocks",
+              "deleteBlock",
+              "moveBlock"
+            ],
+            "description": "editText: new text for one block (nodeId, baseText, text). insertBlocks: new blocks at a position (position, blocks, texts). replaceBlocks: adjacent blocks swapped for new content (nodeIds, baseTexts, blocks, texts); when one block is replaced by one of the same type it keeps its ID, and so do nested blocks (list items, table rows and cells) that keep their position and type. deleteBlock and moveBlock: nodeId, baseText (and position for a move). Treat unknown kinds as not drawable and offer only Accept/Reject."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED",
+              "STALE",
+              "EXPIRED",
+              "UNDONE"
+            ],
+            "nullable": true,
+            "description": "Null while undecided."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why a change is STALE: target_deleted, target_changed, overlapping_edit, anchor_deleted, invalid_position, not_text, or invalid_now (the result would not be a valid note, or an image the change adds was deleted since it was proposed)."
+          },
+          "undoable": {
+            "type": "boolean",
+            "description": "An accepted change that can be undone."
+          },
+          "nodeId": {
+            "type": "string",
+            "description": "The block edited, deleted, or moved."
+          },
+          "baseText": {
+            "type": "string",
+            "description": "The block’s text when the agent read it (`\\n` is a line break). Diff it against `text` to draw the change."
+          },
+          "text": {
+            "type": "string",
+            "description": "editText: the proposed whole text."
+          },
+          "position": {
+            "$ref": "#/components/schemas/BlockPositionDto"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "insertBlocks and replaceBlocks: the new canonical note blocks with their IDs — any block type the note supports that Markdown can express (paragraphs, headings, lists, checklists, tables, quotes, code, math with `latex`, rules, images by `assetId`), with marks (bold, italic, strike, code, http(s) links) and inline math. Render them read-only with the note renderer (math with KaTeX) as the preview; never insert them into the editor document. Links are not clickable until accepted."
+          },
+          "texts": {
+            "description": "insertBlocks and replaceBlocks: the plain text of each new top-level block (fallback when a block cannot be drawn).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "nodeIds": {
+            "description": "replaceBlocks: the blocks replaced, in document order.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "baseTexts": {
+            "description": "replaceBlocks: the plain text of each replaced block when the assistant read it (for a strike-through or diff view).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "undoable"
+        ]
+      },
+      "NoteProposalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "description": "The AI job that proposed it."
+          },
+          "noteId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "SUCCEEDED",
+              "REJECTED"
+            ],
+            "description": "PROPOSED while any change is undecided; SUCCEEDED when at least one was accepted, REJECTED otherwise."
+          },
+          "summary": {
+            "type": "string",
+            "description": "One line from the assistant; plain text."
+          },
+          "fromUntrusted": {
+            "type": "boolean",
+            "description": "The assistant read web content before proposing: label it “includes web content”."
+          },
+          "baseRevisionNumber": {
+            "type": "number",
+            "description": "The note revision the assistant read."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProposalChangeDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "jobId",
+          "noteId",
+          "status",
+          "summary",
+          "fromUntrusted",
+          "baseRevisionNumber",
+          "createdAt",
+          "expiresAt",
+          "changes"
+        ]
+      },
+      "NoteProposalListDto": {
+        "type": "object",
+        "properties": {
+          "proposals": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NoteProposalDto"
+            }
+          }
+        },
+        "required": [
+          "proposals"
+        ]
+      },
+      "ProposalDecisionDto": {
+        "type": "object",
+        "properties": {
+          "accept": {
+            "maxItems": 50,
+            "example": [
+              "c1",
+              "c3"
+            ],
+            "description": "Change IDs to accept, applied in proposal order.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reject": {
+            "maxItems": 50,
+            "example": [
+              "c2"
+            ],
+            "description": "Change IDs to reject.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "all": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "reject"
+            ],
+            "description": "Accept all or reject all undecided changes; overrides `accept` and `reject`."
+          }
+        }
+      },
+      "ChangeOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED",
+              "STALE",
+              "EXPIRED",
+              "UNDONE"
+            ],
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          },
+          "revisionNumber": {
+            "type": "number",
+            "description": "The note revision that holds the accepted change."
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ]
+      },
+      "ProposalDecisionResultDto": {
+        "type": "object",
+        "properties": {
+          "proposalId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "SUCCEEDED",
+              "REJECTED"
+            ]
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChangeOutcomeDto"
+            }
+          },
+          "currentRevisionNumber": {
+            "type": "number",
+            "description": "The note head after the decision: load it (do not reapply the change locally)."
+          }
+        },
+        "required": [
+          "proposalId",
+          "status",
+          "changes",
+          "currentRevisionNumber"
+        ]
+      },
+      "ProposalUndoResultDto": {
+        "type": "object",
+        "properties": {
+          "proposalId": {
+            "type": "string"
+          },
+          "change": {
+            "$ref": "#/components/schemas/ChangeOutcomeDto"
+          },
+          "currentRevisionNumber": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "proposalId",
+          "change",
+          "currentRevisionNumber"
         ]
       },
       "CreateSpaceDto": {

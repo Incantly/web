@@ -44,6 +44,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/assets/uploads/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reserve up to 50 direct uploads at once (folder upload)
+         * @description One call for a dropped folder: up to 50 files and 2 GiB in total, each with the same type and size rules and the same upload instructions as POST /v1/assets/uploads.
+         *
+         *     Results are per file, in request order. A rejected file (for example 422 ASSET_TYPE_NOT_ALLOWED) has `ok: false` with its `status` and `code` and never blocks the others.
+         *
+         *     Then upload the files in parallel, 4–6 at a time, straight to storage, and complete each one as it finishes (POST /v1/assets/uploads/{uploadId}/complete). Then create the Sources in one call with POST /v1/library/sources/batch.
+         *
+         *     Idempotency: retry the whole batch with the same Idempotency-Key and body to get the same reservations. Rate limited per user.
+         */
+        post: operations["AssetsController_reserveBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/assets/uploads": {
         parameters: {
             query?: never;
@@ -435,9 +461,35 @@ export interface paths {
         put?: never;
         /**
          * Add a Source to the Library
-         * @description Creates the Source, its immutable version 1, optional Space links, and a durable ingestion job in one transaction. Adding an Asset, Note revision, or web URL that is already in the Library returns that existing Source (and links any requested Spaces) instead of duplicating bytes or processing. The returned Source starts PENDING; poll GET until READY, PARTIALLY_READY, FAILED, or QUARANTINED. Passive text and Note revisions become READY quickly; PDFs, web pages, YouTube captions, and audio pass through PROCESSING stages on the worker pool. Images stay at AWAITING_PROCESSOR (no OCR). Never treat a non-ready Source as searchable.
+         * @description Creates the Source, its immutable version 1, optional Space links, and a durable ingestion job in one transaction. Adding an Asset, Note revision, or web URL that is already in the Library returns that existing Source (and links any requested Spaces) instead of duplicating bytes or processing. The returned Source starts PENDING; poll GET until READY, PARTIALLY_READY, FAILED, or QUARANTINED. Passive text and Note revisions become READY quickly; PDFs, Word (DOCX) and PowerPoint (PPTX) files, web pages, YouTube captions, and audio pass through PROCESSING stages on the worker pool. Images and scanned PDFs are not read (no OCR): images stay at AWAITING_PROCESSOR and scanned PDFs fail with PDF_NO_TEXT_LAYER. Never treat a non-ready Source as searchable.
          */
         post: operations["SourcesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/library/sources/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add up to 50 Sources at once (folder upload)
+         * @description One call after a folder upload: up to 50 Sources (usually one FILE per completed Asset, with the same optional spaceIds). Each item follows the rules of POST /v1/library/sources: deduplication, Space links, and a durable ingestion job.
+         *
+         *     Results are per item, in request order. A rejected item has `ok: false` with its `status` and `code` (for example 404 ASSET_NOT_FOUND) and never blocks the others.
+         *
+         *     Files are processed in parallel, a few per user at a time; the rest wait their turn. Poll GET /v1/library/sources/{sourceId}/processing for each and enable "ask about this file" once index.searchReadiness is KEYWORD.
+         *
+         *     Idempotency: retry the whole batch with the same Idempotency-Key and body to get the same Sources. Rate limited per user.
+         */
+        post: operations["SourcesController_createBatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -647,7 +699,7 @@ export interface paths {
         put?: never;
         /**
          * Ask the AI about the user’s material (creates a job)
-         * @description Routes the request to a task (a cited answer, or practice questions) and starts a background job over the given scope. The scope is checked now and again on every search while the job runs; the server, never the model, decides what may be searched.
+         * @description Routes the request to a task (a cited answer, practice questions, or the note assistant for a `selection`, which may propose inline edits) and starts a background job over the given scope. The scope is checked now and again on every search while the job runs; the server, never the model, decides what may be searched.
          *
          *     Routing: an explicit `command` always wins and costs nothing. Otherwise keyword rules and the surface default decide; when the optional AI router is enabled on the server it may decide instead, and for a near tie it returns 200 CLARIFICATION_REQUIRED with a closed set of options (no job is created). Show the options; resend the same text and scope with the chosen `command`, `clarified: true`, and a new Idempotency-Key.
          *
@@ -656,8 +708,36 @@ export interface paths {
          *     Idempotency: a retry with the same Idempotency-Key and body returns the original job (`created: false`) without routing or charging again; the same key with a different body is 409 IDEMPOTENCY_KEY_REUSED. Use one key per user action and reuse it only for retries of that action.
          *
          *     Spend: the job is charged to the user’s daily AI allowance as it runs; if the allowance runs out the job fails with AI_DAILY_LIMIT_REACHED (see GET /v1/ai/allowance). Rate limited per user.
+         *
+         *     Durability: the job runs on the server whether or not the client stays connected. Keep the job id, but if it is lost, GET /v1/ai/jobs lists the user’s jobs; finished ones the user has not opened have `seenAt: null`.
+         *
+         *     Web: `webSearch: true` lets a cited answer also search the public web, when the server has a web vendor configured. Web search runs only while the job’s data may go to that vendor, and never sends the learner’s material.
          */
         post: operations["AiController_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the user’s AI jobs
+         * @description The user’s own jobs, newest first, as summaries without results. Use it to find answers that finished while the user was away (`status: COMPLETED` and `seenAt: null`), or the jobs about one Note or Space (`subjectKind` and `subjectId`).
+         *
+         *     Pagination: pass `nextCursor` as `cursor` until it is null. Filtering by a Note or Space the user cannot access returns an empty list, not an error.
+         *
+         *     Read a job’s result with GET /v1/ai/jobs/{jobId}; mark it opened with POST /v1/ai/jobs/{jobId}/seen.
+         */
+        get: operations["AiController_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -673,7 +753,7 @@ export interface paths {
         };
         /**
          * Read one of the user’s AI jobs
-         * @description Returns the job and, once COMPLETED, its `result` (shape by `jobType`). Prefer polling the events endpoint while a job runs and reading the job once it is terminal. Another user’s job returns 404, like a missing one.
+         * @description Returns the job and, once COMPLETED, its `result` (shape by `jobType`). Prefer polling the events endpoint (or the stream) while a job runs and reading the job once it is terminal. Another user’s job returns 404, like a missing one. If the user lost access to the Note or Space the job ran over, `result` is null and `resultWithheld` is true.
          */
         get: operations["AiController_job"];
         put?: never;
@@ -693,11 +773,99 @@ export interface paths {
         };
         /**
          * Follow an AI job’s progress
-         * @description Returns progress and terminal events after `after`, oldest first, at most 200 per call. Poll about every 1 second at first, backing off to 3–5 seconds; stop when `done` is true, then read the job. DEFERRED and WAITING_TURN mean the job is queued behind a provider limit or the user’s other jobs: keep polling. Events carry codes and numbers only, never text.
+         * @description Returns progress and terminal events after `after`, oldest first, at most 200 per call. Poll about every 1 second at first, backing off to 3–5 seconds; stop when `done` is true, then read the job. DEFERRED and WAITING_TURN mean the job is queued behind a provider limit or the user’s other jobs: keep polling. Agent jobs emit TOOL_STARTED and TOOL_FINISHED per tool call (paired by `data.callId`) so the chat can list what the assistant is doing; see AiJobEventDto.data for each tool’s fields, and show unknown tools as a generic step. Events carry codes and numbers only, never text.
          */
         get: operations["AiController_events"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/jobs/{jobId}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Follow an AI job live (server-sent events)
+         * @description The same events as GET …/events, pushed as they happen: each SSE message has `id` (the event `seq`), `event` (the event type), and `data` (the event JSON). A `done` event ({status}) closes the stream once the job is terminal; a `timeout` event closes long streams.
+         *
+         *     Reconnect with the `Last-Event-ID` header (EventSource does this) or `?after=<seq>` and nothing is lost or repeated. Use EventSource with credentials; on error fall back to polling. At most a few open streams per user (429 RATE_LIMITED beyond that). Events carry codes and numbers only, never text.
+         */
+        get: operations["AiController_stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/jobs/{jobId}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a job opened
+         * @description Records that the user looked at the job, so lists can show which finished answers are new. Idempotent: the first time is kept.
+         */
+        post: operations["AiController_seen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/jobs/{jobId}/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Actions waiting for the user’s approval
+         * @description When a job is WAITING_APPROVAL, the action it proposes (a write to the user’s data or a call to an outside service), with a server-written preview of exactly what will change and when the request expires. Show the preview as plain text and ask the user; never approve on their behalf.
+         *
+         *     Empty unless the job is WAITING_APPROVAL. Keep `stateVersion` to send with the decision.
+         */
+        get: operations["AiController_approvals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/jobs/{jobId}/approvals/{toolCallId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or reject a proposed action
+         * @description Records the user’s decision on one proposed action and resumes the job. `approve` runs exactly the previewed action once; `reject` tells the assistant the user declined, and it continues without it.
+         *
+         *     Idempotent: repeating the same decision returns the job unchanged. A different earlier decision, an expired request, or a stale `stateVersion` is 409 AI_JOB_STATE_CHANGED: reload the job and its approvals. One decision covers one action; there is no "approve all".
+         *
+         *     Only the job’s owner can decide, and approving needs the user to still have access to what the job is about. Rate limited per user.
+         */
+        post: operations["AiController_decide"];
         delete?: never;
         options?: never;
         head?: never;
@@ -758,6 +926,98 @@ export interface paths {
         get: operations["AiController_allowance"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open edit suggestions for a note
+         * @description Proposals still waiting on a decision, newest first (at most 20). Load them when a note-assistant job finishes (its result lists `proposalIds`) and when the note opens.
+         *
+         *     Draw each change as a decoration over the editor, never as document content: diff `baseText` against `text` for editText; outline inserted, deleted, and moved blocks. Text is the learner’s own note text and the assistant’s plain text: render it as text, never as HTML, and do not make links in it clickable until accepted.
+         *
+         *     If the block in the editor no longer matches `baseText`, show the change as possibly stale; the server decides when it is accepted.
+         */
+        get: operations["NoteProposalsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/proposals/{proposalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One edit suggestion, including decided ones
+         * @description The proposal with every change and its state (null while undecided).
+         */
+        get: operations["NoteProposalsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/proposals/{proposalId}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept or reject suggested changes
+         * @description Accepted changes are applied, in proposal order, as one note revision with origin `ai` against the current head. A change whose block the user edited since still applies when the two edits touch different text; otherwise it becomes STALE (with `reason`) and nothing of it is applied. Offer “Ask the assistant to redo this part” for a stale change: a new request with that block selected.
+         *
+         *     Rejected changes are recorded and never applied. `all` accepts or rejects every undecided change.
+         *
+         *     Idempotent: a retry, or deciding an already decided change, returns the stored states without applying anything twice. 409 NOTE_PROPOSAL_DECISION_IN_PROGRESS means another decision on this proposal is being applied: retry shortly. After a 200, load the note at `currentRevisionNumber`; do not reapply the change locally.
+         *
+         *     Rate limited per user.
+         */
+        post: operations["NoteProposalsController_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/proposals/{proposalId}/changes/{changeId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo an accepted change
+         * @description Reverses one accepted change as a new revision with origin `ai`. It applies only while the changed block is still exactly as the change left it; otherwise 409 PROPOSAL_UNDO_STALE (restore an earlier revision from history instead).
+         *
+         *     Idempotent: undoing an undone change returns it unchanged. Rate limited per user.
+         */
+        post: operations["NoteProposalsController_undo"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3123,7 +3383,7 @@ export interface components {
              * @example application/pdf
              * @enum {string}
              */
-            contentType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf" | "audio/mpeg" | "audio/mp4" | "audio/ogg" | "audio/wav" | "text/plain" | "text/markdown" | "text/vtt" | "application/x-subrip";
+            contentType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | "application/vnd.openxmlformats-officedocument.presentationml.presentation" | "audio/mpeg" | "audio/mp4" | "audio/ogg" | "audio/wav" | "text/plain" | "text/markdown" | "text/vtt" | "application/x-subrip";
             /**
              * @description Exact size in bytes (max 250 MiB). Above 16 MiB the upload is multipart.
              * @example 1048576
@@ -3131,6 +3391,10 @@ export interface components {
             byteLength: number;
             /** @description Optional SHA-256 of the bytes, single uploads only (422 CHECKSUM_NOT_SUPPORTED_FOR_MULTIPART otherwise). When given, storage rejects different bytes. */
             checksumSha256?: string;
+        };
+        ReserveUploadBatchDto: {
+            /** @description Up to 50 files (2 GiB in total), for example a dropped folder. Same rules per file as POST /v1/assets/uploads. */
+            items: components["schemas"]["ReserveUploadDto"][];
         };
         UploadPartInstructionDto: {
             /** @description Multipart only. */
@@ -3162,6 +3426,19 @@ export interface components {
              */
             expiresAt: string;
             parts: components["schemas"]["UploadPartInstructionDto"][];
+        };
+        UploadBatchItemDto: {
+            /** @description Position of the file in the request. */
+            index: number;
+            ok: boolean;
+            reservation?: components["schemas"]["UploadReservationDto"];
+            /** @description HTTP status the single-file endpoint would have returned. */
+            status?: number;
+            /** @description Stable code for a rejected file, e.g. ASSET_TYPE_NOT_ALLOWED or IDEMPOTENCY_KEY_REUSED. */
+            code?: string;
+        };
+        UploadBatchDto: {
+            items: components["schemas"]["UploadBatchItemDto"][];
         };
         CompletedPartDto: {
             partNumber: number;
@@ -3260,8 +3537,11 @@ export interface components {
             revisionNumber: number;
             parentRevisionId: string | null;
             schemaVersion: number;
-            /** @enum {string} */
-            origin: "user" | "import" | "restore" | "migration" | "system";
+            /**
+             * @description `ai`: an agent proposal change the owner accepted, or its undo. Show it as "Edited by AI, accepted by you".
+             * @enum {string}
+             */
+            origin: "user" | "import" | "restore" | "migration" | "system" | "ai";
             /** @enum {string} */
             kind: "autosave" | "manual" | "import" | "restore" | "migration";
             /** @example sha256:… */
@@ -3345,11 +3625,18 @@ export interface components {
             failedAt: string | null;
         };
         ProcessingIndexDto: {
+            /**
+             * @description NONE: not searchable yet. KEYWORD: keyword search works (the agent can already answer from this file). FULL: meaning-based search too. Enable "ask about this file" from KEYWORD.
+             * @enum {string}
+             */
+            searchReadiness: "NONE" | "KEYWORD" | "FULL";
             lexicalReady: boolean;
             vectorReady: boolean;
             building: boolean;
             indexedVersion: number;
             passageCount: number;
+            /** @description Passages embedded so far; with passageCount, a progress bar from KEYWORD to FULL. */
+            embeddedPassageCount: number;
             failureCode: string | null;
         };
         SourceProcessingDto: {
@@ -3460,6 +3747,23 @@ export interface components {
             archivedAt: string | null;
             /** @description Newest first. Lists return the latest version; reads return up to 25. */
             versions: components["schemas"]["SourceVersionDto"][];
+        };
+        CreateSourceBatchDto: {
+            /** @description Up to 50 Sources, for example one per file of a folder upload. Same rules per item as POST /v1/library/sources. */
+            items: components["schemas"]["CreateSourceDto"][];
+        };
+        SourceBatchItemDto: {
+            /** @description Position of the item in the request. */
+            index: number;
+            ok: boolean;
+            source?: components["schemas"]["SourceDto"];
+            /** @description HTTP status the single-item endpoint would have returned. */
+            status?: number;
+            /** @description Stable code for a rejected item, e.g. ASSET_NOT_FOUND or SPACE_SOURCE_LIMIT_REACHED. */
+            code?: string;
+        };
+        SourceBatchDto: {
+            items: components["schemas"]["SourceBatchItemDto"][];
         };
         SourcePageDto: {
             items: components["schemas"]["SourceDto"][];
@@ -3599,6 +3903,11 @@ export interface components {
             evidence: components["schemas"]["EvidenceDto"][];
         };
         IndexStatusDto: {
+            /**
+             * @description NONE: not searchable. KEYWORD: keyword search works. FULL: semantic search too.
+             * @enum {string}
+             */
+            searchReadiness: "NONE" | "KEYWORD" | "FULL";
             /** @description Keyword search is available. */
             lexicalReady: boolean;
             /** @description Semantic search is available. */
@@ -3608,6 +3917,8 @@ export interface components {
             /** @description Note revision number or Source version number indexed. */
             indexedVersion: number;
             passageCount: number;
+            /** @description Passages embedded so far. */
+            embeddedPassageCount: number;
             failureCode: string | null;
         };
         ReindexScheduledDto: {
@@ -3632,10 +3943,19 @@ export interface components {
             page: number | null;
             /** @description Start offset in milliseconds, for audio and video. */
             startMs: number | null;
+            /**
+             * @description `web` for W1R2-style refs (a web result); absent on older library citations.
+             * @enum {string}
+             */
+            kind?: "library" | "web";
+            /** @description Web citations only: the page URL as the vendor reported it, checked to be http(s) without credentials. Make it a link only from here (rel="noopener noreferrer"), never from URLs in the answer text. */
+            url?: string;
+            /** @description Web citations only: the page title (plain text). */
+            title?: string;
         };
         GroundedAnswerResultDto: {
             /**
-             * @description The answer. Plain text written by the model from the learner’s material; render it as text (or sanitized Markdown), never as raw HTML.
+             * @description The answer. Plain text written by the model from the learner’s material (and web results when opted in); render it as text, or sanitized Markdown with images disabled and no remote content loaded, never as raw HTML. Show links only from `citations[].url`; render any other URL in the text as plain text, because untrusted web content could have planted it to leak data.
              * @example Photosynthesis releases oxygen [S1E1].
              */
             answer: string;
@@ -3659,6 +3979,13 @@ export interface components {
             /** @description Empty when sufficiency is NOT_FOUND. */
             questions: components["schemas"]["PracticeQuestionDto"][];
         };
+        NoteAssistResultDto: {
+            /** @description The assistant’s reply; untrusted text (render as text or sanitized Markdown). */
+            answer: string;
+            citations: components["schemas"]["CitationDto"][];
+            /** @description Edit proposals it stored for this note: load GET /v1/notes/{noteId}/proposals and draw them inline. Empty when it only answered. */
+            proposalIds: string[];
+        };
         AiScopeDto: {
             /**
              * @description What the assistant may search. NOTE: one Note and the Sources bound to it. SPACE: a Space’s Notes and linked Sources. SELECTED_SOURCES: only the listed Sources. LIBRARY: everything the user owns; send it only after the user explicitly chooses a library-wide search.
@@ -3673,6 +4000,19 @@ export interface components {
             /** @description Required when kind is SELECTED_SOURCES (1–50 IDs). */
             sourceIds?: string[];
         };
+        SelectionRangeDto: {
+            /** @description The block (canonical node ID) the selection touches. */
+            nodeId: string;
+            /** @description Start offset in the block’s text, in UTF-16 units as in `replaceText`. */
+            from: number;
+            /** @description End offset. */
+            to: number;
+        };
+        NoteSelectionDto: {
+            /** @description The note revision the editor shows. */
+            revisionNumber: number;
+            ranges: components["schemas"]["SelectionRangeDto"][];
+        };
         AiRequestDto: {
             /**
              * @description Where the user asked. Only changes the default task.
@@ -3686,17 +4026,24 @@ export interface components {
              */
             text: string;
             /**
-             * @description An explicit task from a UI control (for example a "Quiz me" button), or the option the user picked after CLARIFICATION_REQUIRED. When present, no classifier runs and nothing is charged for routing. `ask` and `answer.grounded` mean a cited answer; `practice` and `study.practice` mean practice questions.
+             * @description An explicit task from a UI control (for example a "Quiz me" button), or the option the user picked after CLARIFICATION_REQUIRED. When present, no classifier runs and nothing is charged for routing. `ask` and `answer.grounded` mean a cited answer; `practice` and `study.practice` mean practice questions; `edit` and `note.assist` mean the note assistant (NOTE scope only), which may propose inline edits.
              * @example ask
              * @enum {string}
              */
-            command?: "ask" | "answer.grounded" | "practice" | "study.practice";
+            command?: "ask" | "answer.grounded" | "practice" | "study.practice" | "edit" | "note.assist";
             scope: components["schemas"]["AiScopeDto"];
             /**
              * @description Set to true when resending after CLARIFICATION_REQUIRED (together with `command`). The server never asks twice.
              * @default false
              */
             clarified: boolean;
+            /**
+             * @description Let the assistant search the public web for this request, when the server has web tools enabled. Off by default: show it as an explicit choice ("Search the web too"). The question, never the learner’s material, may be sent to the web vendor; web results are cited as W1R2-style refs.
+             * @default false
+             */
+            webSearch: boolean;
+            /** @description Text the user selected in the note editor: block IDs and offsets, never the text itself (the server reads it). Needs `scope.kind: NOTE`. Without a `command` it selects the note assistant, which may answer and may propose inline edits (GET /v1/notes/{noteId}/proposals). */
+            selection?: components["schemas"]["NoteSelectionDto"];
         };
         ClarificationOptionDto: {
             /**
@@ -3713,6 +4060,12 @@ export interface components {
             /** @description A closed set of choices. No job was created. */
             options: components["schemas"]["ClarificationOptionDto"][];
         };
+        JobSubjectDto: {
+            /** @enum {string} */
+            kind: "NOTE" | "SPACE" | "SOURCES" | "LIBRARY";
+            /** @description The Note or Space; null for several Sources or the library. */
+            id: string | null;
+        };
         AiJobDto: {
             /** Format: uuid */
             id: string;
@@ -3720,16 +4073,16 @@ export interface components {
              * @description Decides the shape of `result`.
              * @enum {string}
              */
-            jobType: "agent.grounded_answer" | "agent.practice_questions";
+            jobType: "agent.grounded_answer" | "agent.practice_questions" | "agent.note_assist";
             /**
              * @description ACCEPTED and RUNNING (and WAITING) are in progress; COMPLETED, FAILED, CANCELED, and EXPIRED are terminal.
              * @enum {string}
              */
-            status: "ACCEPTED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
+            status: "ACCEPTED" | "RUNNING" | "WAITING" | "WAITING_APPROVAL" | "WAITING_TOOL" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
             /** @description Model steps finished so far. */
             stepsCompleted: number;
-            /** @description Only when COMPLETED: GroundedAnswerResult for agent.grounded_answer, PracticeQuestionsResult for agent.practice_questions. */
-            result: (components["schemas"]["GroundedAnswerResultDto"] | components["schemas"]["PracticeQuestionsResultDto"]) | null;
+            /** @description Only when COMPLETED: GroundedAnswerResult for agent.grounded_answer, PracticeQuestionsResult for agent.practice_questions, NoteAssistResult for agent.note_assist. */
+            result: (components["schemas"]["GroundedAnswerResultDto"] | components["schemas"]["PracticeQuestionsResultDto"] | components["schemas"]["NoteAssistResultDto"]) | null;
             /**
              * @description Only when FAILED or EXPIRED. See the error table in the frontend guide (e.g. AI_DAILY_LIMIT_REACHED, AI_SCOPE_FORBIDDEN, AI_PROVIDER_UNAVAILABLE).
              * @example null
@@ -3737,9 +4090,21 @@ export interface components {
             failureCode: string | null;
             /**
              * Format: date-time
-             * @description The job stops (EXPIRED) if not finished by then.
+             * @description The job stops (EXPIRED) if not finished by then. Waiting for an approval or an external tool moves it later.
              */
             deadlineAt: string;
+            /** @description Increases on every change. Send it with an approval decision to prove you saw the current state. */
+            stateVersion: number;
+            subject: components["schemas"]["JobSubjectDto"] | null;
+            /** @description The request opted in to web search. */
+            webAllowed: boolean;
+            /**
+             * Format: date-time
+             * @description When the user marked the finished job seen (POST …/seen).
+             */
+            seenAt: string | null;
+            /** @description True when the job finished but the user no longer has access to what it was about: `result` is withheld. */
+            resultWithheld: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -3766,15 +4131,44 @@ export interface components {
             /** @description Null on an idempotent replay. */
             decision: components["schemas"]["AiDecisionDto"] | null;
         };
+        AiJobSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            jobType: string;
+            /** @enum {string} */
+            status: "ACCEPTED" | "RUNNING" | "WAITING" | "WAITING_APPROVAL" | "WAITING_TOOL" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
+            subject: components["schemas"]["JobSubjectDto"] | null;
+            failureCode: string | null;
+            /** Format: date-time */
+            seenAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        AiJobListDto: {
+            jobs: components["schemas"]["AiJobSummaryDto"][];
+            /** @description Pass as `cursor` for the next (older) page; null at the end. */
+            nextCursor: string | null;
+        };
         AiJobEventDto: {
             /** @description Increasing per job; use it as `after`. */
             seq: number;
-            /** @enum {string} */
-            type: "ACCEPTED" | "STEP_STARTED" | "STEP_COMPLETED" | "WAITING_TURN" | "DEFERRED" | "CHILDREN_STARTED" | "CHILDREN_FINISHED" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
             /**
-             * @description Small details only (step number, reason code, retry time); never text.
+             * @description Treat unknown types as progress and keep following; new types are added over time.
+             * @enum {string}
+             */
+            type: "ACCEPTED" | "STEP_STARTED" | "STEP_COMPLETED" | "WAITING_TURN" | "DEFERRED" | "CHILDREN_STARTED" | "CHILDREN_FINISHED" | "APPROVAL_REQUESTED" | "APPROVED" | "REJECTED" | "APPROVAL_EXPIRED" | "TOOL_WAITING" | "TOOL_RESUMED" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED" | "TOOL_STARTED" | "TOOL_FINISHED";
+            /**
+             * @description Small details only (step number, reason code, retry time, counts); never text, URLs, or IDs from your content. Safe to show to the job owner and to log. TOOL_STARTED: {step, callId, tool, effect}. TOOL_FINISHED: {step, callId, tool, effect, outcome, reason?, …counts}. `callId` pairs the two; `effect` is read | propose | write | external; `outcome` is ok | refused | failed; `reason` is a code when the outcome is not ok. Counts by tool (outcome ok): read_note_blocks {blocks, totalBlocks}; knowledge_search {evidence, sufficiency}; library_overview {files, totalFiles, processing}; read_pages {evidence, truncated}; propose_note_edits {changes}; web_search {results}; read_web_page {chars}; web_task {sources}. Show an unknown tool as a generic "Working…". Hidden tools (the final answer tools submit_answer and submit_questions) never emit events.
              * @example {
-             *       "step": 1
+             *       "step": 1,
+             *       "callId": "3f1c2a9e-8d4b-4c11-9a51-0c2f7d6e4b10",
+             *       "tool": "knowledge_search",
+             *       "effect": "read",
+             *       "outcome": "ok",
+             *       "evidence": 3,
+             *       "sufficiency": "SUFFICIENT"
              *     }
              */
             data: {
@@ -3785,12 +4179,44 @@ export interface components {
         };
         AiJobEventsDto: {
             /** @enum {string} */
-            status: "ACCEPTED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
+            status: "ACCEPTED" | "RUNNING" | "WAITING" | "WAITING_APPROVAL" | "WAITING_TOOL" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
             events: components["schemas"]["AiJobEventDto"][];
             /** @description Pass as `after` on the next poll (the last seq returned, or your previous value). */
             nextAfter: number;
             /** @description True once the job is terminal; stop polling. */
             done: boolean;
+        };
+        ToolPreviewDto: {
+            /** @description Server-written; plain text. */
+            title: string;
+            /** @description Each change, in plain words. */
+            changes: string[];
+        };
+        PendingApprovalDto: {
+            /** Format: uuid */
+            toolCallId: string;
+            /** @description The tool that would run. */
+            tool: string;
+            preview: components["schemas"]["ToolPreviewDto"];
+            /**
+             * Format: date-time
+             * @description After this the job fails with AI_APPROVAL_EXPIRED.
+             */
+            expiresAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AiApprovalsDto: {
+            /** Format: uuid */
+            jobId: string;
+            stateVersion: number;
+            approvals: components["schemas"]["PendingApprovalDto"][];
+        };
+        ApprovalDecisionDto: {
+            /** @enum {string} */
+            decision: "approve" | "reject";
+            /** @description The job’s `stateVersion` from when you showed the approval. A stale value is 409 AI_JOB_STATE_CHANGED: reload the job and its approvals. */
+            stateVersion: number;
         };
         CitedPassageDto: {
             /** @example S1E2 */
@@ -3826,6 +4252,114 @@ export interface components {
              * @description Next UTC midnight, when the allowance resets.
              */
             resetsAt: string;
+        };
+        BlockPositionDto: {
+            afterNodeId?: string;
+            beforeNodeId?: string;
+        };
+        ProposalChangeDto: {
+            /** @example c1 */
+            id: string;
+            /**
+             * @description editText: new text for one block (nodeId, baseText, text). insertBlocks: new blocks at a position (position, blocks, texts). replaceBlocks: adjacent blocks swapped for new content (nodeIds, baseTexts, blocks, texts); when one block is replaced by one of the same type it keeps its ID, and so do nested blocks (list items, table rows and cells) that keep their position and type. deleteBlock and moveBlock: nodeId, baseText (and position for a move). Treat unknown kinds as not drawable and offer only Accept/Reject.
+             * @enum {string}
+             */
+            kind: "editText" | "insertBlocks" | "replaceBlocks" | "deleteBlock" | "moveBlock";
+            /**
+             * @description Null while undecided.
+             * @enum {string|null}
+             */
+            state: "ACCEPTED" | "REJECTED" | "STALE" | "EXPIRED" | "UNDONE" | null;
+            /** @description Why a change is STALE: target_deleted, target_changed, overlapping_edit, anchor_deleted, invalid_position, not_text, or invalid_now (the result would not be a valid note, or an image the change adds was deleted since it was proposed). */
+            reason?: string;
+            /** @description An accepted change that can be undone. */
+            undoable: boolean;
+            /** @description The block edited, deleted, or moved. */
+            nodeId?: string;
+            /** @description The block’s text when the agent read it (`\n` is a line break). Diff it against `text` to draw the change. */
+            baseText?: string;
+            /** @description editText: the proposed whole text. */
+            text?: string;
+            position?: components["schemas"]["BlockPositionDto"];
+            /** @description insertBlocks and replaceBlocks: the new canonical note blocks with their IDs — any block type the note supports that Markdown can express (paragraphs, headings, lists, checklists, tables, quotes, code, math with `latex`, rules, images by `assetId`), with marks (bold, italic, strike, code, http(s) links) and inline math. Render them read-only with the note renderer (math with KaTeX) as the preview; never insert them into the editor document. Links are not clickable until accepted. */
+            blocks?: {
+                [key: string]: unknown;
+            }[];
+            /** @description insertBlocks and replaceBlocks: the plain text of each new top-level block (fallback when a block cannot be drawn). */
+            texts?: string[];
+            /** @description replaceBlocks: the blocks replaced, in document order. */
+            nodeIds?: string[];
+            /** @description replaceBlocks: the plain text of each replaced block when the assistant read it (for a strike-through or diff view). */
+            baseTexts?: string[];
+        };
+        NoteProposalDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description The AI job that proposed it. */
+            jobId: string;
+            noteId: string;
+            /**
+             * @description PROPOSED while any change is undecided; SUCCEEDED when at least one was accepted, REJECTED otherwise.
+             * @enum {string}
+             */
+            status: "PROPOSED" | "SUCCEEDED" | "REJECTED";
+            /** @description One line from the assistant; plain text. */
+            summary: string;
+            /** @description The assistant read web content before proposing: label it “includes web content”. */
+            fromUntrusted: boolean;
+            /** @description The note revision the assistant read. */
+            baseRevisionNumber: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string | null;
+            changes: components["schemas"]["ProposalChangeDto"][];
+        };
+        NoteProposalListDto: {
+            proposals: components["schemas"]["NoteProposalDto"][];
+        };
+        ProposalDecisionDto: {
+            /**
+             * @description Change IDs to accept, applied in proposal order.
+             * @example [
+             *       "c1",
+             *       "c3"
+             *     ]
+             */
+            accept?: string[];
+            /**
+             * @description Change IDs to reject.
+             * @example [
+             *       "c2"
+             *     ]
+             */
+            reject?: string[];
+            /**
+             * @description Accept all or reject all undecided changes; overrides `accept` and `reject`.
+             * @enum {string}
+             */
+            all?: "accept" | "reject";
+        };
+        ChangeOutcomeDto: {
+            id: string;
+            /** @enum {string|null} */
+            state: "ACCEPTED" | "REJECTED" | "STALE" | "EXPIRED" | "UNDONE" | null;
+            reason?: string;
+            /** @description The note revision that holds the accepted change. */
+            revisionNumber?: number;
+        };
+        ProposalDecisionResultDto: {
+            proposalId: string;
+            /** @enum {string} */
+            status: "PROPOSED" | "SUCCEEDED" | "REJECTED";
+            changes: components["schemas"]["ChangeOutcomeDto"][];
+            /** @description The note head after the decision: load it (do not reapply the change locally). */
+            currentRevisionNumber: number;
+        };
+        ProposalUndoResultDto: {
+            proposalId: string;
+            change: components["schemas"]["ChangeOutcomeDto"];
+            currentRevisionNumber: number;
         };
         CreateSpaceDto: {
             /** @example Biology 101 */
@@ -3986,6 +4520,87 @@ export interface operations {
                         error?: string;
                     };
                 };
+            };
+        };
+    };
+    AssetsController_reserveBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReserveUploadBatchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadBatchDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description UPLOAD_BATCH_TOO_LARGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "UPLOAD_BATCH_TOO_LARGE";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Honor Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5620,6 +6235,75 @@ export interface operations {
             };
         };
     };
+    SourcesController_createBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSourceBatchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceBatchDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Honor Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     SourcesController_metadata: {
         parameters: {
             query?: never;
@@ -6576,7 +7260,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description CONTEXT_SCOPE_INVALID, CONTEXT_SCOPE_TOO_LARGE, AI_TASK_UNKNOWN, AI_TASK_NOT_SUPPORTED, AI_JOB_INPUT_INVALID */
+            /** @description CONTEXT_SCOPE_INVALID, CONTEXT_SCOPE_TOO_LARGE, AI_TASK_UNKNOWN, AI_TASK_NOT_SUPPORTED, AI_JOB_INPUT_INVALID, AI_SELECTION_NEEDS_NOTE */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6584,7 +7268,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "CONTEXT_SCOPE_INVALID" | "CONTEXT_SCOPE_TOO_LARGE" | "AI_TASK_UNKNOWN" | "AI_TASK_NOT_SUPPORTED" | "AI_JOB_INPUT_INVALID";
+                        code: "CONTEXT_SCOPE_INVALID" | "CONTEXT_SCOPE_TOO_LARGE" | "AI_TASK_UNKNOWN" | "AI_TASK_NOT_SUPPORTED" | "AI_JOB_INPUT_INVALID" | "AI_SELECTION_NEEDS_NOTE";
                     };
                 };
             };
@@ -6594,6 +7278,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    AiController_list: {
+        parameters: {
+            query?: {
+                status?: "ACCEPTED" | "RUNNING" | "WAITING" | "WAITING_APPROVAL" | "WAITING_TOOL" | "COMPLETED" | "FAILED" | "CANCELED" | "EXPIRED";
+                jobType?: "agent.grounded_answer" | "agent.practice_questions" | "agent.note_assist";
+                /** @description Only jobs about this kind of thing (from the scope they ran over). */
+                subjectKind?: "NOTE" | "SPACE" | "SOURCES" | "LIBRARY";
+                /** @description Only jobs about this Note or Space (needs subjectKind NOTE or SPACE). A Note or Space you cannot access simply returns no jobs. */
+                subjectId?: string;
+                /** @description The `nextCursor` of the previous page. */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiJobListDto"];
+                };
+            };
+            /** @description AI_JOB_CURSOR_INVALID, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "AI_JOB_CURSOR_INVALID" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
             };
         };
     };
@@ -6711,6 +7448,298 @@ export interface operations {
                         code: "AI_JOB_NOT_FOUND";
                     };
                 };
+            };
+        };
+    };
+    AiController_stream: {
+        parameters: {
+            query?: {
+                /** @description Return events with `seq` greater than this. Start at -1, then pass the last `seq` you received. */
+                after?: number;
+            };
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description text/event-stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description AI_JOB_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "AI_JOB_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    AiController_seen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiJobDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description AI_JOB_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "AI_JOB_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    AiController_approvals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiApprovalsDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description AI_JOB_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "AI_JOB_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    AiController_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+                toolCallId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecisionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiJobDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description AI_JOB_NOT_FOUND, AI_APPROVAL_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "AI_JOB_NOT_FOUND" | "AI_APPROVAL_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description AI_JOB_STATE_CHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "AI_JOB_STATE_CHANGED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6892,6 +7921,328 @@ export interface operations {
                         code?: "AI_ALLOWANCE_UNAVAILABLE";
                     };
                 };
+            };
+        };
+    };
+    NoteProposalsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteProposalListDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    NoteProposalsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteProposalDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, NOTE_PROPOSAL_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "NOTE_PROPOSAL_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    NoteProposalsController_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalDecisionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, NOTE_PROPOSAL_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "NOTE_PROPOSAL_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description NOTE_PROPOSAL_EXPIRED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_PROPOSAL_EXPIRED" | "NOTE_PROPOSAL_DECISION_IN_PROGRESS" | "NOTE_TRANSACTION_CONFLICT";
+                    };
+                };
+            };
+            /** @description NOTE_PROPOSAL_CHANGE_UNKNOWN */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_PROPOSAL_CHANGE_UNKNOWN";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoteProposalsController_undo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                proposalId: string;
+                changeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalUndoResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, NOTE_PROPOSAL_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "NOTE_PROPOSAL_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description PROPOSAL_UNDO_STALE, PROPOSAL_UNDO_NOT_ALLOWED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "PROPOSAL_UNDO_STALE" | "PROPOSAL_UNDO_NOT_ALLOWED" | "NOTE_PROPOSAL_DECISION_IN_PROGRESS" | "NOTE_TRANSACTION_CONFLICT";
+                    };
+                };
+            };
+            /** @description NOTE_PROPOSAL_CHANGE_UNKNOWN */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_PROPOSAL_CHANGE_UNKNOWN";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

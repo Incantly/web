@@ -1273,3 +1273,199 @@ a.incantly-asset__button {
   justify-content: center;
   text-decoration: none;
 }
+
+/* Suggested edits (suggestions.ts): decorations only, never document content. */
+.incantly-document-editor .incantly-suggest-removed {
+  color: var(--ui-removed);
+  background: var(--ui-removed-surface);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.incantly-document-editor .incantly-suggest-added {
+  color: var(--ui-added);
+  background: var(--ui-added-surface);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  white-space: pre-wrap;
+}
+
+.incantly-document-editor .incantly-suggestion-block {
+  border-radius: 0.375rem;
+  box-shadow: -0.5rem 0 0 -0.375rem var(--ui-border-strong);
+  transition: box-shadow 160ms ease-out;
+}
+
+.incantly-document-editor .incantly-suggestion-block.is-delete {
+  color: var(--ui-removed);
+  background: var(--ui-removed-surface);
+  text-decoration: line-through;
+  box-shadow: -0.5rem 0 0 -0.375rem var(--ui-removed);
+}
+
+.incantly-document-editor .incantly-suggestion-block.is-move {
+  outline: 1px dashed var(--ui-border-strong);
+  outline-offset: 0.25rem;
+}
+
+.incantly-document-editor .incantly-suggestion-block.is-stale {
+  outline: 1px dashed var(--ui-border);
+  outline-offset: 0.25rem;
+}
+
+.incantly-document-editor .incantly-suggestion-block.is-active,
+.incantly-document-editor .incantly-suggestion-insert.is-active {
+  box-shadow: -0.5rem 0 0 -0.25rem var(--ui-button);
+}
+
+.incantly-document-editor .incantly-suggestion-insert {
+  margin-block: var(--incantly-document-block-gap);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--ui-added-surface);
+  box-shadow: -0.5rem 0 0 -0.375rem var(--ui-added);
+}
+
+.incantly-document-editor .incantly-suggestion-insert .incantly-suggest-added {
+  margin: 0.25rem 0;
+  background: transparent;
+  text-decoration: none;
+}
+
+/* Blocks a suggestion replaces: struck through and dimmed, with the new content previewed below. */
+.incantly-document-editor .incantly-suggestion-block.is-replaced {
+  color: var(--ui-removed);
+  background: var(--ui-removed-surface);
+  text-decoration: line-through;
+  opacity: 0.85;
+  box-shadow: -0.5rem 0 0 -0.375rem var(--ui-removed);
+}
+
+/* Read-only preview of suggested blocks: the note's own block styles, inside the green box. */
+.incantly-document-editor .incantly-suggestion-preview > * + * {
+  margin-top: var(--incantly-document-block-gap);
+}
+
+.incantly-document-editor .incantly-suggestion-preview > :first-child {
+  margin-top: 0.25rem;
+}
+
+.incantly-document-editor .incantly-suggestion-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--ui-surface-raised);
+}
+
+.incantly-document-editor .incantly-suggestion-preview th,
+.incantly-document-editor .incantly-suggestion-preview td {
+  border: 1px solid var(--ui-border);
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.incantly-document-editor .incantly-suggestion-link {
+  color: var(--ui-button);
+  text-decoration: underline;
+  cursor: help;
+}
+
+.incantly-document-editor .incantly-suggestion-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.incantly-document-editor .incantly-suggestion-preview figure {
+  margin: 0;
+}
+
+.incantly-document-editor .incantly-suggestion-preview .katex-display {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.incantly-document-editor .incantly-suggestion-move-target {
+  margin-block: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px dashed var(--ui-border-strong);
+  border-radius: 0.375rem;
+  color: var(--ui-text-muted);
+  font-size: 0.8125rem;
+}
+
+.incantly-document-editor .incantly-suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-block: 0.375rem var(--incantly-document-block-gap);
+  font-family: var(--font-sans, system-ui), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--ui-text-muted);
+  text-decoration: none;
+  user-select: none;
+}
+
+.incantly-document-editor .incantly-suggestion-label {
+  font-weight: 600;
+  color: var(--ui-text);
+}
+
+.incantly-document-editor .incantly-suggestion-note {
+  flex-basis: 100%;
+  order: 1;
+}
+
+.incantly-document-editor .incantly-suggestion-button {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.5rem;
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.incantly-document-editor .incantly-suggestion-button:hover {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface);
+}
+
+.incantly-document-editor .incantly-suggestion-button.is-accept {
+  border-color: var(--ui-button);
+  background: var(--ui-button);
+  color: var(--ui-text-inverse);
+}
+
+.incantly-document-editor .incantly-suggestion-button.is-accept:hover {
+  background: var(--ui-button-hover);
+}
+
+.incantly-document-editor .incantly-suggestion-button:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.incantly-document-editor .incantly-suggestion-button:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .incantly-document-editor .incantly-suggestion-block { transition: none; }
+}
+
+.incantly-format-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}

@@ -32,6 +32,7 @@ export type WorkspaceUIValue = {
   setPanelWidth: (width: number) => void
   assistantOpen: boolean
   toggleAssistant: () => void
+  openAssistant: () => void
   closeAssistant: () => void
   /** Text handed to the chat box (e.g. "Ask AI about …" in ⌘K); `id` changes with each hand-off. */
   assistantPrompt: { id: number; text: string }
@@ -117,6 +118,7 @@ export function useWorkspaceUIState(panels: ReturnType<typeof useSidePanelHost>)
     setPanelWidth,
     assistantOpen,
     toggleAssistant: () => setAssistantOpen((current) => !current),
+    openAssistant: () => { setMobileOpen(false); setSearchOpen(false); setAssistantOpen(true) },
     closeAssistant: () => { setAssistantOpen(false); setAssistantPrompt((current) => ({ ...current, text: '' })) },
     assistantPrompt,
     askAssistant: (text) => { setMobileOpen(false); setSearchOpen(false); setAssistantPrompt((current) => ({ id: current.id + 1, text })); setAssistantOpen(true) },

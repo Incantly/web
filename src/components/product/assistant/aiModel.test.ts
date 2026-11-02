@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { answerBlocks, canRetry, eventLabel, failureMessage, locatorLabel, resolveCitations, revealSegments, segmentAnswer, textLength } from './aiModel'
+import type { AiJob } from '../../../lib/api/ai'
+import { activitySteps, editsNotStored, answerBlocks, canRetry, chatModes, stepsSummary, eventLabel, failureMessage, isGroundedAnswer, isNoteAssist, locatorLabel, resolveCitations, revealSegments, resolveMode, segmentAnswer, textLength, touchesApprovals } from './aiModel'
 
 describe('segmentAnswer', () => {
   it('turns known refs into numbered markers and keeps unknown brackets as text', () => {
@@ -32,8 +33,8 @@ describe('revealSegments', () => {
 
 describe('job copy', () => {
   it('labels progress events and ignores terminal ones', () => {
-    expect(eventLabel({ type: 'STEP_STARTED', data: { step: 1 } })).toBe('Searching your material…')
-    expect(eventLabel({ type: 'STEP_STARTED', data: { step: 2 } })).toBe('Writing…')
+    expect(eventLabel({ type: 'STEP_STARTED', data: { step: 1 } })).toBe('Thinking…')
+    expect(eventLabel({ type: 'STEP_COMPLETED', data: { steps: 2 } })).toBe('Thinking…')
     expect(eventLabel({ type: 'WAITING_TURN', data: null })).toMatch(/Queued/)
     expect(eventLabel({ type: 'COMPLETED', data: null })).toBeNull()
     expect(eventLabel({ type: 'DEFERRED', data: { code: 'AI_PROVIDER_UNAVAILABLE' } })).toMatch(/unavailable/)
@@ -97,5 +98,100 @@ describe('answerBlocks', () => {
 
   it('leaves unclosed markers literal while an answer is still revealing', () => {
     expect(blocks('A **partial')[0]).toEqual({ kind: 'paragraph', content: [{ kind: 'text', text: 'A **partial' }] })
+  })
+})
+
+describe('note assistant and approvals', () => {
+  it('labels approval and tool events', () => {
+    expect(eventLabel({ type: 'APPROVAL_REQUESTED', data: null })).toBe('Waiting for your OK…')
+    expect(eventLabel({ type: 'REJECTED', data: null })).toBe('Continuing without that…')
+    expect(eventLabel({ type: 'TOOL_WAITING', data: null })).toBe('Waiting on a tool…')
+  })
+
+  it('knows which events change the pending approvals', () => {
+    expect(touchesApprovals({ type: 'APPROVAL_REQUESTED' })).toBe(true)
+    expect(touchesApprovals({ type: 'APPROVAL_EXPIRED' })).toBe(true)
+    expect(touchesApprovals({ type: 'STEP_STARTED' })).toBe(false)
+  })
+
+  it('recognises a note assistant result', () => {
+    const job = { jobType: 'agent.note_assist', result: { answer: 'Tightened it.', citations: [], proposalIds: ['p1'] } } as unknown as AiJob
+    expect(isNoteAssist(job)).toBe(true)
+    expect(isGroundedAnswer(job)).toBe(false)
+  })
+})
+
+describe('chat modes', () => {
+  it('defaults to the note assistant on one note, and to cited answers elsewhere', () => {
+    expect(resolveMode('NOTE', null).command).toBe('note.assist')
+    expect(resolveMode('SPACE', null).command).toBe('ask')
+    expect(resolveMode('LIBRARY', null).command).toBe('ask')
+  })
+
+  it('keeps a pick only while it is on offer', () => {
+    expect(resolveMode('NOTE', 'ask').command).toBe('ask')
+    expect(resolveMode('NOTE', 'practice').command).toBe('practice')
+    expect(resolveMode('SPACE', 'note.assist').command).toBe('ask')
+    expect(chatModes('SPACE').map((mode) => mode.command)).not.toContain('note.assist')
+  })
+})
+
+describe('activity steps', () => {
+  const started = (callId: string, tool: string) => ({ type: 'TOOL_STARTED' as const, data: { step: 1, callId, tool, effect: 'read' } })
+  const finished = (callId: string, tool: string, extra: Record<string, unknown>) => ({ type: 'TOOL_FINISHED' as const, data: { step: 1, callId, tool, effect: 'read', ...extra } })
+
+  it('adds a running step, then finishes it with its counts', () => {
+    let steps = activitySteps([], started('a', 'read_note_blocks'))
+    expect(steps).toEqual([{ id: 'a', tool: 'read_note_blocks', state: 'running', label: 'Reading your note' }])
+    steps = activitySteps(steps, started('b', 'knowledge_search'))
+    steps = activitySteps(steps, finished('a', 'read_note_blocks', { outcome: 'ok', blocks: 2, totalBlocks: 2 }))
+    steps = activitySteps(steps, finished('b', 'knowledge_search', { outcome: 'ok', evidence: 0, sufficiency: 'NOT_FOUND' }))
+    expect(steps.map((step) => [step.state, step.label, step.detail])).toEqual([
+      ['done', 'Read your note', '2 paragraphs'],
+      ['done', 'Searched your material', 'nothing relevant'],
+    ])
+  })
+
+  it('says plainly when a step was refused or failed', () => {
+    const steps = activitySteps(activitySteps([], started('c', 'propose_note_edits')), finished('c', 'propose_note_edits', { outcome: 'refused', reason: 'UNKNOWN_BLOCK' }))
+    expect(steps[0]).toMatchObject({ state: 'refused', label: 'Couldn’t prepare the edits' })
+    expect(steps[0].detail).toBeUndefined()
+    expect(stepsSummary(steps)).toBe('1 step · 1 didn’t work')
+  })
+
+  it('reads unknown tools as working and ignores other events', () => {
+    const steps = activitySteps([], started('d', 'brand_new_tool'))
+    expect(steps[0].label).toBe('Working')
+    expect(activitySteps(steps, { type: 'STEP_STARTED', data: { step: 2 } })).toBe(steps)
+    expect(activitySteps(steps, started('d', 'brand_new_tool'))).toBe(steps)
+  })
+
+  it('keeps a finished step whose start was missed', () => {
+    expect(activitySteps([], finished('e', 'web_search', { outcome: 'ok', results: 5 }))).toEqual([{ id: 'e', tool: 'web_search', state: 'done', label: 'Searched the web', detail: '5 results' }])
+    expect(stepsSummary([{ id: 'a', tool: 't', state: 'done', label: 'x' }, { id: 'b', tool: 't', state: 'done', label: 'y' }])).toBe('2 steps')
+  })
+})
+
+describe('editsNotStored', () => {
+  const step = (state: 'done' | 'refused' | 'failed' | 'running', tool = 'propose_note_edits') => ({ id: `${tool}-${state}`, tool, state, label: '' })
+  it('flags a reply whose every edit attempt was refused', () => {
+    expect(editsNotStored([], [step('done', 'read_note_blocks'), step('refused'), step('failed')])).toBe(true)
+  })
+  it('stays quiet when an edit was stored or never attempted', () => {
+    expect(editsNotStored(['p1'], [step('refused'), step('done')])).toBe(false)
+    expect(editsNotStored([], [step('refused'), step('done')])).toBe(false)
+    expect(editsNotStored([], [step('done', 'read_note_blocks')])).toBe(false)
+    expect(editsNotStored([], undefined)).toBe(false)
+  })
+})
+
+describe('rich edit activity', () => {
+  it('labels image lookups and explains refusals', () => {
+    const images = activitySteps([], { type: 'TOOL_FINISHED', data: { callId: 'i', tool: 'list_images', outcome: 'ok', images: 3 } })
+    expect(images[0]).toMatchObject({ label: 'Looked through your images', detail: '3 images' })
+    const refused = activitySteps([], { type: 'TOOL_FINISHED', data: { callId: 'p', tool: 'propose_note_edits', outcome: 'refused', reason: 'invalid_math' } })
+    expect(refused[0]).toMatchObject({ state: 'refused', label: 'Couldn’t prepare the edits', detail: 'the maths didn’t parse' })
+    const unknown = activitySteps([], { type: 'TOOL_FINISHED', data: { callId: 'q', tool: 'propose_note_edits', outcome: 'refused', reason: 'brand_new' } })
+    expect(unknown[0].detail).toBeUndefined()
   })
 })

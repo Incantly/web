@@ -27,6 +27,8 @@ export type NoteSession = {
   repaired: boolean
   errorMessage?: string
   record: (change: EditorChange) => void
+  /** Sends pending edits now; resolves to the sync state after (`pending` > 0 means some are still waiting). */
+  flush: () => Promise<SyncState | null>
   rename: (title: string) => void
   keepMine: () => Promise<void>
   takeServer: () => Promise<void>
@@ -112,6 +114,12 @@ export function useNoteSession(userId: string, noteId: string, options: { onAck?
 
   const record = useCallback((change: EditorChange) => engine.current?.record(change), [])
   const rename = useCallback((title: string) => engine.current?.rename(title), [])
+  const flush = useCallback(async () => {
+    const current = engine.current
+    if (!current) return null
+    await current.flushNow()
+    return current.current
+  }, [])
   const reloadFromServer = useCallback(async () => {
     const current = engine.current
     if (!current) return
@@ -125,7 +133,7 @@ export function useNoteSession(userId: string, noteId: string, options: { onAck?
     await reloadFromServer()
   }, [noteId, reloadFromServer])
 
-  return { phase, document, version, sync, repaired, errorMessage, record, rename, keepMine, takeServer: reloadFromServer, restore, retry: () => { setPhase('loading'); setErrorMessage(undefined); setAttempt((value) => value + 1) } }
+  return { phase, document, version, sync, repaired, errorMessage, record, flush, rename, keepMine, takeServer: reloadFromServer, restore, retry: () => { setPhase('loading'); setErrorMessage(undefined); setAttempt((value) => value + 1) } }
 }
 
 /**

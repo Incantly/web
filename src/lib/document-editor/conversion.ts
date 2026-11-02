@@ -158,6 +158,11 @@ function nodesToProseMirror(nodes: readonly DocumentNode[], path: string, issues
   })
 }
 
+/** Canonical blocks outside a document (e.g. a suggested edit's preview), as ProseMirror JSON. Unsupported nodes are omitted. */
+export function incantlyBlocksToProseMirror(nodes: readonly DocumentNode[]): JSONContent[] {
+  return nodesToProseMirror(nodes, '$.content', [])
+}
+
 export function incantlyDocumentToProseMirror(document: IncantlyDocument): DocumentAdapterResult<JSONContent> {
   const issues: DocumentAdapterIssue[] = []
   const content = nodesToProseMirror(document.content, '$.content', issues)

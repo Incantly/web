@@ -48,6 +48,10 @@
   --palette-red: #b42318;
   --palette-red-soft: #fef3f2;
 
+  /* Suggested-edit green (insertions). On --palette-green-soft it is 5.9:1; on white 6.4:1. */
+  --palette-green: #1a6b34;
+  --palette-green-soft: #e7f5ec;
+
   /* Semantic roles */
   --ui-canvas: var(--palette-white);
   --ui-surface: var(--palette-soft);
@@ -81,6 +85,11 @@
   /* Error messages and invalid fields */
   --ui-danger: var(--palette-red);
   --ui-danger-surface: var(--palette-red-soft);
+  /* Suggested edits: what a change adds and what it removes. */
+  --ui-added: var(--palette-green);
+  --ui-added-surface: var(--palette-green-soft);
+  --ui-removed: var(--palette-red);
+  --ui-removed-surface: var(--palette-red-soft);
 
   /*
    * Code-block syntax tokens. Fixed hues for lowlight `hljs-*` token
@@ -154,6 +163,10 @@
   --color-button-hover: var(--ui-button-hover);
   --color-danger: var(--ui-danger);
   --color-danger-surface: var(--ui-danger-surface);
+  --color-added: var(--ui-added);
+  --color-added-surface: var(--ui-added-surface);
+  --color-removed: var(--ui-removed);
+  --color-removed-surface: var(--ui-removed-surface);
   --color-viz-stage: var(--ui-viz-stage);
   --color-viz-grid: var(--ui-viz-grid);
   --color-viz-label: var(--ui-viz-label);

@@ -48,6 +48,8 @@ individual pages or components.
 | `bg-action` | `--ui-action` | Primary actions |
 | `hover:bg-action-hover` | `--ui-action-hover` | Primary-action hover state |
 | `outline-focus` | `--ui-focus` | Keyboard focus state |
+| `text-added`, `bg-added-surface` | `--ui-added`, `--ui-added-surface` | Text a suggested edit adds |
+| `text-removed`, `bg-removed-surface` | `--ui-removed`, `--ui-removed-surface` | Text a suggested edit removes |
 | `bg-disabled` | `--ui-disabled` | Disabled controls |
 
 ## Example
