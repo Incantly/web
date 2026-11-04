@@ -35,10 +35,15 @@ const messages: Record<string, string> = {
   IDEMPOTENCY_KEY_REUSED: 'Something went wrong sending that request. Reload and try again.',
 
   NOTE_NOT_FOUND: 'This note no longer exists or you don’t have access to it.',
+  NOTE_ACCESS_DENIED: 'You no longer have access to this note. Ask the owner to share it with you again.',
   STALE_NOTE_REVISION: 'This note changed somewhere else. We’ve loaded the latest version.',
   NOTE_TRANSACTION_CONFLICT: 'This note changed somewhere else. Your edit is being merged.',
   NOTE_TRANSACTION_RETRYABLE: 'Saving is taking longer than usual. We’ll keep trying.',
   INVALID_NOTE_TRANSACTION: 'An edit couldn’t be saved. Copy any important text and reload the note.',
+  USE_TRANSACTIONS: 'This note is shared, so it saves a different way. Try again in a moment.',
+  RESTORE_IN_PROGRESS: 'Another restore is in progress. Try again shortly.',
+  ROOM_DOCUMENT_TOO_LARGE: 'This shared note is at its size limit. Split it or attach files instead.',
+  LIVE_COLLABORATION_UNAVAILABLE: 'The shared-note service is unavailable right now. Nothing was applied — try again in a moment.',
 
   SPACE_NOT_FOUND: 'This Space no longer exists or you don’t have access to it.',
   SPACE_NOT_ACTIVE: 'This Space is archived. Restore it to make changes.',

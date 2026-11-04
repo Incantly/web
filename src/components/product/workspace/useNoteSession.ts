@@ -3,11 +3,12 @@
 import type { IncantlyDocument } from '@incantly/canvas-core/document'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { authClient } from '../../../lib/auth-client'
-import { ApiError } from '../../../lib/api/errors'
-import { notesApi } from '../../../lib/api/notes'
+import { ApiError, isApiError } from '../../../lib/api/errors'
+import { isSharedNote, notesApi } from '../../../lib/api/notes'
 import { loadDocument } from '../../../lib/notes/documentGate'
 import { NoteSync, type EditorChange, type SyncState } from '../../../lib/notes/noteSync'
 import { IndexedDbNoteSyncStore, getClientId, hasPendingWork, syncKey, type NoteSyncStore } from '../../../lib/notes/syncStore'
+import { notifyApiError } from '../ApiErrorToaster'
 
 let sharedStore: NoteSyncStore | null = null
 export function noteSyncStore() {
@@ -15,7 +16,7 @@ export function noteSyncStore() {
   return sharedStore
 }
 
-export type NoteSessionPhase = 'loading' | 'cached' | 'ready' | 'not-found' | 'error'
+export type NoteSessionPhase = 'loading' | 'cached' | 'ready' | 'not-found' | 'no-access' | 'error'
 
 export type NoteSession = {
   phase: NoteSessionPhase
@@ -34,11 +35,14 @@ export type NoteSession = {
   takeServer: () => Promise<void>
   restore: (revisionId: string) => Promise<void>
   retry: () => void
+  /** Access was lost mid-session elsewhere (suggestion decisions, undo): toast and go read-only, keep edits. */
+  markAccessDenied: (error: unknown) => void
 }
 
 /**
- * Opens one note: local cache first (read-only, marked syncing), then the authorized server checkpoint
- * through the load gate, then live sync. Flushes and persists pending work on close.
+ * Opens one note: local cache first (read-only, marked syncing), then the authorized server metadata
+ * (which also says whether the note is shared) and checkpoint through the load gate, then live sync.
+ * Flushes and persists pending work on close.
  * Render it under a component keyed by note ID so each note starts with fresh state.
  */
 export function useNoteSession(userId: string, noteId: string, options: { onAck?: (revisionNumber: number, title: string | null) => void } = {}): NoteSession {
@@ -66,13 +70,18 @@ export function useNoteSession(userId: string, noteId: string, options: { onAck?
       }
       // 2) The server copy is the authority.
       try {
-        const checkpoint = await notesApi.checkpoint(noteId, controller.signal)
+        const [metadata, checkpoint] = await Promise.all([
+          notesApi.get(noteId, controller.signal),
+          notesApi.checkpoint(noteId, controller.signal),
+        ])
         const gate = loadDocument(checkpoint.document)
         if (!gate.ok) throw new ApiError(422, 'INVALID_SERVER_DOCUMENT', null, null)
         const opened = await NoteSync.open({
           userId, noteId, clientId: getClientId(), api: notesApi, store,
+          shared: isSharedNote(metadata),
           onState: (state) => { if (live) setSync(state) },
           onAck: (revisionNumber) => onAck.current?.(revisionNumber, engine.current?.title ?? null),
+          onAccessDenied: (denied) => { if (live) notifyApiError(denied) },
         }, { revisionNumber: checkpoint.revision.revisionNumber, document: gate.document, title: gate.document.metadata.title ?? '' })
         if (!live) { void opened.dispose(); return }
         engine.current = opened
@@ -83,6 +92,10 @@ export function useNoteSession(userId: string, noteId: string, options: { onAck?
         setPhase('ready')
       } catch (error) {
         if (!live || controller.signal.aborted) return
+        if (error instanceof ApiError && error.code === 'NOTE_ACCESS_DENIED') {
+          await store.remove(syncKey(userId, noteId)).catch(() => {})
+          setDocument(null); setPhase('no-access'); return
+        }
         if (error instanceof ApiError && (error.code === 'NOTE_NOT_FOUND' || error.status === 404)) {
           await store.remove(syncKey(userId, noteId)).catch(() => {})
           setDocument(null); setPhase('not-found'); return
@@ -120,20 +133,42 @@ export function useNoteSession(userId: string, noteId: string, options: { onAck?
     await current.flushNow()
     return current.current
   }, [])
+  const markAccessDenied = useCallback((error: unknown) => engine.current?.markAccessDenied(error), [])
   const reloadFromServer = useCallback(async () => {
     const current = engine.current
     if (!current) return
-    const next = await current.takeServer()
-    setDocument(next)
-    setVersion((value) => value + 1)
+    try {
+      const next = await current.takeServer()
+      setDocument(next)
+      setVersion((value) => value + 1)
+    } catch (error) {
+      // A denied checkpoint read means access was lost mid-session: toast and go read-only
+      // like any other mid-session denial. Callers still see the throw to dismiss their dialog.
+      if (isApiError(error, 'NOTE_ACCESS_DENIED')) current.markAccessDenied(error)
+      throw error
+    }
   }, [])
-  const keepMine = useCallback(async () => { await engine.current?.keepMine() }, [])
+  const keepMine = useCallback(async () => {
+    const current = engine.current
+    if (!current) return
+    try {
+      await current.keepMine()
+    } catch (error) {
+      if (isApiError(error, 'NOTE_ACCESS_DENIED')) current.markAccessDenied(error)
+      throw error
+    }
+  }, [])
   const restore = useCallback(async (revisionId: string) => {
-    await notesApi.restore(noteId, revisionId)
-    await reloadFromServer()
-  }, [noteId, reloadFromServer])
+    try {
+      await notesApi.restore(noteId, revisionId)
+      await reloadFromServer()
+    } catch (error) {
+      if (isApiError(error, 'NOTE_ACCESS_DENIED')) markAccessDenied(error)
+      throw error
+    }
+  }, [noteId, reloadFromServer, markAccessDenied])
 
-  return { phase, document, version, sync, repaired, errorMessage, record, flush, rename, keepMine, takeServer: reloadFromServer, restore, retry: () => { setPhase('loading'); setErrorMessage(undefined); setAttempt((value) => value + 1) } }
+  return { phase, document, version, sync, repaired, errorMessage, record, flush, rename, keepMine, takeServer: reloadFromServer, restore, markAccessDenied, retry: () => { setPhase('loading'); setErrorMessage(undefined); setAttempt((value) => value + 1) } }
 }
 
 /**
@@ -145,14 +180,14 @@ export async function resumePendingNotes(userId: string, exceptNoteId?: string) 
   const records = (await store.listForUser(userId).catch(() => [])).filter((record) => hasPendingWork(record) && record.noteId !== exceptNoteId)
   for (const record of records) {
     try {
-      const checkpoint = await notesApi.checkpoint(record.noteId)
+      const [metadata, checkpoint] = await Promise.all([notesApi.get(record.noteId), notesApi.checkpoint(record.noteId)])
       const gate = loadDocument(checkpoint.document)
       if (!gate.ok) continue
-      const sync = await NoteSync.open({ userId, noteId: record.noteId, clientId: getClientId(), api: notesApi, store }, { revisionNumber: checkpoint.revision.revisionNumber, document: gate.document, title: gate.document.metadata.title ?? '' })
+      const sync = await NoteSync.open({ userId, noteId: record.noteId, clientId: getClientId(), api: notesApi, store, shared: isSharedNote(metadata) }, { revisionNumber: checkpoint.revision.revisionNumber, document: gate.document, title: gate.document.metadata.title ?? '' })
       await sync.flushNow()
       await sync.dispose()
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) await store.remove(record.key).catch(() => {})
+      if (error instanceof ApiError && (error.status === 404 || error.code === 'NOTE_ACCESS_DENIED')) await store.remove(record.key).catch(() => {})
     }
   }
 }

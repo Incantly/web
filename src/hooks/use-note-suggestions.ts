@@ -102,7 +102,12 @@ export function useNoteSuggestions(noteId: string, session: NoteSession, editor:
       setUndoable((stack) => [...stack, ...accepted])
       setNotice({ tone: messages.some((message) => message.tone === 'warning') ? 'warning' : 'done', text: messages.map((message) => message.text).join(' ') })
     } catch (error) {
-      setNotice({ tone: 'warning', text: apiErrorMessage(error) })
+      if (isApiError(error, 'NOTE_ACCESS_DENIED')) {
+        setUndoable([])
+        session.markAccessDenied(error)
+      } else {
+        setNotice({ tone: 'warning', text: apiErrorMessage(error) })
+      }
     } finally {
       setBusy(false)
       void refresh()
@@ -132,8 +137,13 @@ export function useNoteSuggestions(noteId: string, session: NoteSession, editor:
       await session.takeServer()
       setNotice({ tone: 'done', text: 'Change undone.' })
     } catch (error) {
-      if (isApiError(error, 'PROPOSAL_UNDO_STALE') || isApiError(error, 'PROPOSAL_UNDO_NOT_ALLOWED')) setUndoable([])
-      setNotice({ tone: 'warning', text: apiErrorMessage(error) })
+      if (isApiError(error, 'NOTE_ACCESS_DENIED')) {
+        setUndoable([])
+        session.markAccessDenied(error)
+      } else {
+        if (isApiError(error, 'PROPOSAL_UNDO_STALE') || isApiError(error, 'PROPOSAL_UNDO_NOT_ALLOWED')) setUndoable([])
+        setNotice({ tone: 'warning', text: apiErrorMessage(error) })
+      }
     } finally {
       setBusy(false)
       void refresh()
