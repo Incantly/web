@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { AssistantProvider } from './assistant/AssistantProvider'
 import { BillingProvider } from './billing/BillingProvider'
+import { CommentsProvider } from './comments/CommentsProvider'
 import { ImportsProvider } from './imports/ImportsProvider'
 import { LibraryProvider } from './library/LibraryProvider'
 import { LiveCollabProvider } from './live-collab/LiveCollabProvider'
@@ -17,7 +18,7 @@ import { WorkspaceUIProvider } from './workspace-ui/WorkspaceUIProvider'
 
 /**
  * Every workspace feature context, outermost first. Each one may use the ones above it:
- * UI → Navigation → Spaces → Notes → Trash → SharedNotes → Sharing → LiveCollab → Library → NoteBindings → Imports → Assistant → Billing.
+ * UI → Navigation → Spaces → Notes → Trash → SharedNotes → Sharing → LiveCollab → Comments → Library → NoteBindings → Imports → Assistant → Billing.
  * Each feature's logic lives in `src/hooks/use-<feature>.ts`; its provider runs it once and shares it.
  * A new API-backed feature adds its hook there and its provider here (see AGENTS.md, "Feature contexts").
  */
@@ -30,13 +31,15 @@ export function WorkspaceProviders({ children }: { children: ReactNode }) {
             <SharedNotesProvider>
               <SharingProvider>
                 <LiveCollabProvider>
-                  <LibraryProvider>
-                    <NoteBindingsProvider>
-                      <ImportsProvider>
-                        <AssistantProvider><BillingProvider>{children}</BillingProvider></AssistantProvider>
-                      </ImportsProvider>
-                    </NoteBindingsProvider>
-                  </LibraryProvider>
+                  <CommentsProvider>
+                    <LibraryProvider>
+                      <NoteBindingsProvider>
+                        <ImportsProvider>
+                          <AssistantProvider><BillingProvider>{children}</BillingProvider></AssistantProvider>
+                        </ImportsProvider>
+                      </NoteBindingsProvider>
+                    </LibraryProvider>
+                  </CommentsProvider>
                 </LiveCollabProvider>
               </SharingProvider>
             </SharedNotesProvider>

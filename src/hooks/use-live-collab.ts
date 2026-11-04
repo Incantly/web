@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Status } from '@liveblocks/client'
+import type { Room, Status } from '@liveblocks/client'
 import { notifyApiError } from '@/components/product/ApiErrorToaster'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
 import {
@@ -45,6 +45,10 @@ export type LiveCollaborator = { id: string; name: string; initials: string }
 export type LiveCollabValue = {
   /** The open note, once live-status confirms it is shared. Null hides presence. */
   noteId: string | null
+  /** The entered room, or null when saved-sync-only, idle-left, or hidden. Threads and resolve run through it. */
+  room: Room | null
+  /** The note the entered room belongs to. Null with the room; always read the pair together. */
+  roomNoteId: string | null
   connection: LiveConnectionState
   /** Other people currently in the room (names are untrusted text at render). */
   collaborators: LiveCollaborator[]
@@ -89,6 +93,8 @@ export function useLiveCollabState(): LiveCollabValue {
   const { activeNoteId, navigate } = useNavigation()
   const { activeNote } = useNotes()
   const [noteId, setNoteId] = useState<string | null>(null)
+  const [room, setRoom] = useState<Room | null>(null)
+  const [roomNoteId, setRoomNoteId] = useState<string | null>(null)
   const [connection, setConnection] = useState<LiveConnectionState>('unavailable')
   const [collaborators, setCollaborators] = useState<LiveCollaborator[]>([])
   const [mode, setMode] = useState<LiveStatusDto['mode'] | null>(null)
@@ -102,7 +108,7 @@ export function useLiveCollabState(): LiveCollabValue {
   useEffect(() => {
     if (activeNoteId == null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset room state when no note is open
-      setNoteId(null); setConnection('unavailable'); setCollaborators([]); setMode(null); setNotice(null)
+      setNoteId(null); setRoom(null); setRoomNoteId(null); setConnection('unavailable'); setCollaborators([]); setMode(null); setNotice(null)
       return
     }
     const note = activeNoteId
@@ -142,7 +148,7 @@ export function useLiveCollabState(): LiveCollabValue {
       leaveRoom = null
       if (roomId) unregisterLiveAuth(roomId)
       roomId = null
-      if (!disposed) setCollaborators([])
+      if (!disposed) { setRoom(null); setRoomNoteId(null); setCollaborators([]) }
     }
 
     /** Visible-tab idle: leave after 10 quiet minutes; the next interaction rejoins. */
@@ -191,6 +197,8 @@ export function useLiveCollabState(): LiveCollabValue {
       const entered = liveblocksClient().enterRoom(nextRoomId, { initialPresence: {} })
       leaveRoom = entered.leave
       const room = entered.room
+      setRoom(room)
+      setRoomNoteId(note)
       setConnection(statusToConnection(room.getStatus()))
       setCollaborators(mapCollaborators(room.getOthers().map((other) => ({ id: other.id ?? other.connectionId, name: other.info?.name ?? null }))))
       room.subscribe('status', (status) => { if (isCurrent(at)) setConnection(statusToConnection(status)) })
@@ -356,8 +364,8 @@ export function useLiveCollabState(): LiveCollabValue {
   }, [activeNoteId, listShared, attempt])
 
   return useMemo<LiveCollabValue>(() => ({
-    noteId, connection, collaborators, mode, notice, dismissNotice, retry,
-  }), [noteId, connection, collaborators, mode, notice, dismissNotice, retry])
+    noteId, room, roomNoteId, connection, collaborators, mode, notice, dismissNotice, retry,
+  }), [noteId, room, roomNoteId, connection, collaborators, mode, notice, dismissNotice, retry])
 }
 
 /** Live collaboration for the open note: room state, collaborators, and the saved-sync poller. Must be used inside `WorkspaceProviders`. */

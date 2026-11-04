@@ -128,7 +128,32 @@ credentials.
 13. At 320px with 2+ collaborators: EXPECT no horizontal scroll, title
     truncates.
 
-## Phase 4 (c–d) — Comments + notifications
+## Phase 4c — Comments
+
+Two users + @mention; backend :3012 + Liveblocks.
+
+1. As owner A, open a note, Share it with B as Editor. Keep it open.
+2. As A: Note actions → Comments: EXPECT panel opens, "No comments yet".
+3. As A: type "Hello @", type B's first letters: EXPECT suggestion menu;
+   ArrowDown/Enter picks B, draft shows "@Name ". Comment: EXPECT thread
+   with A as author + "Just now".
+4. As B (second browser): open note → Comments: EXPECT thread within ~5s.
+   Reply "Got it": EXPECT it under A's comment for both after refresh.
+5. As B: Resolve thread: EXPECT Resolved badge + move under "Show resolved
+   (1)". Expand → Reopen: EXPECT back to open.
+6. As A, post "@B please review" (pick from menu): EXPECT B gets a mention
+   notification (bell lands in 4d; check Liveblocks dashboard meanwhile).
+7. Owner changes B to Viewer. As B, reopen Comments: EXPECT readable
+   threads, no composer/reply/resolve, explanatory note.
+8. Open a non-shared note: EXPECT no Comments item in Note actions.
+9. Offline: disconnect, open Comments on shared note: EXPECT offline note,
+   submit disabled; reconnect: EXPECT list loads.
+10. Live paused (guard/budget): EXPECT composer still posts (REST), list
+    shows "needs the live connection" + Reconnect; rejoin: EXPECT threads.
+11. Agent mention (if an enabled agent exists): post "@agent …" with 2+
+    chars: EXPECT one backend run, no client repost.
+
+## Phase 4d — Notifications
 
 (TBD when the phase lands.)
 

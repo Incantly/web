@@ -38,6 +38,7 @@ import { useNoteSession } from './useNoteSession'
 import { libraryFollowUp, useServerAssetHost } from './useAssets'
 import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChrome'
 import { LiveCollabNotice, LivePresence } from './LivePresence'
+import { CommentsPanel } from './CommentsPanel'
 import { NoteContextPanel } from './NoteContextPanel'
 import { NoteSourcesSection } from './NoteSourcesSection'
 import { NoteSuggestionsBar } from './NoteSuggestionsBar'
@@ -229,7 +230,8 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const { openShareDialog } = useSharing()
   const { noteId: liveNoteId } = useLiveCollab()
   // Shared when the list says so, or live-status confirmed it (the list can lag a fresh share).
-  useSavedSyncPoll(noteId, session, (activeNote?.shared ?? false) || liveNoteId === noteId)
+  const shared = (activeNote?.shared ?? false) || liveNoteId === noteId
+  useSavedSyncPoll(noteId, session, shared)
   const { openImport } = useWorkspaceUI()
   const title = activeNote?.title ?? ''
   /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
@@ -240,6 +242,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const onDelete = () => deleteNote(noteId).catch(() => {})
   const onBack = () => navigate('notes')
   const [contextOpen, setContextOpen] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
@@ -277,6 +280,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
         <ActionMenu label="Note actions" items={[
           { label: 'Find in note', icon: 'search', hint: '⌘F', onSelect: () => setFindOpen(true), disabled: !session.document },
           { label: 'Note context', icon: 'link', onSelect: () => setContextOpen(true) },
+          ...(shared ? [{ label: 'Comments', icon: 'comment' as const, onSelect: () => setCommentsOpen(true) }] : []),
           { label: 'Page setup', icon: 'paper', onSelect: () => setPageSetupOpen(true), disabled: !session.document },
           { label: 'Export…', icon: 'upload', onSelect: noteExport.show, disabled: !editor },
           { label: 'Version history', icon: 'history', onSelect: () => setDialog('history'), disabled: session.phase !== 'ready' },
@@ -318,6 +322,9 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     <SidePanel open={pageSetupOpen} onClose={() => { setPageSetupOpen(false); pageSetup.clearError() }} title="Page setup" description="Paper, margins, headers and footers for this note.">
       <PageSetupPanel state={pageSetup} headerFooter={headerFooter} />
     </SidePanel>
+    {shared ? <SidePanel open={commentsOpen} onClose={() => setCommentsOpen(false)} title="Comments" description="Threads, replies and @mentions on this note.">
+      <CommentsPanel noteId={noteId} />
+    </SidePanel> : null}
     <ExportDialog state={noteExport} onOpenPageSetup={() => { noteExport.close(); setPageSetupOpen(true) }} />
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} onAccessDenied={session.markAccessDenied} />
     <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} onAccessDenied={session.markAccessDenied} />
