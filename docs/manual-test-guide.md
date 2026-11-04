@@ -263,7 +263,54 @@ fetch('/v1/artifacts?type=FLASHCARD_DECK',{credentials:'include'})
 
 ## Phase 5c — Artifact generations
 
-(TBD when the phase lands.)
+Needs backend :3012 with AI generation configured. Entry is the sidebar
+"Quizzes & decks" (?view=artifacts), ?artifact=new to generate,
+?artifact=<id> for detail.
+
+List:
+
+1. Go to /workspace?view=artifacts. EXPECT "Quizzes & decks" with All /
+   Quizzes / Decks tabs, a "Show archived" toggle, and rows with type,
+   status chip, and relative updated time.
+2. Switch tabs. EXPECT only quizzes / only decks listed (server filter).
+3. Archive one quiz from its detail page (step 9), return, toggle "Show
+   archived". EXPECT it hidden by default, shown with an Archived chip
+   when toggled.
+
+Generate flow:
+
+4. Click New quiz (?artifact=new). EXPECT scope picker (one note / a
+   Space / sources / everything) + quiz options (title, topic,
+   difficulty, count, options, time limit, question types).
+5. Pick "Everything", leave options default, click Generate quiz. EXPECT
+   "Making your quiz" with a live line like "Writing questions (1 of 3
+   batches) · 5 questions ready…" and a Cancel button.
+6. Click Cancel mid-generation. EXPECT "Generation canceled" + Try again
+   / Change what it covers; Try again restarts with the same options.
+7. Generate again and wait. EXPECT "Quiz ready" + Take the quiz; click
+   it → the ?quiz= taker from 5a.
+8. DevTools Network → Offline on ?artifact=new. EXPECT offline notice +
+   disabled Generate; go online → works.
+
+Detail flow (need one READY quiz id; list shows them):
+
+9. Open ?artifact=<id>. EXPECT title, type + status chips, Take quiz
+   (→ ?quiz=<id>), Archive, version list, current version questions as
+   text, Delete section.
+10. Open a deck's detail instead. EXPECT Review deck (→ ?deck=<id>),
+    card fronts as text, no Replace section.
+11. Pick 2 questions → Replace picked → confirm dialog (keeps-the-rest
+    wording) → Replace questions. EXPECT live progress + Cancel; on
+    completion the version list gains a new current version.
+12. Select the older version. EXPECT its questions shown; the Replace
+    section asks you to select the current version.
+13. Click Archive → confirm dialog → Archive. EXPECT Archived chip +
+    "hidden from the default list" note; the quiz still opens via
+    Take quiz.
+14. Click Delete forever → confirm. EXPECT return to the list; the quiz
+    is gone (a second delete is 404).
+15. Resize list, detail, and form to 320px: no horizontal scroll;
+    keyboard-tab through filters, picks, and dialogs; focus visible.
 
 ## Phase 6 — Web/papers search
 

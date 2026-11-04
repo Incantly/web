@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { ArtifactsProvider } from './artifacts/ArtifactsProvider'
 import { AssistantProvider } from './assistant/AssistantProvider'
 import { BillingProvider } from './billing/BillingProvider'
 import { CommentsProvider } from './comments/CommentsProvider'
@@ -21,7 +22,7 @@ import { WorkspaceUIProvider } from './workspace-ui/WorkspaceUIProvider'
 
 /**
  * Every workspace feature context, outermost first. Each one may use the ones above it:
- * UI → Navigation → Quiz → Flashcards → Spaces → Notes → Trash → SharedNotes → Sharing → LiveCollab → Comments → Notifications → Library → NoteBindings → Imports → Assistant → Billing.
+ * UI → Navigation → Quiz → Flashcards → Artifacts → Spaces → Notes → Trash → SharedNotes → Sharing → LiveCollab → Comments → Notifications → Library → NoteBindings → Imports → Assistant → Billing.
  * Each feature's logic lives in `src/hooks/use-<feature>.ts`; its provider runs it once and shares it.
  * A new API-backed feature adds its hook there and its provider here (see AGENTS.md, "Feature contexts").
  */
@@ -30,6 +31,7 @@ export function WorkspaceProviders({ children }: { children: ReactNode }) {
     <NavigationProvider>
       <QuizProvider>
       <FlashcardsProvider>
+      <ArtifactsProvider>
       <SpacesProvider>
         <NotesProvider>
           <TrashProvider>
@@ -53,6 +55,7 @@ export function WorkspaceProviders({ children }: { children: ReactNode }) {
           </TrashProvider>
         </NotesProvider>
       </SpacesProvider>
+      </ArtifactsProvider>
       </FlashcardsProvider>
       </QuizProvider>
     </NavigationProvider>

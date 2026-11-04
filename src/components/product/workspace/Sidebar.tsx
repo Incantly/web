@@ -132,6 +132,7 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenS
       <RailItem icon="document" label="All notes" collapsed={collapsed} active={view === 'notes'} onClick={() => navigate('notes')}>{notes.length ? <span className={`shrink-0 text-xs text-subtle ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{notes.length}</span> : null}</RailItem>
       <RailItem icon="share" label="Shared with me" collapsed={collapsed} active={view === 'shared'} onClick={() => navigate('shared')} />
       <RailItem icon="inbox" label="Invitations" collapsed={collapsed} active={view === 'invitations'} onClick={() => navigate('invitations')} />
+      <RailItem icon="card" label="Quizzes & decks" collapsed={collapsed} active={view === 'artifacts' || view.startsWith('artifact:') || view.startsWith('quiz:') || view.startsWith('deck:')} onClick={() => navigate('artifacts')} />
       <RailItem icon="trash" label="Trash" collapsed={collapsed} active={view === 'trash'} onClick={() => navigate('trash')} />
     </nav>
 

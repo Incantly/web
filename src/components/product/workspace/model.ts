@@ -11,10 +11,12 @@ export type WorkspaceView =
   | 'spaces'
   | 'library'
   | 'trash'
+  | 'artifacts'
   | `space:${string}`
   | `note:${string}`
   | `quiz:${string}`
   | `deck:${string}`
+  | `artifact:${string}`
 
 export type Navigate = (view: WorkspaceView) => void
 
