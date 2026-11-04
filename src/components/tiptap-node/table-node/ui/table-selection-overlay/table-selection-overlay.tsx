@@ -568,6 +568,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
     }
 
     editor.on("selectionUpdate", handleSelectionUpdate)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial overlay sync on subscribe
     updateSelectionRect()
     updateTableDom()
 
@@ -581,6 +582,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
       ".table-selection-overlay-container"
     ) as HTMLElement | null
     const container = c ?? null
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- portal root follows measured table DOM
     setPortalRoot((prev) =>
       prev.container === container ? prev : { container, key: prev.key + 1 }
     )
@@ -615,6 +617,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
       root={portalToBody ? undefined : portalRoot.container}
     >
       <div
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         ref={refs.setFloating}
         style={{
           ...floatingStyles,

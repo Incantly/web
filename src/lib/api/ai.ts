@@ -2,8 +2,8 @@ import { apiFetch } from './client'
 import type { Schema } from './types'
 
 export type AiScope = Schema<'AiScopeDto'>
-/** `clarified` and `webSearch` have server defaults (the generated schema marks them required). */
-export type AiRequest = Omit<Schema<'AiRequestDto'>, 'clarified' | 'webSearch'> & { clarified?: boolean; webSearch?: boolean }
+/** `clarified`, `webSearch`, and `webScope` have server defaults (the generated schema marks them required). */
+export type AiRequest = Omit<Schema<'AiRequestDto'>, 'clarified' | 'webSearch' | 'webScope'> & { clarified?: boolean; webSearch?: boolean; webScope?: Schema<'AiRequestDto'>['webScope'] }
 /** Text selected in the note editor: block IDs and UTF-16 offsets, never the text itself. */
 export type NoteSelection = Schema<'NoteSelectionDto'>
 export type SelectionRange = Schema<'SelectionRangeDto'>

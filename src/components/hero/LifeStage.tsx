@@ -190,17 +190,20 @@ function Slider({
 export default function LifeStage({ reduced, onKind }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const onKindRef = useRef(onKind)
+  // eslint-disable-next-line react-hooks/refs -- latest-callback mirror for the animation loop
   onKindRef.current = onKind
 
   const [kind, setKind] = useState<LifeKind>('tree')
   const [params, setParams] = useState<Params>(DEFAULTS)
   const paramsRef = useRef(params)
+  // eslint-disable-next-line react-hooks/refs -- latest-value mirror for the animation loop
   paramsRef.current = params
   const busyRef = useRef(false)
   const idleRef = useRef(0)
   const remainRef = useRef<HTMLSpanElement>(null)
   const fillRef = useRef<HTMLSpanElement>(null)
   const setKindRef = useRef(setKind)
+  // eslint-disable-next-line react-hooks/refs -- stable setter mirror for the animation loop
   setKindRef.current = setKind
 
   const markBusy = () => {
@@ -248,7 +251,7 @@ export default function LifeStage({ reduced, onKind }: Props) {
     let graph = makeGraph(0, 0, 150, 9)
     let treeKey = ''
     let graphKey = ''
-    let plotPull = { x: 0, y: 0 }
+    const plotPull = { x: 0, y: 0 }
     const pendulum = { theta: 0.85, omega: 0 }
     const atwood = { y: 0, v: 0, side: 0 as 0 | 1 }
     const spring = { x: 80, v: 0 }

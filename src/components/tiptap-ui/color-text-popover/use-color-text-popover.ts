@@ -118,6 +118,7 @@ export function useRecentColors(maxColors: number = 3) {
       const storedColors = localStorage.getItem("tiptapRecentlyUsedColors")
       if (storedColors) {
         const colors = JSON.parse(storedColors) as RecentColor[]
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only localStorage hydration
         setRecentColors(colors.slice(0, maxColors))
       }
     } catch (e) {

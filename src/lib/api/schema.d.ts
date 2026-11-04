@@ -258,6 +258,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notes/shared-with-me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notes shared with me
+         * @description Cursor-paginated active grants on live notes, newest first, with the note title and owner. Maximum page size is 100.
+         */
+        get: operations["NotesController_sharedWithMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my soft-deleted notes
+         * @description Cursor-paginated trash for the session owner only, newest first, with each note’s delete time and purge time (deletedAt plus NOTE_RETENTION_DAYS, default 30 days). Restore with POST /notes/{noteId}/restore and no body before the purge time; afterwards the row and its checkpoints are gone. Maximum page size is 100. Side effects: none. Retries: safe; a garbage cursor returns 400 INVALID_CURSOR.
+         */
+        get: operations["NotesController_trash"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notes/{noteId}": {
         parameters: {
             query?: never;
@@ -267,14 +307,14 @@ export interface paths {
         };
         /**
          * Read note metadata
-         * @description Returns metadata only, not the checkpoint body. Unauthorized note IDs return NOTE_NOT_FOUND.
+         * @description Returns metadata only, not the checkpoint body. The owner and anyone with a grant (viewer and up) may read it. Unauthorized note IDs return NOTE_NOT_FOUND.
          */
         get: operations["NotesController_metadata"];
         put?: never;
         post?: never;
         /**
          * Soft-delete a note
-         * @description Marks the note deleted and atomically schedules retention-aware cleanup through the transactional outbox. Objects are not deleted inline. The note disappears from lists, Spaces, and search immediately; AI jobs scoped to it fail with AI_SCOPE_FORBIDDEN.
+         * @description Owner only. Marks the note deleted and atomically schedules retention-aware cleanup through the transactional outbox. Objects are not deleted inline. The note disappears from lists, Spaces, and search immediately; grant holders lose access immediately and their live connections are cut; AI jobs scoped to it fail with AI_SCOPE_FORBIDDEN.
          */
         delete: operations["NotesController_remove"];
         options?: never;
@@ -291,12 +331,12 @@ export interface paths {
         };
         /**
          * Read the current canonical checkpoint
-         * @description Reads the immutable object, verifies its server checksum, performs bounded decompression, and strictly parses Incantly JSON. Use this, not IndexedDB, as the source of truth when opening a note.
+         * @description Reads the immutable object, verifies its server checksum, performs bounded decompression, and strictly parses Incantly JSON. Use this, not IndexedDB, as the source of truth when opening a note. Supports ETag / If-None-Match: a matching validator returns a cheap 304 without reading the object, so saved-sync and link-viewer clients poll this every 5 s while visible, and on focus.
          */
         get: operations["NotesController_checkpoint"];
         /**
          * Save a canonical checkpoint with compare-and-swap
-         * @description Treat IndexedDB as untrusted. Send the complete canonical Incantly document and current baseRevisionNumber. A stale base returns 409 STALE_NOTE_REVISION; fetch the head before retrying.
+         * @description Treat IndexedDB as untrusted. Send the complete canonical Incantly document and current baseRevisionNumber. A stale base returns 409 STALE_NOTE_REVISION; fetch the head before retrying. On a shared note this returns 409 USE_TRANSACTIONS: write through transactions (saved sync) instead, which apply into the room. This is how header/footer changes are saved on unshared notes: metadata.pageSetup, metadata.layout and metadata.research are stored and returned exactly as sent; an invalid layout returns 422 INVALID_NOTE_DOCUMENT with issue paths under $.metadata.layout. Never store calculated page breaks.
          */
         put: operations["NotesController_save"];
         post?: never;
@@ -337,7 +377,7 @@ export interface paths {
         put?: never;
         /**
          * Apply an idempotent typed transaction batch
-         * @description Version 1 accepts at most 1,000 @incantly/core user operations. transactionId and client sequence are durable idempotency identities. Exact retries return the original acknowledgement. Stale non-overlapping stable-node operations may be rebased; unsafe overlap returns 409 with the authorized current revision.
+         * @description Version 1 accepts at most 1,000 @incantly/canvas-core user operations. The owner and editors may submit; viewers and commenters get 403 NOTE_ACCESS_DENIED. transactionId and client sequence are durable idempotency identities. Exact retries return the acknowledgement (for room-applied changes the replay carries the live head, which a checkpoint may have advanced since the first acknowledgement). Stale non-overlapping stable-node operations may be rebased; unsafe overlap returns 409 with the authorized current revision. setPageSetup keeps every page setup field exactly as sent; metadata.layout and metadata.research are kept unchanged by every operation. On a shared note the operations apply into the live room (saved sync) with base-revision and node preconditions re-checked inside one short update, live collaborators see them at once, and a checkpoint is scheduled; the acknowledgement carries the current head and the change lands in a revision at the next checkpoint. On a saved-sync conflict, poll the checkpoint until your own change is visible (or back off briefly) before rebasing: a checkpoint may still be pending. A provider outage returns 503 LIVE_COLLABORATION_UNAVAILABLE with a saved_sync fallback: retry the identical transaction after Retry-After.
          */
         post: operations["NotesController_transaction"];
         delete?: never;
@@ -355,7 +395,7 @@ export interface paths {
         };
         /**
          * Read a historical canonical checkpoint
-         * @description The revision must belong to the authenticated user’s note.
+         * @description The revision must belong to a note the caller owns or holds a grant on (viewer and up).
          */
         get: operations["NotesController_revision"];
         put?: never;
@@ -376,10 +416,50 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Restore a historical revision as a new head
-         * @description Never mutates or points backward to the old object. Creates a new immutable RESTORE revision using compare-and-swap. Afterwards reload the checkpoint; local unsynced edits based on the old head are stale.
+         * Restore a revision, or a soft-deleted note from the trash
+         * @description Two restores share this route, picked by the body. With `sourceRevisionId`: the owner and editors may restore a historical revision as a new head. Never mutates or points backward to the old object. Creates a new immutable RESTORE revision using compare-and-swap. Afterwards reload the checkpoint; local unsynced edits based on the old head are stale. On a shared note the restore writes through the room (lease, pre-checkpoint, provider version, setContent keeping the old node IDs, RESTORE revision, RESTORED broadcast), so connected clients see it at once and the next checkpoint cannot undo it. A concurrent restore returns 409 RESTORE_IN_PROGRESS; a provider outage returns 503 LIVE_COLLABORATION_UNAVAILABLE (retry after Retry-After). Without a body: the owner restores a soft-deleted note to live (grants keep working; room access is re-mirrored). Strangers, unknown IDs, and purged notes return 404 NOTE_NOT_FOUND; restoring a live note returns 409 NOTE_NOT_DELETED. A revision restore on a soft-deleted note returns 404 NOTE_NOT_FOUND (restore from the trash first). Side effects: revision restore writes a RESTORE revision; trash restore flips the status, re-schedules search indexing, and re-mirrors sharing. Retries: revision restore is idempotent except concurrent conflicting writes (409/503: reload and retry); a trash restore retried after success returns 409 NOTE_NOT_DELETED, so confirm with GET note metadata instead of retrying.
          */
         post: operations["NotesController_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/checkpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Checkpoint a shared note now
+         * @description The owner and editors may save. Runs an immediate checkpoint of the live room plus a provider safety-net version, without waiting for the quiet window. An unchanged room returns the head with checkpointCreated false. An optional name labels a user-named version (validated, persisted on the new revision, and echoed; echoed only when the room is unchanged — read it back from the revision’s versionName). Side effects: a MANUAL COLLABORATION revision when the room changed, and a provider version. On an unshared note this returns 409 NOTE_NOT_SHARED: save with PUT checkpoint instead. A concurrent restore returns 409 RESTORE_IN_PROGRESS; a busy checkpoint lease returns 503 COLLABORATION_BUSY and a provider outage 503 LIVE_COLLABORATION_UNAVAILABLE (retry after Retry-After).
+         */
+        post: operations["NotesController_saveNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recover a client-held document after offline loss
+         * @description The owner and editors may recover. The client-held canonical document is migrated, validated and authorized, then stored as a separate recovered revision (negative revision number, parented on the head): it is never applied over the room, the head is untouched, and no checkpoint is scheduled. Re-apply the recovered content through transactions; recovered revisions follow normal retention. Side effects: one MANUAL revision plus an audit row. Retries: send a new request per recovery attempt (each attempt stores its own revision).
+         */
+        post: operations["NotesController_recover"];
         delete?: never;
         options?: never;
         head?: never;
@@ -712,6 +792,8 @@ export interface paths {
          *     Durability: the job runs on the server whether or not the client stays connected. Keep the job id, but if it is lost, GET /v1/ai/jobs lists the user’s jobs; finished ones the user has not opened have `seenAt: null`.
          *
          *     Web: `webSearch: true` lets a cited answer also search the public web, when the server has a web vendor configured. Web search runs only while the job’s data may go to that vendor, and never sends the learner’s material.
+         *
+         *     Research papers: add `webScope: "papers"` (the `/research` command) to search research papers instead of the web. Paper results carry `citations[].paper` (authors, year, venue, DOI, open PDF). The server picks the vendors and enforces shared rate limits; when search is busy or its free daily allowance is used up, the answer comes from the learner’s material and tool activity shows `AI_WEB_RATE_LIMITED` or `AI_WEB_QUOTA_EXHAUSTED`. Never retry the job for that.
          */
         post: operations["AiController_submit"];
         delete?: never;
@@ -991,6 +1073,8 @@ export interface paths {
          *
          *     Rejected changes are recorded and never applied. `all` accepts or rejects every undecided change.
          *
+         *     On a shared note the decision applies into the live room (pre-checkpoint, one short update, audit) instead of a direct transaction, so connected clients see it at once. New outcomes there: 503 LIVE_COLLABORATION_UNAVAILABLE (wait for Retry-After, then retry; nothing applied), 413 ROOM_DOCUMENT_TOO_LARGE (the room is at its size limit), and 409 RESTORE_IN_PROGRESS (a restore holds the room; retry shortly).
+         *
          *     Idempotent: a retry, or deciding an already decided change, returns the stored states without applying anything twice. 409 NOTE_PROPOSAL_DECISION_IN_PROGRESS means another decision on this proposal is being applied: retry shortly. After a 200, load the note at `currentRevisionNumber`; do not reapply the change locally.
          *
          *     Rate limited per user.
@@ -1015,9 +1099,431 @@ export interface paths {
          * Undo an accepted change
          * @description Reverses one accepted change as a new revision with origin `ai`. It applies only while the changed block is still exactly as the change left it; otherwise 409 PROPOSAL_UNDO_STALE (restore an earlier revision from history instead).
          *
+         *     On a shared note the undo applies into the live room (pre-checkpoint, one short update, audit) instead of a direct transaction, so connected clients see it at once. New outcomes there: 503 LIVE_COLLABORATION_UNAVAILABLE (wait for Retry-After, then retry; nothing applied), 413 ROOM_DOCUMENT_TOO_LARGE (the room is at its size limit), and 409 RESTORE_IN_PROGRESS (a restore holds the room; retry shortly).
+         *
          *     Idempotent: undoing an undone change returns it unchanged. Rate limited per user.
          */
         post: operations["NoteProposalsController_undo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate a quiz from the user’s material (starts a background job)
+         * @description Checks the scope now (404 or 422 fast), then generates in the background and returns 202 with the generation. Follow it with GET /v1/artifact-jobs/{jobId}/stream (server-sent events), or poll GET /v1/artifact-jobs/{jobId} about once a second.
+         *
+         *     Speed: the first validated questions usually appear within seconds as `batch` events or in `preview`; the quiz is ready when the state is COMPLETED. Explanations are written afterwards and only appear in a submitted attempt’s result.
+         *
+         *     Reuse: the same material, options and policy return the existing quiz with `reused: true` and no charge.
+         *
+         *     Idempotency: a retry with the same Idempotency-Key and body returns the original generation (`created: false`); the same key with a different body is 409 IDEMPOTENCY_KEY_REUSED.
+         *
+         *     Spend: model use counts toward the daily AI allowance; a generation whose every batch is refused fails with that reason (e.g. AI_DAILY_LIMIT_REACHED). Rate limited per user (burst 5, then one every 20 s by default).
+         */
+        post: operations["ArtifactsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifact-jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a generation (polling fallback)
+         * @description State, progress counts and the validated batches so far (`preview`, read-only, no answers). Poll about every 1 second at first, backing off to 3–5 seconds; stop at COMPLETED, FAILED, CANCELED or EXPIRED. On COMPLETED open the artifact (`artifactId`). Another user’s generation is 404.
+         */
+        get: operations["ArtifactsController_job"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifact-jobs/{jobId}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Follow a generation live (server-sent events)
+         * @description Events: `state` ({state, progress}) on every change; `batch` (one PreviewBatch) as each validated batch is ready; `done` ({state, artifactId, versionId, failureCode}) once, then the stream closes. A `timeout` event closes long streams; reconnect or poll GET /v1/artifact-jobs/{jobId}.
+         *
+         *     Batches are read-only previews without answers: questions for quizzes, cards for flashcard decks. The final version may drop duplicates. Use EventSource with credentials; on error fall back to polling.
+         */
+        get: operations["ArtifactsController_stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifact-jobs/{jobId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a generation
+         * @description Stops it at its next step; batches already talking to the provider finish but are discarded, and what they used is still charged. Idempotent: cancelling a finished generation returns it unchanged. A new quiz with no version ends FAILED; a regeneration leaves the current version as it is.
+         */
+        post: operations["ArtifactsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the user’s artifacts
+         * @description Newest change first, 50 per page; filter by QUIZ or FLASHCARD_DECK. Pass `nextCursor` back as `cursor`. Archived artifacts are hidden unless `includeArchived=true`. GENERATING and FAILED artifacts are listed so the UI can show progress or a retry.
+         */
+        get: operations["ArtifactsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts/{artifactId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one artifact
+         * @description Its status, current version and latest generation. Another user’s artifact is 404.
+         */
+        get: operations["ArtifactsController_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete an artifact
+         * @description Permanent: it disappears at once, a running generation is cancelled, and its versions, attempts, stored payloads and the evidence copies only it cited are removed in the background. Deleting it again is 404.
+         */
+        delete: operations["ArtifactsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts/{artifactId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an artifact’s versions
+         * @description Newest first. Versions are immutable; a regeneration adds one.
+         */
+        get: operations["ArtifactsController_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts/{artifactId}/versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one version’s public content
+         * @description Returns quiz questions/options in `quiz`, or card prompts in `deck`, without private answers. REVERSE pairs expose both review prompts. Start a quiz attempt to take a quiz; use flashcard due/reveal/review endpoints to practise a deck.
+         */
+        get: operations["ArtifactsController_version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts/{artifactId}/regenerations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace chosen questions (new version)
+         * @description Rewrites up to 8 questions of the current version from the same evidence and publishes a new version; every other question stays exactly as it was. A question that cannot be rewritten to pass the checks is kept. Retry with the same Idempotency-Key and selected question IDs to return the original generation, even after it publishes; question ID order does not matter. A different artifact or question selection with that key is 409 IDEMPOTENCY_KEY_REUSED. Access to the original scope and evidence is checked again during background work; revoked access or stricter privacy settings stop new output. Follow the returned generation like a new one. Attempts already started keep grading against their own version.
+         */
+        post: operations["ArtifactsController_regenerate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/artifacts/{artifactId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive an artifact
+         * @description Hides it from the default list; it can still be read and taken. Idempotent.
+         */
+        post: operations["ArtifactsController_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quizzes/{quizId}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The user’s attempts at a quiz
+         * @description Newest first, at most 50, with scores.
+         */
+        get: operations["QuizzesController_history"];
+        put?: never;
+        /**
+         * Start an attempt
+         * @description Binds the attempt to the quiz’s current version and fixes this attempt’s option order. Returns the questions without answers; timed quizzes get a server `deadlineAt`.
+         *
+         *     Idempotency: the same Idempotency-Key returns the same attempt (`created: false`, 200 instead of 201). Use one key per “Start” press.
+         */
+        post: operations["QuizzesController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quiz-attempts/{attemptId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resume an attempt
+         * @description Questions in this attempt’s order and the answers saved so far. Never answers.
+         */
+        get: operations["QuizzesController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quiz-attempts/{attemptId}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save answers
+         * @description Merges the given answers into the attempt (null clears one), e.g. after each question or every few seconds. Safe to retry. After a timed quiz’s deadline it is 409 QUIZ_ATTEMPT_EXPIRED: submit instead.
+         */
+        put: operations["QuizzesController_save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quiz-attempts/{attemptId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit and grade
+         * @description Grades the attempt once and returns the result. Any repeat submit returns the same result: one attempt has one grade. Answers in the body are merged first unless the timed quiz’s deadline has passed (server time). Unanswered questions score zero.
+         */
+        post: operations["QuizzesController_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quiz-attempts/{attemptId}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a submitted attempt’s result
+         * @description Score, each question’s correct answer and the learner’s, explanations and where they come from (file, page, heading). Explanations are written in the background after the quiz is published: while `explanationsComplete` is false, show what is there and read the result again every few seconds.
+         */
+        get: operations["QuizzesController_result"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/flashcard-decks/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate a flashcard deck
+         * @description Creates a bounded deck of 5–40 facts (up to 80 review cards for REVERSE pairs) from owned material. Default 20. Follow its generation with GET /v1/artifact-jobs/{id} or its stream. Reads/previews contain fronts only; reveal answers explicitly. Same key and body replay the original generation; changed input is 409. AI spend shares the existing allowance. Rate limit: shared generation bucket, burst 5 then one per 20 seconds.
+         */
+        post: operations["FlashcardsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/flashcard-decks/{deckId}/regenerations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace selected cards
+         * @description Replaces 1–8 cards from the saved base version. Other cards and their current schedules survive; replaced cards start due. The same key/card set replays the original generation after publication. New output must pass current source access checks. A competing newer version causes FLASHCARD_VERSION_CHANGED instead of overwriting it. Follow /v1/artifact-jobs/{id}. Rate limited by the shared regeneration bucket.
+         */
+        post: operations["FlashcardsController_regenerate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/flashcard-decks/{deckId}/due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read due card fronts
+         * @description Returns at most 40 due cards, default 20, in due-date/card-ID order. Use nextCursor unchanged. The cursor pins the deck version and cutoff; refresh on FLASHCARD_VERSION_CHANGED. No backs. Includes each card stateVersion for reviews. No AI usage.
+         */
+        get: operations["FlashcardsController_due"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/flashcard-decks/{deckId}/versions/{versionId}/cards/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reveal a card answer
+         * @description Explicitly returns one owned card’s back and evidence locations from its immutable version. Use after the learner flips the card. Old versions can still be read. No model call or charge.
+         */
+        get: operations["FlashcardsController_reveal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/flashcard-decks/{deckId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review a card and schedule its next appearance
+         * @description Send AGAIN, HARD, GOOD or EASY, elapsedMs and the due-card stateVersion. Server time controls the next date. Same key/body returns the original result, even after replacement; different input with that key is 409. Refresh on review/version conflict. Reviews never invoke AI. Burst 60 then one per second; respect Retry-After.
+         */
+        post: operations["FlashcardsController_review"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1246,6 +1752,430 @@ export interface paths {
          * @description Changes only this Space’s link: whether AI requests scoped to the Space include the Source by default (`enabledByDefault`) and its `priority`. The Source itself is unchanged. Send only changed fields. Safe to retry.
          */
         patch: operations["SpacesController_updateSourceLink"];
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List collaborators and pending invitations
+         * @description The owner plus active grants and pending invitations, with names and avatars only. Invited emails are visible to the owner only. Any grant holder may call it.
+         */
+        get: operations["SharingController_collaborators"];
+        put?: never;
+        /**
+         * Share a note with an email address
+         * @description Owner only. A verified Incantly user gets a grant at once; anyone else gets an invitation and an email. Re-posting the same person and role is a no-op; re-posting with a new role changes it. The first grant enables collaboration on the note and schedules room creation. Side effects: audit, room-access mirroring, in-app notification and email. Idempotent by Idempotency-Key: replaying the same key and body returns the stored result (200); reusing the key with another body returns 409 IDEMPOTENCY_KEY_REUSED. An invitation replay omits the token: keep the first copy.
+         */
+        post: operations["SharingController_createGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/grants/{grantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a grant, or leave a shared note
+         * @description The owner revokes any grant; a grant holder passes their own grant ID to leave. Revocation cuts live access at once through room mirroring. Side effects: audit and room-access mirroring.
+         */
+        delete: operations["SharingController_revokeGrant"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a collaborator’s role
+         * @description Owner only. Downgrades cut live access through room mirroring (the room rotates when the person is connected). Side effects: audit and room-access mirroring.
+         */
+        patch: operations["SharingController_changeRole"];
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a pending invitation
+         * @description Owner only. Frees the invitation’s collaborator slot. The emailed link stops working.
+         */
+        delete: operations["SharingController_revokeInvitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/note-invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my pending note invitations
+         * @description Invitations for the caller’s verified email on live notes, with the note title and inviter. An unverified caller gets an empty list.
+         */
+        get: operations["SharingController_myInvitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/note-invitations/{invitationId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a note invitation
+         * @description Accepts one pending invitation from GET /v1/note-invitations (empty body) and creates the grant. The signed-in user’s verified email must be the invited one. An invitation can be accepted once: replays return INVITATION_INVALID. Side effects: audit, room-access mirroring, and room creation when this is the first grant.
+         */
+        post: operations["SharingController_acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/share-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a view-only share link
+         * @description Owner only. The token is returned once: store it, it cannot be listed again. Links always expire: an omitted expiresAt defaults to 365 days. The link opens the latest checkpoint at GET /v1/shared/{token}; it never joins the live room. Side effects: audit.
+         */
+        post: operations["SharingController_createShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/share-links/{linkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a share link
+         * @description Owner only. The public URL stops working at once.
+         */
+        delete: operations["SharingController_revokeShareLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/shared/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a note through a view-only share link
+         * @description Public: no session. Returns the note title and the latest canonical checkpoint for reading only. Unknown, expired or revoked links return SHARE_LINK_INVALID. Rate-limited per link (60/minute) and per IP (120/minute): back off on 429 RATE_LIMITED and honor Retry-After. Poll no faster than the saved-sync interval; deleted notes read as invalid.
+         */
+        get: operations["SharedLinkController_view"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/liveblocks/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Authorize a live collaboration session for a note
+         * @description The single enforcement point for live access. Checks, in order: the session, the caller’s grant, that the note is shared, the app-wide guard, the Free owner’s monthly budget (skipped on refresh of an existing session), room-access reconcile, and the comment policy — then issues a Liveblocks ID token (TTL 1 hour). Always re-read `roomId` from the response: after a revocation rotation the room ID changes. Side effects: creates the room on first open; reconciles room accesses; records room activity. Retries: safe to retry; a 429 or 503 carries `fallback: "saved_sync"` — stay on saved sync until `resetsAt` or the Retry-After elapses. Frontend dos and don’ts: call once per join and on token refresh; do not pre-count connections (Liveblocks refuses the 11th with code 4005 — show “This note is full” and use saved sync); on any room error re-authorize, then rejoin the returned room or fall back to saved sync.
+         */
+        post: operations["LiveblocksController_authorize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/liveblocks/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Liveblocks user IDs to display profiles
+         * @description Backs Liveblocks `resolveUsers` (avatars, names, cursor colors). Returns profiles only for people who share at least one note with the caller, plus mentionable agents by exact ID; strangers are silently omitted. At most 50 IDs per call. No side effects. Safe to retry and to cache briefly client-side.
+         */
+        post: operations["LiveblocksController_resolveUsers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/live-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Decide whether to connect live or stay on saved sync
+         * @description Call before joining the room. Returns `live` with the current `roomId`, or `saved_sync` with the reason (`NOT_SHARED`, `GUARD_PAUSED`, `BUDGET_EXHAUSTED`) and, for pauses, `resetsAt`. In saved sync the client polls the checkpoint with `If-None-Match` every 5 s while visible and sends edits as note transactions. No side effects. Safe to retry and to cache for a few seconds.
+         */
+        get: operations["LiveNotesController_liveStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/mention-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest people and agents to mention in a note
+         * @description Backs Liveblocks `resolveMentionSuggestions`: the owner, current grant holders and enabled agents for this note, prefix-matched on `q` (case-insensitive), at most 10. Never reveals anyone without access to the note. No side effects. Debounce keystrokes client-side and cache per note.
+         */
+        get: operations["LiveNotesController_mentionSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a comment (saved sync)
+         * @description Creates a thread or a reply through the Liveblocks REST API after the same capability (`comment`) and comment-policy checks the live client passes. Mentions are restricted to people with access to the note. Body limits: 50 paragraphs, 100 inlines each, 4000 characters total, 20 mentions. Side effects: counts the comment against the owner’s monthly budget (idempotent by comment ID). Rate limited per user. Idempotent by Idempotency-Key: replaying the same key and body returns the stored comment (200); reusing the key with another body returns 409 IDEMPOTENCY_KEY_REUSED.
+         */
+        post: operations["CommentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller’s Incantly in-app notifications
+         * @description Shares, invitations and AI notices. Payloads hold IDs only; resolve titles through authorized reads. Merge with the Liveblocks inbox for the bell: Liveblocks covers comments and mentions, this covers everything else. Uses an opaque cursor; maximum page size is 100. Rate limited per user.
+         */
+        get: operations["NotificationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark all the caller’s notifications read
+         * @description Idempotent. Does not touch the Liveblocks inbox. Rate limited per user.
+         */
+        post: operations["NotificationsController_readAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark one notification read
+         * @description Idempotent. Another user’s notification, or a missing ID, is NOTIFICATION_NOT_FOUND. Rate limited per user.
+         */
+        post: operations["NotificationsController_markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the caller’s collaboration email preferences
+         * @description Absent rows mean email enabled. Mutes suppress email only; the in-app inbox is unaffected. Rate limited per user.
+         */
+        get: operations["NotificationPreferencesController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Turn all collaboration email on or off
+         * @description Sets the ALL scope. Idempotent. Side effect: the next email worker run honors it. Rate limited per user.
+         */
+        patch: operations["NotificationPreferencesController_update"];
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mute email for a note
+         * @description Idempotent. Requires read access; otherwise NOTE_NOT_FOUND. The in-app inbox is unaffected. Rate limited per user.
+         */
+        put: operations["NotificationPreferencesController_muteNote"];
+        post?: never;
+        /**
+         * Unmute email for a note
+         * @description Idempotent. Requires read access; otherwise NOTE_NOT_FOUND. Rate limited per user.
+         */
+        delete: operations["NotificationPreferencesController_unmuteNote"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notes/{noteId}/threads/{threadId}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mute email for one comment thread
+         * @description Idempotent. Requires read access to the note; otherwise NOTE_NOT_FOUND. The in-app inbox is unaffected. Rate limited per user.
+         */
+        put: operations["NotificationPreferencesController_muteThread"];
+        post?: never;
+        /**
+         * Unmute email for one comment thread
+         * @description Idempotent. Requires read access to the note. Rate limited per user.
+         */
+        delete: operations["NotificationPreferencesController_unmuteThread"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/email/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unsubscribe from collaboration email (email link)
+         * @description Redeems the signed token from the email: disables email for its scope (all mail, one note, one thread), or declines an invitation. Public; the token authenticates. Idempotent. Rate limited per IP and per link. Returns an HTML confirmation page (status 200), or an HTML error page (status 400) for a bad or expired token.
+         */
+        get: operations["EmailUnsubscribeController_unsubscribeGet"];
+        put?: never;
+        /**
+         * Unsubscribe from collaboration email (one-click POST)
+         * @description The List-Unsubscribe one-click action: mailbox providers POST to the full URL (token in the query). Also accepts `{ token }` in the body. Public; the token authenticates. Idempotent; a bad or expired token is UNSUBSCRIBE_LINK_INVALID. Rate limited per IP and per link.
+         */
+        post: operations["EmailUnsubscribeController_unsubscribePost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/sign-in/social": {
@@ -3512,6 +4442,19 @@ export interface components {
             /** @example Cell biology */
             title: string;
         };
+        NoteCollaborationDto: {
+            /** @description The authoritative Liveblocks room ID. Always re-read it: rotation changes it. */
+            roomId: string;
+            /**
+             * @description Checkpoint health, present for the note owner only. `quarantined` means recent room changes failed validation and the head did not advance.
+             * @enum {string}
+             */
+            checkpointHealth?: "healthy" | "quarantined";
+            /** @description Tracked Yjs room size in bytes, once checkpointed. */
+            roomSizeBytes?: number;
+            /** @description True once the room reaches the 6 MB warning threshold. */
+            roomSizeWarning?: boolean;
+        };
         NoteDto: {
             /** @example note:5b0c… */
             id: string;
@@ -3527,9 +4470,62 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Present on shared notes (notes with a live room). */
+            collaboration?: components["schemas"]["NoteCollaborationDto"];
         };
         NotePageDto: {
             items: components["schemas"]["NoteDto"][];
+            nextCursor: string | null;
+        };
+        ShareUserDto: {
+            id: string;
+            name: string;
+            /** @description Stable avatar URL, never a presigned object URL. */
+            avatarUrl: string | null;
+        };
+        SharedNoteDto: {
+            id: string;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            owner: components["schemas"]["ShareUserDto"];
+        };
+        SharedWithMeItemDto: {
+            id: string;
+            /** @enum {string} */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+            /** Format: date-time */
+            createdAt: string;
+            note: components["schemas"]["SharedNoteDto"];
+        };
+        SharedWithMePageDto: {
+            items: components["schemas"]["SharedWithMeItemDto"][];
+            nextCursor: string | null;
+        };
+        TrashNoteDto: {
+            /** @example note:5b0c… */
+            id: string;
+            title: string;
+            /** @enum {string} */
+            status: "deleted";
+            /** @description Incantly document schema version. */
+            schemaVersion: number;
+            currentRevisionId: string | null;
+            currentRevisionNumber: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description When the note was soft-deleted. */
+            deletedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When the note becomes eligible for the permanent purge (deletedAt plus NOTE_RETENTION_DAYS). Restore before then; afterwards the row and its checkpoints are gone.
+             */
+            purgeAt: string;
+        };
+        TrashNotePageDto: {
+            items: components["schemas"]["TrashNoteDto"][];
             nextCursor: string | null;
         };
         NoteRevisionDto: {
@@ -3538,12 +4534,17 @@ export interface components {
             parentRevisionId: string | null;
             schemaVersion: number;
             /**
-             * @description `ai`: an agent proposal change the owner accepted, or its undo. Show it as "Edited by AI, accepted by you".
+             * @description `ai`: an agent proposal change the owner accepted, or its undo. Show it as "Edited by AI, accepted by you". `collaboration`: a checkpoint of a shared note's live room; list its contributors.
              * @enum {string}
              */
-            origin: "user" | "import" | "restore" | "migration" | "system" | "ai";
+            origin: "user" | "import" | "restore" | "migration" | "system" | "ai" | "collaboration";
             /** @enum {string} */
             kind: "autosave" | "manual" | "import" | "restore" | "migration";
+            /**
+             * @description User-named version label from POST checkpoints, when the revision has one.
+             * @example Before the client review
+             */
+            versionName?: string | null;
             /** @example sha256:… */
             checksumSha256: string;
             compressedByteLength: number;
@@ -3564,7 +4565,7 @@ export interface components {
              * @example 3
              */
             baseRevisionNumber: number;
-            /** @description The complete canonical Incantly JSON document (`@incantly/core`), never Tiptap JSON or HTML. Its `id` must equal the note ID; node IDs must stay stable across edits. */
+            /** @description The complete canonical Incantly JSON document (`@incantly/canvas-core`), never Tiptap JSON or HTML. Its `id` must equal the note ID; node IDs must stay stable across edits. */
             document: {
                 [key: string]: unknown;
             };
@@ -3592,7 +4593,7 @@ export interface components {
             localSequence: string;
             /** @description The head revision the operations were made against. */
             baseRevisionNumber: number;
-            /** @description `@incantly/core` user operations, applied in order. */
+            /** @description `@incantly/canvas-core` user operations, applied in order. */
             operations: {
                 [key: string]: unknown;
             }[];
@@ -3606,8 +4607,35 @@ export interface components {
             revision: components["schemas"]["NoteRevisionDto"];
         };
         RestoreRevisionDto: {
-            /** @description The revision to restore, from GET /notes/{noteId}/revisions. */
-            sourceRevisionId: string;
+            /** @description The revision to restore, from GET /notes/{noteId}/revisions. Omit it to restore a soft-deleted note from the trash instead: the note returns to live, its grants keep working, and its room access is re-mirrored. */
+            sourceRevisionId?: string;
+        };
+        SaveNowDto: {
+            /** @description Optional name for a user-named version. Validated, persisted on the new revision, and echoed; echoed only when the room is unchanged. */
+            name?: string;
+        };
+        SaveNowResultDto: {
+            revision: components["schemas"]["NoteRevisionDto"];
+            /** @description False when the room was unchanged since the last checkpoint: the head revision is returned as-is. */
+            checkpointCreated: boolean;
+            /** @description Whether the provider safety-net version was created. A provider outage reports false without failing the save. */
+            providerVersion: boolean;
+            /** @description Echo of the requested version name. */
+            versionName?: string;
+        };
+        RecoverNoteDto: {
+            /** @description The client-held canonical Incantly JSON document after offline loss. Its `id` must equal the note ID. It is migrated, validated and authorized, then stored as a separate recovered revision: never applied over the room. */
+            document: {
+                [key: string]: unknown;
+            };
+        };
+        RecoverNoteResultDto: {
+            revision: components["schemas"]["NoteRevisionDto"];
+            /**
+             * @description Always true: recovery never moves the head. Re-apply the content through transactions.
+             * @enum {boolean}
+             */
+            headUnchanged: true;
         };
         ProcessingVersionDto: {
             id: string;
@@ -3927,6 +4955,21 @@ export interface components {
             /** @description True when a previously failed index build is being retried rather than a new one queued. */
             replayedFailedBuild: boolean;
         };
+        WebPaperDto: {
+            /** @description Up to 10 author names (plain text). */
+            authors?: string[];
+            year?: number;
+            /** @description Journal or conference (plain text). */
+            venue?: string;
+            /** @description Citation count the vendor reported. */
+            citedBy?: number;
+            /** @description Checked DOI (10.x/...). Show as text; do not build links from it. */
+            doi?: string;
+            /** @description Checked arXiv ID. Show as text; do not build links from it. */
+            arxivId?: string;
+            /** @description An open PDF of the paper, checked to be http(s) without credentials. Link it only from here (rel="noopener noreferrer"). */
+            pdfUrl?: string;
+        };
         CitationDto: {
             /**
              * @description The reference the model used, e.g. `S1E2` (search 1, evidence 2).
@@ -3952,6 +4995,8 @@ export interface components {
             url?: string;
             /** @description Web citations only: the page title (plain text). */
             title?: string;
+            /** @description Research-paper citations only (webScope `papers`): paper metadata. The only links are `url` and `paper.pdfUrl`. */
+            paper?: components["schemas"]["WebPaperDto"];
         };
         GroundedAnswerResultDto: {
             /**
@@ -4042,6 +5087,12 @@ export interface components {
              * @default false
              */
             webSearch: boolean;
+            /**
+             * @description What web search looks for, when `webSearch` is true: `web` for the `/search` command, `papers` for `/research` (research papers with authors, year, venue, and open PDFs). Ignored without `webSearch: true`. The server chooses the vendors; never send one.
+             * @default web
+             * @enum {string}
+             */
+            webScope: "web" | "papers";
             /** @description Text the user selected in the note editor: block IDs and offsets, never the text itself (the server reads it). Needs `scope.kind: NOTE`. Without a `command` it selects the note assistant, which may answer and may propose inline edits (GET /v1/notes/{noteId}/proposals). */
             selection?: components["schemas"]["NoteSelectionDto"];
         };
@@ -4098,6 +5149,11 @@ export interface components {
             subject: components["schemas"]["JobSubjectDto"] | null;
             /** @description The request opted in to web search. */
             webAllowed: boolean;
+            /**
+             * @description What web search looks for: the web, or research papers.
+             * @enum {string}
+             */
+            webScope: "web" | "papers";
             /**
              * Format: date-time
              * @description When the user marked the finished job seen (POST …/seen).
@@ -4361,6 +5417,439 @@ export interface components {
             change: components["schemas"]["ChangeOutcomeDto"];
             currentRevisionNumber: number;
         };
+        QuizPreferencesDto: {
+            /** @description Title shown to the learner. Defaults to the topic or the file name. */
+            title?: string;
+            /** @description What to quiz on, e.g. "B-tree page splits". Without it the quiz spreads over the outline of everything in scope. */
+            topic?: string;
+            /**
+             * @description Language code for the questions.
+             * @default en
+             * @example en
+             */
+            language: string;
+            /**
+             * @default MIXED
+             * @enum {string}
+             */
+            difficulty: "MIXED" | "EASY" | "MEDIUM" | "HARD";
+            /** @default 10 */
+            itemCount: number;
+            /**
+             * @description Allowed types. Default single choice and true/false (about one in five). New types use full-match scoring without partial credit.
+             * @default [
+             *       "SINGLE_CHOICE",
+             *       "TRUE_FALSE"
+             *     ]
+             */
+            questionTypes: ("SINGLE_CHOICE" | "TRUE_FALSE" | "MULTIPLE_SELECT" | "SHORT_ANSWER" | "FILL_IN_THE_BLANK" | "MATCHING" | "ORDERING")[];
+            /**
+             * @description Items per choice, matching or ordering question.
+             * @default 4
+             */
+            optionCount: number;
+            /** @description Time limit in minutes. Omit for an untimed quiz. */
+            durationMinutes?: number;
+        };
+        CreateGenerationDto: {
+            /**
+             * @description Only QUIZ is available today.
+             * @enum {string}
+             */
+            type: "QUIZ";
+            scope: components["schemas"]["AiScopeDto"];
+            preferences?: components["schemas"]["QuizPreferencesDto"];
+        };
+        GenerationProgressDto: {
+            batches: number;
+            completedBatches: number;
+            failedBatches: number;
+            questionsReady: number;
+            cardsReady?: number;
+        };
+        PreviewQuestionDto: {
+            right?: string[];
+            blanks?: string[];
+            slot: string;
+            /** @enum {string} */
+            type: "SINGLE_CHOICE" | "TRUE_FALSE" | "MULTIPLE_SELECT" | "SHORT_ANSWER" | "FILL_IN_THE_BLANK" | "MATCHING" | "ORDERING";
+            /** @enum {string} */
+            difficulty: "EASY" | "MEDIUM" | "HARD";
+            prompt: string;
+            /** @description Choice, matching or ordering items, alphabetical; no answer state. */
+            options?: string[];
+        };
+        PreviewCardDto: {
+            slot: string;
+            /** @enum {string} */
+            type: "BASIC" | "REVERSE" | "CLOZE";
+            front: string;
+            difficulty: string;
+        };
+        PreviewBatchDto: {
+            /** @example b1 */
+            batch: string;
+            questions: components["schemas"]["PreviewQuestionDto"][];
+            /** @description Flashcard fronts only; no backs. Slot IDs become stable cN IDs on publication. */
+            cards?: components["schemas"]["PreviewCardDto"][];
+        };
+        GenerationDto: {
+            id: string;
+            artifactId: string;
+            /** @enum {string} */
+            type: "QUIZ" | "FLASHCARD_DECK";
+            /** @enum {string} */
+            mode: "CREATE" | "REGENERATE";
+            /** @enum {string} */
+            state: "REQUESTED" | "AUTHORIZED" | "SCOPE_RESOLVED" | "BUDGET_RESERVED" | "CONTEXT_PLANNED" | "EVIDENCE_RETRIEVED" | "ROUTED" | "GENERATING" | "VALIDATING" | "PERSISTING" | "COMPLETED" | "AWAITING_CLARIFICATION" | "FAILED" | "CANCELED" | "EXPIRED";
+            failureCode?: Record<string, never> | null;
+            versionId?: Record<string, never> | null;
+            /** @description True when an existing artifact over the same material and options was returned instead of generating again (no charge). */
+            reused: boolean;
+            progress: components["schemas"]["GenerationProgressDto"];
+            /** @description Validated batches so far, read-only. The final version may drop duplicates. */
+            preview: components["schemas"]["PreviewBatchDto"][];
+            /** Format: date-time */
+            createdAt: string;
+            completedAt?: Record<string, never> | null;
+        };
+        GenerationAcceptedDto: {
+            created: boolean;
+            generation: components["schemas"]["GenerationDto"];
+        };
+        VersionDto: {
+            id: string;
+            versionNumber: number;
+            itemCount: number;
+            explanationsReady: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            supersededAt?: Record<string, never> | null;
+        };
+        LatestGenerationDto: {
+            id: string;
+            /** @enum {string} */
+            mode: "CREATE" | "REGENERATE";
+            /** @enum {string} */
+            state: "REQUESTED" | "AUTHORIZED" | "SCOPE_RESOLVED" | "BUDGET_RESERVED" | "CONTEXT_PLANNED" | "EVIDENCE_RETRIEVED" | "ROUTED" | "GENERATING" | "VALIDATING" | "PERSISTING" | "COMPLETED" | "AWAITING_CLARIFICATION" | "FAILED" | "CANCELED" | "EXPIRED";
+            failureCode?: Record<string, never> | null;
+        };
+        ArtifactDto: {
+            id: string;
+            /** @enum {string} */
+            type: "QUIZ" | "FLASHCARD_DECK";
+            title: string;
+            /** @enum {string} */
+            status: "GENERATING" | "READY" | "FAILED" | "ARCHIVED";
+            spaceId?: Record<string, never> | null;
+            sourceNoteId?: Record<string, never> | null;
+            currentVersion?: components["schemas"]["VersionDto"] | null;
+            latestGeneration?: components["schemas"]["LatestGenerationDto"] | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            archivedAt?: Record<string, never> | null;
+        };
+        ArtifactListDto: {
+            items: components["schemas"]["ArtifactDto"][];
+            nextCursor?: Record<string, never> | null;
+        };
+        VersionListDto: {
+            items: components["schemas"]["VersionDto"][];
+        };
+        QuizOptionDto: {
+            /** @example b */
+            id: string;
+            text: string;
+        };
+        QuizQuestionDto: {
+            blanks?: string[];
+            right?: components["schemas"]["QuizOptionDto"][];
+            /** @enum {string} */
+            scoring?: "EXACT";
+            /** @enum {string} */
+            normalization?: "NFKC_CASE_WHITESPACE";
+            /** @example q1 */
+            id: string;
+            /** @enum {string} */
+            type: "SINGLE_CHOICE" | "TRUE_FALSE" | "MULTIPLE_SELECT" | "SHORT_ANSWER" | "FILL_IN_THE_BLANK" | "MATCHING" | "ORDERING";
+            prompt: string;
+            /** @enum {string} */
+            difficulty: "EASY" | "MEDIUM" | "HARD";
+            points: number;
+            options?: components["schemas"]["QuizOptionDto"][];
+        };
+        QuizContentDto: {
+            title: string;
+            instructions: string;
+            questions: components["schemas"]["QuizQuestionDto"][];
+            totalPoints: number;
+            passingScore: number;
+            durationSeconds?: Record<string, never> | null;
+        };
+        CardFrontDto: {
+            id: string;
+            /** @enum {string} */
+            type: "BASIC" | "REVERSE" | "CLOZE";
+            pairId?: string;
+            /** @enum {string} */
+            direction?: "FORWARD" | "REVERSE";
+            clozeIds?: string[];
+            front: string;
+            hint?: Record<string, never> | null;
+            difficulty: string;
+            conceptKey: string;
+            tags: string[];
+        };
+        DeckContentDto: {
+            schemaVersion: string;
+            title: string;
+            cards: components["schemas"]["CardFrontDto"][];
+        };
+        VersionContentDto: {
+            id: string;
+            versionNumber: number;
+            itemCount: number;
+            explanationsReady: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            supersededAt?: Record<string, never> | null;
+            /** @description Questions and options; never answers. */
+            quiz?: components["schemas"]["QuizContentDto"];
+            /** @description Flashcard fronts and hints; reveal a back through the dedicated card endpoint. */
+            deck?: components["schemas"]["DeckContentDto"];
+        };
+        RegenerationDto: {
+            /**
+             * @description Questions of the current version to replace.
+             * @example [
+             *       "q3",
+             *       "q7"
+             *     ]
+             */
+            questionIds: string[];
+        };
+        AttemptDto: {
+            attemptId: string;
+            quizId: string;
+            versionId: string;
+            /** @enum {string} */
+            state: "IN_PROGRESS" | "SUBMITTED";
+            title: string;
+            instructions: string;
+            totalPoints: number;
+            passingScore: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** @description Server deadline of a timed quiz. */
+            deadlineAt?: Record<string, never> | null;
+            submittedAt?: Record<string, never> | null;
+            score?: Record<string, never> | null;
+            maxScore?: Record<string, never> | null;
+            answers: {
+                [key: string]: unknown;
+            };
+            /** @description In this attempt’s order; option order is fixed per attempt. */
+            questions: components["schemas"]["QuizQuestionDto"][];
+        };
+        AttemptStartedDto: {
+            created: boolean;
+            attempt: components["schemas"]["AttemptDto"];
+        };
+        AttemptSummaryDto: {
+            attemptId: string;
+            versionId: string;
+            /** @enum {string} */
+            state: "IN_PROGRESS" | "SUBMITTED";
+            score?: Record<string, never> | null;
+            maxScore?: Record<string, never> | null;
+            /** Format: date-time */
+            startedAt: string;
+            submittedAt?: Record<string, never> | null;
+        };
+        AttemptHistoryDto: {
+            items: components["schemas"]["AttemptSummaryDto"][];
+        };
+        AnswersDto: {
+            /**
+             * @description Answers by question ID: option ID, boolean, short text (max 800), ID array for multiple select/ordering, or blank/left ID to text/right ID map. Null clears. Type-specific bounds and membership are checked by the server.
+             * @example {
+             *       "q1": "c",
+             *       "q2": true,
+             *       "q3": null
+             *     }
+             */
+            answers: {
+                [key: string]: (string | boolean | string[] | {
+                    [key: string]: string;
+                }) | null;
+            };
+        };
+        SubmitDto: {
+            /** @description Last answers to merge before grading (optional). */
+            answers?: {
+                [key: string]: (string | boolean | string[] | {
+                    [key: string]: string;
+                }) | null;
+            };
+        };
+        ResultCitationDto: {
+            /** @enum {string} */
+            kind: "SELECTION" | "NOTE" | "SOURCE";
+            sourceId?: Record<string, never> | null;
+            noteId?: Record<string, never> | null;
+            title: string;
+            page?: Record<string, never> | null;
+            startMs?: Record<string, never> | null;
+            headingPath: string[];
+            assetId?: Record<string, never> | null;
+        };
+        ResultQuestionDto: {
+            blanks?: string[];
+            right?: components["schemas"]["QuizOptionDto"][];
+            /** @enum {string} */
+            scoring?: "EXACT";
+            /** @enum {string} */
+            normalization?: "NFKC_CASE_WHITESPACE";
+            /** @example q1 */
+            id: string;
+            /** @enum {string} */
+            type: "SINGLE_CHOICE" | "TRUE_FALSE" | "MULTIPLE_SELECT" | "SHORT_ANSWER" | "FILL_IN_THE_BLANK" | "MATCHING" | "ORDERING";
+            prompt: string;
+            /** @enum {string} */
+            difficulty: "EASY" | "MEDIUM" | "HARD";
+            points: number;
+            options?: components["schemas"]["QuizOptionDto"][];
+            yourAnswer?: (string | boolean | string[] | {
+                [key: string]: string;
+            }) | null;
+            correctAnswer?: (string | boolean | string[] | {
+                [key: string]: string;
+            }) | null;
+            correct: boolean;
+            /** @description Null until its background explanation is ready; poll the result again. */
+            explanation?: Record<string, never> | null;
+            citations: components["schemas"]["ResultCitationDto"][];
+        };
+        AttemptResultDto: {
+            attemptId: string;
+            quizId: string;
+            versionId: string;
+            score: number;
+            maxScore: number;
+            passingScore: number;
+            passed: boolean;
+            /** Format: date-time */
+            submittedAt: string;
+            /** @description False while some explanations are still being written. */
+            explanationsComplete: boolean;
+            questions: components["schemas"]["ResultQuestionDto"][];
+        };
+        DeckPreferencesDto: {
+            /**
+             * @description itemCount counts facts. Each REVERSE fact creates two independently scheduled review cards; maximum 80 review cards.
+             * @default [
+             *       "BASIC"
+             *     ]
+             */
+            cardTypes: ("BASIC" | "REVERSE" | "CLOZE")[];
+            title?: string;
+            topic?: string;
+            /** @default en */
+            language: string;
+            /**
+             * @default MIXED
+             * @enum {string}
+             */
+            difficulty: "MIXED" | "EASY" | "MEDIUM" | "HARD";
+            /** @default 20 */
+            itemCount: number;
+        };
+        CreateDeckDto: {
+            scope: components["schemas"]["AiScopeDto"];
+            preferences?: components["schemas"]["DeckPreferencesDto"];
+        };
+        ReplaceCardsDto: {
+            /**
+             * @example [
+             *       "c1",
+             *       "c3"
+             *     ]
+             */
+            cardIds: string[];
+        };
+        DueCardDto: {
+            id: string;
+            /** @enum {string} */
+            type: "BASIC" | "REVERSE" | "CLOZE";
+            pairId?: string;
+            /** @enum {string} */
+            direction?: "FORWARD" | "REVERSE";
+            clozeIds?: string[];
+            front: string;
+            hint?: Record<string, never> | null;
+            difficulty: string;
+            conceptKey: string;
+            tags: string[];
+            /** Format: date-time */
+            dueAt: string;
+            reviewedAt?: Record<string, never> | null;
+            stateVersion: number;
+        };
+        DueCardsDto: {
+            deckId: string;
+            versionId: string;
+            policyVersion: string;
+            items: components["schemas"]["DueCardDto"][];
+            nextCursor?: Record<string, never> | null;
+        };
+        RevealedCardDto: {
+            id: string;
+            /** @enum {string} */
+            type: "BASIC" | "REVERSE" | "CLOZE";
+            pairId?: string;
+            /** @enum {string} */
+            direction?: "FORWARD" | "REVERSE";
+            clozeIds?: string[];
+            front: string;
+            hint?: Record<string, never> | null;
+            difficulty: string;
+            conceptKey: string;
+            tags: string[];
+            clozeAnswers?: {
+                [key: string]: string;
+            };
+            versionId: string;
+            back: string;
+            citations: components["schemas"]["ResultCitationDto"][];
+        };
+        ReviewCardDto: {
+            versionId: string;
+            /** @example c1 */
+            cardId: string;
+            /** @enum {string} */
+            rating: "AGAIN" | "HARD" | "GOOD" | "EASY";
+            elapsedMs: number;
+            /** @description stateVersion from the due-card response; refresh it after a conflict. */
+            expectedStateVersion: number;
+        };
+        CardScheduleDto: {
+            /** Format: date-time */
+            dueAt: string;
+            /** Format: date-time */
+            reviewedAt: string;
+            intervalMinutes: number;
+            successStreak: number;
+            stateVersion: number;
+        };
+        CardReviewDto: {
+            id: string;
+            versionId: string;
+            cardId: string;
+            policyVersion: string;
+            schedule: components["schemas"]["CardScheduleDto"];
+        };
         CreateSpaceDto: {
             /** @example Biology 101 */
             name: string;
@@ -4451,6 +5940,284 @@ export interface components {
             enabledByDefault?: boolean;
             /** @description Higher priority Sources are listed and retrieved first. */
             priority?: number;
+        };
+        GrantDto: {
+            id: string;
+            /** @enum {string} */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+            /** @description Bumped on every change; mirrors room access idempotently. */
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            user: components["schemas"]["ShareUserDto"];
+        };
+        InvitationDto: {
+            id: string;
+            /** @enum {string} */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description The invited address. Present only to the note owner; null when the stored address cannot be decrypted. */
+            email?: string | null;
+        };
+        CollaboratorsDto: {
+            owner: components["schemas"]["ShareUserDto"];
+            grants: components["schemas"]["GrantDto"][];
+            /** @description Pending invitations. Emails are visible to the owner only. */
+            invitations: components["schemas"]["InvitationDto"][];
+        };
+        CreatedInvitationDto: {
+            id: string;
+            /** @enum {string} */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description The invited address. Present only to the note owner; null when the stored address cannot be decrypted. */
+            email?: string | null;
+            /** @description Invitation token, returned once at creation. Empty on an idempotent replay: keep the first copy. */
+            token: string;
+        };
+        CreateGrantDto: {
+            /**
+             * @description Address to share with. A verified Incantly user gets a grant at once; anyone else gets an invitation email.
+             * @example ada@example.com
+             */
+            email: string;
+            /**
+             * @description VIEWER reads, COMMENTER reads and comments, EDITOR reads, comments and edits.
+             * @example EDITOR
+             * @enum {string}
+             */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+        };
+        UpdateGrantRoleDto: {
+            /**
+             * @example COMMENTER
+             * @enum {string}
+             */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+        };
+        ChangeGrantRoleResultDto: {
+            grant: components["schemas"]["GrantDto"];
+        };
+        RevokeGrantResultDto: {
+            /** @description True when the grant holder left by themselves. */
+            left: boolean;
+        };
+        MyInvitationNoteDto: {
+            id: string;
+            title: string;
+        };
+        MyInvitationDto: {
+            id: string;
+            /** @enum {string} */
+            role: "VIEWER" | "COMMENTER" | "EDITOR";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            note: components["schemas"]["MyInvitationNoteDto"];
+            inviter: components["schemas"]["ShareUserDto"];
+        };
+        MyInvitationsDto: {
+            items: components["schemas"]["MyInvitationDto"][];
+        };
+        AcceptInvitationResultDto: {
+            grant: components["schemas"]["GrantDto"];
+        };
+        CreateShareLinkDto: {
+            /**
+             * @description Optional expiry (ISO 8601), at most 365 days out. Defaults to 365 days when omitted: links always expire.
+             * @example 2026-12-01T00:00:00.000Z
+             */
+            expiresAt?: string;
+        };
+        ShareLinkDto: {
+            id: string;
+            /** @description The link token, returned once. The public URL is GET /v1/shared/{token}. */
+            token: string;
+            /** @enum {string} */
+            capability: "VIEW";
+            /** Format: date-time */
+            createdAt: string;
+            expiresAt: string | null;
+        };
+        SharedCheckpointDto: {
+            /** @description Public note metadata (IDs and title only). */
+            note: {
+                [key: string]: unknown;
+            };
+            /** @description The head revision record (no object keys). */
+            revision: {
+                [key: string]: unknown;
+            };
+            /** @description The latest canonical Incantly JSON checkpoint, read-only. */
+            document: {
+                [key: string]: unknown;
+            };
+        };
+        AuthorizeLiveblocksDto: {
+            /**
+             * @description The note to join live. Must already be shared; unshared notes use the note API.
+             * @example document:01j9zq6y9f7w8e5r6t3y2u1i0o
+             */
+            noteId: string;
+        };
+        AuthorizeLiveblocksResultDto: {
+            /** @description The Liveblocks ID token. Expires after 1 hour; refresh through this endpoint. */
+            token: string;
+            /**
+             * @description The current room ID from the database. Always re-read it here: after a revocation rotation the room ID changes and the old connection is dropped.
+             * @example note:document:01j9zq6y9f7w8e5r6t3y2u1i0o:0
+             */
+            roomId: string;
+        };
+        ResolveLiveblocksUsersDto: {
+            /**
+             * @description Namespaced Liveblocks IDs (`user:…`, `agent:…`). At most 50; strangers are silently omitted.
+             * @example [
+             *       "user:user_01J9ZQ6Y9F7W8E5R6T3Y2U1I0O"
+             *     ]
+             */
+            userIds: string[];
+        };
+        LiveblocksUserDto: {
+            /** @example user:user_01J9ZQ6Y9F7W8E5R6T3Y2U1I0O */
+            id: string;
+            /** @example Ada Lovelace */
+            name: string;
+            /**
+             * @description A stable application URL, or null when the user has none.
+             * @example https://incantly.app/avatars/ada.png
+             */
+            avatarUrl?: Record<string, never> | null;
+            /**
+             * @description The stable cursor color for this user.
+             * @example #2b62d9
+             */
+            color: string;
+        };
+        LiveStatusDto: {
+            /**
+             * @description Whether to connect to the room (`live`) or stay on saved sync. Call this before connecting.
+             * @enum {string}
+             */
+            mode: "live" | "saved_sync";
+            /**
+             * @description Why live is paused. Absent when `mode` is `live`. `NOT_SHARED`: the note is not shared. `GUARD_PAUSED`: the app-wide guard closed. `BUDGET_EXHAUSTED`: the Free owner’s monthly budget is used.
+             * @enum {string}
+             */
+            reason?: "NOT_SHARED" | "GUARD_PAUSED" | "BUDGET_EXHAUSTED";
+            /**
+             * @description When a budget or guard pause resets (ISO time).
+             * @example 2026-12-01T00:00:00.000Z
+             */
+            resetsAt?: string;
+            /**
+             * @description The current room ID. Present when `mode` is `live`.
+             * @example note:document:01j9zq6y9f7w8e5r6t3y2u1i0o:0
+             */
+            roomId?: string;
+            /**
+             * @description Whether the client may enable Liveblocks offline persistence. Gate offline mode on this flag; never enable it locally ahead of the server.
+             * @example false
+             */
+            offlineEnabled: boolean;
+        };
+        CreateCommentDto: {
+            /**
+             * @description Reply into this thread. Omit to start a new thread (with `anchor`). Unknown threads are 404 THREAD_NOT_FOUND.
+             * @example th_abc
+             */
+            threadId?: string;
+            /**
+             * @description Paragraphs of inlines (`text`, `mention`, `link`). Limits: 50 paragraphs, 100 inlines each, 4000 characters total, 20 mentions.
+             * @example [
+             *       [
+             *         {
+             *           "type": "text",
+             *           "text": "Looks good, "
+             *         },
+             *         {
+             *           "type": "mention",
+             *           "userId": "userId"
+             *         }
+             *       ]
+             *     ]
+             */
+            paragraphs: unknown[];
+            /** @description Thread anchor metadata for a new thread (bounded string/number/boolean values, at most 16 keys). Ignored on replies. */
+            anchor?: {
+                [key: string]: unknown;
+            };
+        };
+        CommentCreatedDto: {
+            threadId: string;
+            commentId: string;
+        };
+        InboxNotificationDto: {
+            id: string;
+            /** @enum {string} */
+            type: "note.shared" | "note.invitation" | "note.access_removed" | "collaboration.checkpoint_quarantined" | "collaboration.live_budget_80";
+            /** @description IDs only (noteId, grantId, actorUserId, …). Resolve titles through authorized reads. */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            readAt: string | null;
+        };
+        InboxPageDto: {
+            items: components["schemas"]["InboxNotificationDto"][];
+            nextCursor: string | null;
+        };
+        ReadAllResultDto: {
+            /** @description Notifications newly marked read. */
+            updated: number;
+        };
+        NotificationPreferenceNoteDto: {
+            /** @example noteId */
+            noteId: string;
+            emailEnabled: boolean;
+        };
+        NotificationPreferenceThreadDto: {
+            noteId: string | null;
+            /** @example th_abc */
+            threadId: string;
+            emailEnabled: boolean;
+        };
+        NotificationPreferencesDto: {
+            /** @description Email for all collaboration mail. */
+            emailEnabledAll: boolean;
+            notes: components["schemas"]["NotificationPreferenceNoteDto"][];
+            threads: components["schemas"]["NotificationPreferenceThreadDto"][];
+        };
+        UpdatePreferencesDto: {
+            /**
+             * @description Email for all collaboration mail. False stops every collaboration email but keeps the in-app inbox.
+             * @example false
+             */
+            emailEnabled: boolean;
+        };
+        MuteStateDto: {
+            noteId: string;
+            threadId?: string | null;
+            /** @description True when email for the scope is muted. */
+            muted: boolean;
+        };
+        UnsubscribeBodyDto: {
+            /** @description The signed token. May also arrive as `?token=` (one-click POST posts to the full URL). */
+            token?: string;
+            /** @description Sent by mailbox providers on one-click unsubscribe; ignored. */
+            "List-Unsubscribe"?: string;
+        };
+        UnsubscribeResultDto: {
+            unsubscribed: boolean;
         };
     };
     responses: never;
@@ -5380,6 +7147,100 @@ export interface operations {
             };
         };
     };
+    NotesController_sharedWithMe: {
+        parameters: {
+            query?: {
+                /** @description Opaque `nextCursor` from the previous page. */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedWithMePageDto"];
+                };
+            };
+            /** @description INVALID_CURSOR. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_CURSOR";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+        };
+    };
+    NotesController_trash: {
+        parameters: {
+            query?: {
+                /** @description Opaque `nextCursor` from the previous page. */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashNotePageDto"];
+                };
+            };
+            /** @description INVALID_CURSOR. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_CURSOR";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+        };
+    };
     NotesController_metadata: {
         parameters: {
             query?: never;
@@ -5408,6 +7269,18 @@ export interface operations {
                     "application/json": {
                         /** @enum {string} */
                         code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED";
                     };
                 };
             };
@@ -5455,7 +7328,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description INVALID_REQUEST_ORIGIN */
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5463,7 +7336,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "INVALID_REQUEST_ORIGIN";
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
                     };
                 };
             };
@@ -5500,6 +7373,13 @@ export interface operations {
                     "application/json": components["schemas"]["NoteCheckpointDto"];
                 };
             };
+            /** @description The checkpoint is unchanged (cheap; no body). */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description SESSION_REQUIRED */
             401: {
                 headers: {
@@ -5509,6 +7389,18 @@ export interface operations {
                     "application/json": {
                         /** @enum {string} */
                         code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED";
                     };
                 };
             };
@@ -5561,7 +7453,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description INVALID_REQUEST_ORIGIN */
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5569,7 +7461,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "INVALID_REQUEST_ORIGIN";
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
                     };
                 };
             };
@@ -5585,7 +7477,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description STALE_NOTE_REVISION */
+            /** @description STALE_NOTE_REVISION, USE_TRANSACTIONS */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5593,7 +7485,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "STALE_NOTE_REVISION";
+                        code: "STALE_NOTE_REVISION" | "USE_TRANSACTIONS";
                     };
                 };
             };
@@ -5639,6 +7531,18 @@ export interface operations {
                     "application/json": {
                         /** @enum {string} */
                         code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED";
                     };
                 };
             };
@@ -5692,7 +7596,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description INVALID_REQUEST_ORIGIN */
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5700,7 +7604,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "INVALID_REQUEST_ORIGIN";
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
                     };
                 };
             };
@@ -5723,6 +7627,18 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description ROOM_DOCUMENT_TOO_LARGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ROOM_DOCUMENT_TOO_LARGE";
+                    };
+                };
+            };
             /** @description INVALID_NOTE_TRANSACTION. */
             422: {
                 headers: {
@@ -5730,7 +7646,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description NOTE_TRANSACTION_RETRYABLE. Retry the identical transactionId and payload after Retry-After. */
+            /** @description NOTE_TRANSACTION_RETRYABLE, or LIVE_COLLABORATION_UNAVAILABLE on a shared note. Retry the identical transactionId and payload after Retry-After. */
             503: {
                 headers: {
                     /** @description Minimum delay in seconds before retrying. */
@@ -5773,6 +7689,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description NOTE_ACCESS_DENIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED";
+                    };
+                };
+            };
             /** @description NOTE_NOT_FOUND, NOTE_REVISION_NOT_FOUND */
             404: {
                 headers: {
@@ -5796,12 +7724,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RestoreRevisionDto"];
             };
         };
         responses: {
+            /** @description Trash restore: the restored live note metadata. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteDto"];
+                };
+            };
+            /** @description Revision restore: the new head revision. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -5822,7 +7760,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description INVALID_REQUEST_ORIGIN */
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5830,7 +7768,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "INVALID_REQUEST_ORIGIN";
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
                     };
                 };
             };
@@ -5846,7 +7784,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description STALE_NOTE_REVISION */
+            /** @description STALE_NOTE_REVISION, RESTORE_IN_PROGRESS, NOTE_NOT_DELETED */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5854,7 +7792,201 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "STALE_NOTE_REVISION";
+                        code: "STALE_NOTE_REVISION" | "RESTORE_IN_PROGRESS" | "NOTE_NOT_DELETED";
+                    };
+                };
+            };
+            /** @description LIVE_COLLABORATION_UNAVAILABLE. Wait for the Retry-After header (seconds) when present. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "LIVE_COLLABORATION_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    NotesController_saveNow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveNowDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveNowResultDto"];
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, NOTE_REVISION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "NOTE_REVISION_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_SHARED, RESTORE_IN_PROGRESS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_SHARED" | "RESTORE_IN_PROGRESS";
+                    };
+                };
+            };
+            /** @description INVALID_NOTE_DOCUMENT */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_NOTE_DOCUMENT";
+                    };
+                };
+            };
+            /** @description COLLABORATION_BUSY, LIVE_COLLABORATION_UNAVAILABLE. Wait for the Retry-After header (seconds) when present. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COLLABORATION_BUSY" | "LIVE_COLLABORATION_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    NotesController_recover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoverNoteDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoverNoteResultDto"];
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_SHARED, STALE_NOTE_REVISION */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_SHARED" | "STALE_NOTE_REVISION";
+                    };
+                };
+            };
+            /** @description INVALID_NOTE_DOCUMENT, NOTE_ID_MISMATCH, NOTE_CHECKPOINT_TOO_LARGE, INVALID_ASSET_REFERENCE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_NOTE_DOCUMENT" | "NOTE_ID_MISMATCH" | "NOTE_CHECKPOINT_TOO_LARGE" | "INVALID_ASSET_REFERENCE";
                     };
                 };
             };
@@ -8087,7 +10219,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description INVALID_REQUEST_ORIGIN */
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8095,7 +10227,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "INVALID_REQUEST_ORIGIN";
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
                     };
                 };
             };
@@ -8111,7 +10243,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description NOTE_PROPOSAL_EXPIRED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT */
+            /** @description NOTE_PROPOSAL_EXPIRED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT, RESTORE_IN_PROGRESS */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8119,7 +10251,19 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "NOTE_PROPOSAL_EXPIRED" | "NOTE_PROPOSAL_DECISION_IN_PROGRESS" | "NOTE_TRANSACTION_CONFLICT";
+                        code: "NOTE_PROPOSAL_EXPIRED" | "NOTE_PROPOSAL_DECISION_IN_PROGRESS" | "NOTE_TRANSACTION_CONFLICT" | "RESTORE_IN_PROGRESS";
+                    };
+                };
+            };
+            /** @description ROOM_DOCUMENT_TOO_LARGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ROOM_DOCUMENT_TOO_LARGE";
                     };
                 };
             };
@@ -8141,6 +10285,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description LIVE_COLLABORATION_UNAVAILABLE. Wait for the Retry-After header (seconds) when present. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "LIVE_COLLABORATION_UNAVAILABLE";
+                    };
+                };
             };
         };
     };
@@ -8189,7 +10345,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description INVALID_REQUEST_ORIGIN */
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8197,7 +10353,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "INVALID_REQUEST_ORIGIN";
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
                     };
                 };
             };
@@ -8213,7 +10369,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description PROPOSAL_UNDO_STALE, PROPOSAL_UNDO_NOT_ALLOWED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT */
+            /** @description PROPOSAL_UNDO_STALE, PROPOSAL_UNDO_NOT_ALLOWED, NOTE_PROPOSAL_DECISION_IN_PROGRESS, NOTE_TRANSACTION_CONFLICT, RESTORE_IN_PROGRESS */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8221,7 +10377,19 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        code: "PROPOSAL_UNDO_STALE" | "PROPOSAL_UNDO_NOT_ALLOWED" | "NOTE_PROPOSAL_DECISION_IN_PROGRESS" | "NOTE_TRANSACTION_CONFLICT";
+                        code: "PROPOSAL_UNDO_STALE" | "PROPOSAL_UNDO_NOT_ALLOWED" | "NOTE_PROPOSAL_DECISION_IN_PROGRESS" | "NOTE_TRANSACTION_CONFLICT" | "RESTORE_IN_PROGRESS";
+                    };
+                };
+            };
+            /** @description ROOM_DOCUMENT_TOO_LARGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ROOM_DOCUMENT_TOO_LARGE";
                     };
                 };
             };
@@ -8243,6 +10411,1729 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description LIVE_COLLABORATION_UNAVAILABLE. Wait for the Retry-After header (seconds) when present. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "LIVE_COLLABORATION_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGenerationDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationAcceptedDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, SPACE_NOT_FOUND, SOURCE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "SPACE_NOT_FOUND" | "SOURCE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description CONTEXT_SCOPE_INVALID, CONTEXT_SCOPE_TOO_LARGE, ARTIFACT_SCOPE_EMPTY, ARTIFACT_SCOPE_NOT_READY */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "CONTEXT_SCOPE_INVALID" | "CONTEXT_SCOPE_TOO_LARGE" | "ARTIFACT_SCOPE_EMPTY" | "ARTIFACT_SCOPE_NOT_READY";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ArtifactsController_job: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description ARTIFACT_JOB_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_JOB_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description text/event-stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description ARTIFACT_JOB_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_JOB_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description ARTIFACT_JOB_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_JOB_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_list: {
+        parameters: {
+            query?: {
+                type?: "QUIZ" | "FLASHCARD_DECK";
+                /** @description Only artifacts made from this Space. */
+                spaceId?: string;
+                includeArchived?: boolean;
+                /** @description nextCursor from the previous page. */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactListDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description ARTIFACT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description ARTIFACT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionListDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description ARTIFACT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifactId: string;
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionContentDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description ARTIFACT_NOT_FOUND, ARTIFACT_VERSION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_NOT_FOUND" | "ARTIFACT_VERSION_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    ArtifactsController_regenerate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegenerationDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationAcceptedDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description ARTIFACT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description IDEMPOTENCY_KEY_REUSED, ARTIFACT_NOT_READY */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "IDEMPOTENCY_KEY_REUSED" | "ARTIFACT_NOT_READY";
+                    };
+                };
+            };
+            /** @description ARTIFACT_QUESTIONS_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_QUESTIONS_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED (own bucket: burst 5, then one every 30 s by default). Wait for Retry-After (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ArtifactsController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description ARTIFACT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    QuizzesController_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quizId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptHistoryDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description QUIZ_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    QuizzesController_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                quizId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Replay of the same key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptStartedDto"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptStartedDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description QUIZ_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description QUIZ_NOT_READY, IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_NOT_READY" | "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED (own bucket: burst 10, then one every 6 s by default). Wait for Retry-After (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    QuizzesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    QuizzesController_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswersDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_SUBMITTED, QUIZ_ATTEMPT_EXPIRED, QUIZ_ATTEMPT_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_SUBMITTED" | "QUIZ_ATTEMPT_EXPIRED" | "QUIZ_ATTEMPT_CONFLICT";
+                    };
+                };
+            };
+            /** @description QUIZ_ANSWER_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ANSWER_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED (own bucket: burst 60, then 2 per second by default). Wait for Retry-After (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    QuizzesController_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptResultDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_CONFLICT";
+                    };
+                };
+            };
+            /** @description QUIZ_ANSWER_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ANSWER_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED (own bucket: burst 10, then one every 2 s by default). Wait for Retry-After (seconds). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    QuizzesController_result: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description QUIZ_ATTEMPT_NOT_SUBMITTED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "QUIZ_ATTEMPT_NOT_SUBMITTED";
+                    };
+                };
+            };
+        };
+    };
+    FlashcardsController_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeckDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationAcceptedDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description SOURCE_NOT_FOUND, NOTE_NOT_FOUND, SPACE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SOURCE_NOT_FOUND" | "NOTE_NOT_FOUND" | "SPACE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description ARTIFACT_SCOPE_EMPTY, ARTIFACT_SCOPE_NOT_READY, FLASHCARD_PREFERENCES_INVALID, CONTEXT_SCOPE_INVALID, CONTEXT_SCOPE_TOO_LARGE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "ARTIFACT_SCOPE_EMPTY" | "ARTIFACT_SCOPE_NOT_READY" | "FLASHCARD_PREFERENCES_INVALID" | "CONTEXT_SCOPE_INVALID" | "CONTEXT_SCOPE_TOO_LARGE";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    FlashcardsController_regenerate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                deckId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceCardsDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationAcceptedDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description FLASHCARD_DECK_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_DECK_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description FLASHCARD_DECK_NOT_READY, IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_DECK_NOT_READY" | "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description FLASHCARD_CARDS_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_CARDS_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    FlashcardsController_due: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                deckId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DueCardsDto"];
+                };
+            };
+            /** @description FLASHCARD_PAGE_INVALID, FLASHCARD_CURSOR_INVALID, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_PAGE_INVALID" | "FLASHCARD_CURSOR_INVALID" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description FLASHCARD_DECK_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_DECK_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description FLASHCARD_DECK_NOT_READY, FLASHCARD_VERSION_CHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_DECK_NOT_READY" | "FLASHCARD_VERSION_CHANGED";
+                    };
+                };
+            };
+        };
+    };
+    FlashcardsController_reveal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deckId: string;
+                versionId: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevealedCardDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description FLASHCARD_DECK_NOT_FOUND, FLASHCARD_VERSION_NOT_FOUND, FLASHCARD_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_DECK_NOT_FOUND" | "FLASHCARD_VERSION_NOT_FOUND" | "FLASHCARD_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    FlashcardsController_review: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                deckId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCardDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardReviewDto"];
+                };
+            };
+            /** @description INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description FLASHCARD_DECK_NOT_FOUND, FLASHCARD_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_DECK_NOT_FOUND" | "FLASHCARD_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description FLASHCARD_VERSION_CHANGED, FLASHCARD_REVIEW_CONFLICT, IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_VERSION_CHANGED" | "FLASHCARD_REVIEW_CONFLICT" | "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description FLASHCARD_REVIEW_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "FLASHCARD_REVIEW_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
             };
         };
     };
@@ -9453,6 +13344,1884 @@ export interface operations {
                     "application/json": {
                         /** @enum {string} */
                         code: "SPACE_UPDATE_EMPTY";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_collaborators: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaboratorsDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_createGrant: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGrantDto"];
+            };
+        };
+        responses: {
+            /** @description Idempotent replay or existing grant/invitation. The invitation carries no token: keep the first copy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        type: "grant";
+                        grant: components["schemas"]["GrantDto"];
+                    } | {
+                        /** @enum {string} */
+                        type: "invitation";
+                        invitation: components["schemas"]["InvitationDto"];
+                    };
+                };
+            };
+            /** @description Grant or invitation created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        type: "grant";
+                        grant: components["schemas"]["GrantDto"];
+                    } | {
+                        /** @enum {string} */
+                        type: "invitation";
+                        invitation: components["schemas"]["CreatedInvitationDto"];
+                    };
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, COLLABORATOR_LIMIT_REACHED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "COLLABORATOR_LIMIT_REACHED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+            /** @description IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description SHARE_TARGET_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SHARE_TARGET_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_revokeGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                grantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeGrantResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, GRANT_NOT_FOUND, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "GRANT_NOT_FOUND" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_changeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                grantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGrantRoleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeGrantRoleResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, GRANT_NOT_FOUND, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "GRANT_NOT_FOUND" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_revokeInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, INVITATION_INVALID, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "INVITATION_INVALID" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_myInvitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyInvitationsDto"];
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptInvitationResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVITATION_EMAIL_MISMATCH, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVITATION_EMAIL_MISMATCH" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description INVITATION_INVALID, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVITATION_INVALID" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+            /** @description SHARE_TARGET_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SHARE_TARGET_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_createShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShareLinkDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    SharingController_revokeShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, SHARE_LINK_INVALID, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "SHARE_LINK_INVALID" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+        };
+    };
+    SharedLinkController_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedCheckpointDto"];
+                };
+            };
+            /** @description SHARE_LINK_INVALID, COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SHARE_LINK_INVALID" | "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    LiveblocksController_authorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizeLiveblocksDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizeLiveblocksResultDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description COLLABORATION_DISABLED, NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COLLABORATION_DISABLED" | "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_SHARED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_SHARED";
+                    };
+                };
+            };
+            /** @description LIVE_COLLABORATION_LIMIT_REACHED, RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "LIVE_COLLABORATION_LIMIT_REACHED" | "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description LIVE_COLLABORATION_PAUSED, LIVE_COLLABORATION_UNAVAILABLE. Wait for the Retry-After header (seconds) when present. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "LIVE_COLLABORATION_PAUSED" | "LIVE_COLLABORATION_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    LiveblocksController_resolveUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveLiveblocksUsersDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveblocksUserDto"][];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description COLLABORATION_DISABLED */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COLLABORATION_DISABLED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    LiveNotesController_liveStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveStatusDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description COLLABORATION_DISABLED, NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COLLABORATION_DISABLED" | "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+        };
+    };
+    LiveNotesController_mentionSuggestions: {
+        parameters: {
+            query?: {
+                /** @description Prefix filter on display name (case-insensitive). */
+                q?: string;
+                /** @description Maximum results (default 10). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveblocksUserDto"][];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description COLLABORATION_DISABLED, NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COLLABORATION_DISABLED" | "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    CommentsController_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique 8–128 character key per logical command. Retrying with the same key and body returns the stored result; reusing it with a different body returns 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCommentDto"];
+            };
+        };
+        responses: {
+            /** @description Idempotent replay: the same key and body as a previous create. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentCreatedDto"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentCreatedDto"];
+                };
+            };
+            /** @description COMMENT_BODY_INVALID, COMMENT_MENTION_INVALID, INVALID_IDEMPOTENCY_KEY, INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COMMENT_BODY_INVALID" | "COMMENT_MENTION_INVALID" | "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOTE_ACCESS_DENIED, COMMENTS_NOT_ALLOWED, INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_ACCESS_DENIED" | "COMMENTS_NOT_ALLOWED" | "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND, THREAD_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND" | "THREAD_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_SHARED, IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_SHARED" | "IDEMPOTENCY_KEY_REUSED";
+                    };
+                };
+            };
+            /** @description COMMENT_LIMIT_REACHED, RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "COMMENT_LIMIT_REACHED" | "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description LIVE_COLLABORATION_UNAVAILABLE. Wait for the Retry-After header (seconds) when present. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "LIVE_COLLABORATION_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    NotificationsController_list: {
+        parameters: {
+            query?: {
+                /** @description Opaque `nextCursor` from the previous page. */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxPageDto"];
+                };
+            };
+            /** @description INVALID_CURSOR. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_CURSOR";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationsController_readAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadAllResultDto"];
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxNotificationDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTIFICATION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTIFICATION_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationPreferencesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesDto"];
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationPreferencesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePreferencesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesDto"];
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationPreferencesController_muteNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MuteStateDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationPreferencesController_unmuteNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MuteStateDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationPreferencesController_muteThread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MuteStateDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    NotificationPreferencesController_unmuteThread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MuteStateDto"];
+                };
+            };
+            /** @description INVALID_RESOURCE_ID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_RESOURCE_ID";
+                    };
+                };
+            };
+            /** @description SESSION_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "SESSION_REQUIRED";
+                    };
+                };
+            };
+            /** @description INVALID_REQUEST_ORIGIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "INVALID_REQUEST_ORIGIN";
+                    };
+                };
+            };
+            /** @description NOTE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "NOTE_NOT_FOUND";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    EmailUnsubscribeController_unsubscribeGet: {
+        parameters: {
+            query: {
+                /** @description The signed token from the email link. */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML confirmation page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
+                    };
+                };
+            };
+        };
+    };
+    EmailUnsubscribeController_unsubscribePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnsubscribeBodyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnsubscribeResultDto"];
+                };
+            };
+            /** @description UNSUBSCRIBE_LINK_INVALID. Body/query validation failures return a 400 with a message list. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "UNSUBSCRIBE_LINK_INVALID";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED. Wait for the Retry-After header (seconds) when present. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "RATE_LIMITED";
                     };
                 };
             };

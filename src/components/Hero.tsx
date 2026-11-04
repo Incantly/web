@@ -20,6 +20,7 @@ export default function Hero() {
   const [kind, setKind] = useState<LifeKind>('tree')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time client-only media sync
     setReduced(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
     setMounted(true)
   }, [])

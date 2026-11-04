@@ -45,6 +45,7 @@ function LiveCurve({ pull }: { pull: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [nodes, setNodes] = useState(NODES)
   const nodesRef = useRef(nodes)
+  // eslint-disable-next-line react-hooks/refs -- latest-value mirror read by pointer handlers
   nodesRef.current = nodes
   const drag = useRef<{ i: number; id: number } | null>(null)
 
@@ -147,6 +148,7 @@ export default function TheIdea() {
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time client-only media sync
     setReduced(reduce)
     if (reduce) return
 
