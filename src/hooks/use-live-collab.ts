@@ -13,8 +13,10 @@ import {
   authorizeDegradedNotice,
   canPollSavedSync,
   createSingleDisposer,
+  isLiveRateLimit,
   liveBackoffMs,
   livePausedNotice,
+  liveRateLimitDelayMs,
   liveblocksUserId,
   mapCollaborators,
   mapMentionSuggestions,
@@ -201,7 +203,13 @@ export function useLiveCollabState(): LiveCollabValue {
       setRoomNoteId(note)
       setConnection(statusToConnection(room.getStatus()))
       setCollaborators(mapCollaborators(room.getOthers().map((other) => ({ id: other.id ?? other.connectionId, name: other.info?.name ?? null }))))
-      room.subscribe('status', (status) => { if (isCurrent(at)) setConnection(statusToConnection(status)) })
+      room.subscribe('status', (status) => {
+        if (!isCurrent(at)) return
+        // Only a real connection resets the consecutive-failure count: resetting on
+        // authorize success lets authorize-200 → enter-rejected loop past the cap.
+        if (status === 'connected') rejoinCount = 0
+        setConnection(statusToConnection(status))
+      })
       room.subscribe('others', (others) => {
         if (!isCurrent(at)) return
         // Someone watching others type stays live: remote activity resets the idle clock.
@@ -219,6 +227,13 @@ export function useLiveCollabState(): LiveCollabValue {
         } else if (code === 4006 || code === 4001 || code === 4100) {
           // Rotation (re-read the room ID), kick, or refused connection: re-authorize and rejoin.
           void rejoin(at, code === 4001)
+        } else {
+          // Unknown room failure: degrade to saved-sync with a notice instead of
+          // stranding the UI on 'connecting' forever. The recheck loop rejoins if live reopens.
+          leave()
+          setConnection('unavailable')
+          sayOnce(authorizeDegradedNotice(null), 'paused')
+          armRecheck(at)
         }
       })
       room.subscribe('event', ({ event }) => {
@@ -246,7 +261,6 @@ export function useLiveCollabState(): LiveCollabValue {
         const authorized = await liveApi.authorize(note, controller.signal)
         if (!isCurrent(at)) return
         registerLiveAuth(authorized.roomId, note, authorized.token)
-        rejoinCount = 0
         enter(at, authorized.roomId)
         // Joined: stop the recheck loop and clear a stale pause/degraded notice (never restore/full ones).
         recheckSlot.disarm()
@@ -273,6 +287,17 @@ export function useLiveCollabState(): LiveCollabValue {
         }
         trackMode('saved_sync'); setConnection('unavailable')
         sayOnce(authorizeDegradedNotice(isApiError(error) ? error.code : null), 'paused')
+        // 429: stay on saved-sync until Retry-After/resetsAt elapses. The recheck loop
+        // (live-status, not authorize) owns recovery — never an immediate SDK retry.
+        // A far-future resetsAt defers the recheck itself; otherwise the 60 s interval
+        // already exceeds a typical Retry-After.
+        if (isApiError(error) && isLiveRateLimit(error)) {
+          const delay = liveRateLimitDelayMs(error)
+          if (delay !== null && delay > LIVE_STATUS_RECHECK_MS) {
+            later(() => { if (isCurrent(at)) armRecheck(at) }, delay)
+            return
+          }
+        }
         armRecheck(at)
       }
     }

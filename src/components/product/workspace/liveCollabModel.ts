@@ -173,6 +173,7 @@ export function authorizeDegradedNotice(code: string | null): string | null {
     case 'NOTE_NOT_FOUND':
       return null
     case 'LIVE_COLLABORATION_LIMIT_REACHED':
+    case 'RATE_LIMITED':
       return 'Live cursors are paused for now. Your changes still save.'
     case 'LIVE_COLLABORATION_PAUSED':
     case 'LIVE_COLLABORATION_UNAVAILABLE':
@@ -180,6 +181,32 @@ export function authorizeDegradedNotice(code: string | null): string | null {
     default:
       return 'Live collaboration isn’t available right now. Your changes still save.'
   }
+}
+
+/**
+ * True when an authorize failure is a rate limit (HTTP 429): the caller must
+ * degrade to saved-sync and let the recheck loop own recovery, never retry
+ * authorize immediately. Covers both the generic `RATE_LIMITED` code and the
+ * live-specific `LIVE_COLLABORATION_LIMIT_REACHED` (fallback `saved_sync`).
+ */
+export function isLiveRateLimit(error: { status: number; code: string }): boolean {
+  return error.status === 429 || error.code === 'RATE_LIMITED' || error.code === 'LIVE_COLLABORATION_LIMIT_REACHED'
+}
+
+/**
+ * How long to stay on saved-sync after a 429 before rechecking: the body's
+ * `resetsAt` (ISO) when present, else the `Retry-After` seconds. Null when the
+ * error carries neither (the caller uses its normal recheck interval, which
+ * already exceeds a typical Retry-After).
+ */
+export function liveRateLimitDelayMs(error: { retryAfterSeconds: number | null; body: unknown }): number | null {
+  const body = (error.body ?? null) as { resetsAt?: unknown } | null
+  if (typeof body?.resetsAt === 'string') {
+    const at = Date.parse(body.resetsAt)
+    if (Number.isFinite(at)) return Math.max(0, at - Date.now())
+  }
+  if (error.retryAfterSeconds !== null) return Math.max(0, error.retryAfterSeconds * 1000)
+  return null
 }
 
 export type CollaborationRoomEvent =

@@ -1,7 +1,7 @@
 import { createClient, type Client } from '@liveblocks/client'
 import { isApiError } from '@/lib/api/errors'
 import { liveApi } from '@/lib/api/live'
-import { noteIdFromRoomId } from './liveCollabModel'
+import { isLiveRateLimit, noteIdFromRoomId } from './liveCollabModel'
 
 /** One tab joins one room at a time; the registry maps that room back to its note. */
 type LiveAuthSession = { noteId: string; token: string; at: number }
@@ -49,9 +49,18 @@ export function liveblocksClient(): Client {
         authSessions.set(room, { noteId, token: result.token, at: Date.now() })
         return { token: result.token }
       } catch (error) {
-        // Denials are final; anything else reads as a transient failure to the SDK.
-        if (isApiError(error, 'NOTE_ACCESS_DENIED') || isApiError(error, 'NOTE_NOT_FOUND')) {
+        // Denials are final, and rate limits degrade to saved-sync with the hook's
+        // recheck loop owning recovery: both read as forbidden so the SDK never
+        // retries authorize into a storm. Only other failures look transient.
+        if (
+          isApiError(error, 'NOTE_ACCESS_DENIED')
+          || isApiError(error, 'NOTE_NOT_FOUND')
+          || (isApiError(error) && (error.status === 403 || error.status === 404))
+        ) {
           return { error: 'forbidden', reason: 'Access changed' }
+        }
+        if (isApiError(error) && isLiveRateLimit(error)) {
+          return { error: 'forbidden', reason: 'Live collaboration is rate limited' }
         }
         return { error: 'temporarily_unavailable', reason: 'Live collaboration is unavailable' }
       }
