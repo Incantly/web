@@ -201,7 +201,33 @@ note shared with B; both signed in.
     EXPECT clicking still marks read; the note itself shows the no-access
     state (unchanged from 4c).
 
-## Phase 5 — Learning artifacts
+## Phase 5a — Quizzes
+
+Needs backend :3012 with at least one READY quiz. Quiz entry is direct-URL
+(?quiz=<id>); list/generation UI lands in 5b/5c.
+
+1. Sign in, open /workspace. In DevTools console run:
+   fetch('/v1/artifacts?type=QUIZ',{credentials:'include'}).then(r=>r.json())
+   .then(d=>console.log(d.items.map(i=>i.id))) — copy one quiz id.
+2. Go to /workspace?quiz=<id>. EXPECT "Quiz" page; with no attempts see
+   empty state + Start.
+3. Click Start attempt. EXPECT taker with title, instructions,
+   "0 of N answered", "Answers save as you go."
+4. Answer one choice question. Within ~2s EXPECT "Saving…" then
+   "Saved <time>"; progress count rises.
+5. Reload, reopen ?quiz=<id>, click Resume. EXPECT answers restored.
+6. DevTools Network → Offline; change an answer. EXPECT offline notice +
+   "Offline — answers stay on this page…"; go online → it saves.
+7. Click Submit attempt → confirm dialog shows unanswered count → Submit.
+   EXPECT result with score headline, per-question Correct/Incorrect, your
+   vs correct answers, explanations/citations.
+8. Back via "All attempts"; EXPECT history row with score; "View result"
+   reopens it.
+9. Timed quiz only: verify countdown ticks and expiry copy prompts submit.
+10. Resize to 320px: no horizontal scroll; keyboard-tab through every
+    input; focus ring visible.
+
+## Phase 5 (b–c) — Flashcards + generations
 
 (TBD when the phase lands.)
 

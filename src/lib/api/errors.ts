@@ -55,6 +55,15 @@ const messages: Record<string, string> = {
   NOTIFICATION_NOT_FOUND: 'That notification is gone. It may have been removed.',
   UNSUBSCRIBE_LINK_INVALID: 'This unsubscribe link is invalid or has expired.',
 
+  QUIZ_NOT_FOUND: 'This quiz no longer exists or you don’t have access to it.',
+  QUIZ_NOT_READY: 'This quiz isn’t ready yet. Try again in a moment.',
+  QUIZ_ATTEMPT_NOT_FOUND: 'That attempt is gone. Start a new one to take the quiz.',
+  QUIZ_ATTEMPT_SUBMITTED: 'This attempt is already submitted. Start a new one to try again.',
+  QUIZ_ATTEMPT_EXPIRED: 'Time ran out on this attempt. Your saved answers are kept — submit to see your score.',
+  QUIZ_ATTEMPT_CONFLICT: 'This attempt changed somewhere else. Reload it and try again.',
+  QUIZ_ATTEMPT_NOT_SUBMITTED: 'Submit this attempt first, then read the result.',
+  QUIZ_ANSWER_INVALID: 'One of those answers doesn’t fit its question. Check it and try again.',
+
   SPACE_NOT_FOUND: 'This Space no longer exists or you don’t have access to it.',
   SPACE_NOT_ACTIVE: 'This Space is archived. Restore it to make changes.',
   SPACE_RETENTION_HOLD: 'This Space is under a retention hold and can’t be deleted right now.',

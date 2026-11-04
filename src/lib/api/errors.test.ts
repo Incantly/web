@@ -43,4 +43,17 @@ describe('apiErrorMessage', () => {
   ] as const)('maps notification code %s to friendly copy', (code, pattern) => {
     expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
   })
+
+  it.each([
+    ['QUIZ_NOT_FOUND', /quiz no longer exists/],
+    ['QUIZ_NOT_READY', /isn’t ready yet/],
+    ['QUIZ_ATTEMPT_NOT_FOUND', /attempt is gone.*Start a new one/],
+    ['QUIZ_ATTEMPT_SUBMITTED', /already submitted/],
+    ['QUIZ_ATTEMPT_EXPIRED', /Time ran out.*submit to see your score/],
+    ['QUIZ_ATTEMPT_CONFLICT', /changed somewhere else/],
+    ['QUIZ_ATTEMPT_NOT_SUBMITTED', /Submit this attempt first/],
+    ['QUIZ_ANSWER_INVALID', /doesn’t fit its question/],
+  ] as const)('maps quiz code %s to friendly copy', (code, pattern) => {
+    expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
+  })
 })

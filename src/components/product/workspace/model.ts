@@ -13,6 +13,7 @@ export type WorkspaceView =
   | 'trash'
   | `space:${string}`
   | `note:${string}`
+  | `quiz:${string}`
 
 export type Navigate = (view: WorkspaceView) => void
 
