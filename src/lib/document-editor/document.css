@@ -259,7 +259,9 @@
   padding-inline: 0.25rem;
 }
 
-.incantly-format-font .incantly-format-font-glyph {
+.incantly-format-font .incantly-format-font-glyph,
+.incantly-format-font-size .incantly-format-font-glyph,
+.incantly-format-spacing .incantly-format-font-glyph {
   font-weight: 700;
   font-size: 0.95rem;
   line-height: 1;

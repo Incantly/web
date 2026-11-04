@@ -26,7 +26,7 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
 import { documentRichCommands } from '../richCommands'
-import { matchFontFamilyKey, parseFontSizeToPt } from '../schema/fonts'
+import { DOCUMENT_FONT_FAMILIES, FONT_SIZE_PRESETS, matchFontFamilyKey, parseFontSizeToPt } from '../schema/fonts'
 
 type Command = (editor: Editor) => boolean
 
@@ -292,6 +292,9 @@ export interface DocumentBubbleToolbarProps extends Omit<DocumentToolbarProps, '
   leading?: (editor: Editor) => ReactNode
 }
 
+/** Word-style line-spacing presets. Inside the canonical 0.5–10 gate by construction. */
+const LINE_HEIGHT_PRESETS: readonly number[] = [1, 1.15, 1.5, 2, 2.5, 3]
+
 /** A labelled button for the bubble toolbar that keeps the selection (it runs on mousedown, like the format buttons). */
 export function DocumentToolbarAction({ label, onRun, children }: { label: string; onRun: () => void; children: ReactNode }) {
   return (
@@ -356,6 +359,51 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leadi
         ) : (
           <>
             {leading ? <><ToolbarGroup>{leading(editor)}</ToolbarGroup><ToolbarSeparator /></> : null}
+            {!state.inCodeBlock ? <>
+            <ToolbarGroup>
+            <span className="incantly-format-font" role="group" aria-label="Font">
+              <span className="incantly-format-font-glyph" aria-hidden="true">Aa</span>
+              <label>
+                <span className="sr-only">Font</span>
+                <select
+                  aria-label="Font"
+                  value={state.fontFamily ?? ''}
+                  onChange={(event) => {
+                    const family = event.target.value
+                    if (family) documentRichCommands.setFontFamily(editor, family)
+                    else documentRichCommands.unsetFontFamily(editor)
+                  }}
+                >
+                  <option value="">Default font</option>
+                  {DOCUMENT_FONT_FAMILIES.map((option) => (
+                    <option key={option.key} value={option.key} style={{ fontFamily: option.stack }}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            </span>
+            <span className="incantly-format-font-size" role="group" aria-label="Font size">
+              <span className="incantly-format-font-glyph" aria-hidden="true">A</span>
+              <label>
+                <span className="sr-only">Font size</span>
+                <select
+                  aria-label="Font size"
+                  value={state.fontSize !== null && FONT_SIZE_PRESETS.includes(state.fontSize) ? String(state.fontSize) : ''}
+                  onChange={(event) => {
+                    const size = event.target.value ? Number(event.target.value) : null
+                    if (size === null) documentRichCommands.unsetFontSize(editor)
+                    else documentRichCommands.setFontSize(editor, size)
+                  }}
+                >
+                  <option value="">Size</option>
+                  {FONT_SIZE_PRESETS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </label>
+            </span>
+            </ToolbarGroup>
+            <ToolbarSeparator />
+            </> : null}
             <ToolbarGroup>
             <FormatButton editor={editor} label="Bold" shortcut="Mod-B" active={state.bold} command={toggleMark('bold')}><strong>B</strong></FormatButton>
             <FormatButton editor={editor} label="Italic" shortcut="Mod-I" active={state.italic} command={toggleMark('italic')}><em>I</em></FormatButton>
@@ -383,7 +431,7 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leadi
             </ToolbarGroup>
             <ToolbarSeparator />
             <ToolbarGroup>
-            {!state.inCodeBlock ? (
+            {!state.inCodeBlock ? <>
               <span className="incantly-format-align" role="group" aria-label="Text alignment">
                 {(['left', 'center', 'right'] as const).map((alignment) => (
                   <FormatButton
@@ -398,7 +446,29 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leadi
                   </FormatButton>
                 ))}
               </span>
-            ) : null}
+              <span className="incantly-format-spacing" role="group" aria-label="Line spacing">
+                <span className="incantly-format-font-glyph" aria-hidden="true">↕</span>
+                <label>
+                  <span className="sr-only">Line spacing</span>
+                  <select
+                    aria-label="Line spacing"
+                    disabled={state.heading1 || state.heading2}
+                    title={state.heading1 || state.heading2 ? 'Line spacing applies to paragraphs' : undefined}
+                    value={state.lineHeight !== null && LINE_HEIGHT_PRESETS.includes(state.lineHeight) ? String(state.lineHeight) : ''}
+                    onChange={(event) => {
+                      const lineHeight = event.target.value ? Number(event.target.value) : null
+                      if (lineHeight === null) documentRichCommands.unsetParagraphLineHeight(editor)
+                      else documentRichCommands.setParagraphLineHeight(editor, lineHeight)
+                    }}
+                  >
+                    <option value="">Spacing</option>
+                    {LINE_HEIGHT_PRESETS.map((lineHeight) => (
+                      <option key={lineHeight} value={lineHeight}>{lineHeight}</option>
+                    ))}
+                  </select>
+                </label>
+              </span>
+            </> : null}
             <FormatButton editor={editor} label="Reset formatting" command={(current) => current.chain().focus().unsetAllMarks().clearNodes().run()}><TypeIcon className="tiptap-button-icon" /></FormatButton>
             </ToolbarGroup>
           </>
