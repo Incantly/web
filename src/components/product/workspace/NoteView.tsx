@@ -29,6 +29,7 @@ import { useHeaderFooter } from '@/hooks/use-header-footer'
 import { usePageSetup } from '@/hooks/use-page-setup'
 import { useNoteExport } from '@/hooks/use-note-export'
 import { ExportDialog } from './ExportDialog'
+import { useSharing } from '@/hooks/use-sharing'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { DocumentAssetsProvider } from '../../../lib/document-editor/assetHost'
@@ -221,15 +222,15 @@ export function NoteRoute({ noteId }: { noteId: string }) {
 /** The note's top bar, editor, and side panels. Everything beyond the session comes from the feature contexts. */
 export function NoteScreen({ noteId, session }: { noteId: string; session: NoteSession }) {
   const { navigate, focusBlock: requestedBlock } = useNavigation()
-  const { activeNote, deleteNote, shareNote } = useNotes()
+  const { activeNote, deleteNote } = useNotes()
   const { noteSpace: space } = useSpaces()
+  const { openShareDialog } = useSharing()
   const { openImport } = useWorkspaceUI()
   const title = activeNote?.title ?? ''
   /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
   const focusBlock = requestedBlock?.noteId === noteId ? requestedBlock : null
   const onImport = (mode: 'file' | 'url') => openImport({ mode, intoNote: { id: noteId, title } })
   const onOpenSpace = (spaceId: string) => navigate(`space:${spaceId}`)
-  const onShare = () => shareNote(noteId)
   // Delete failures surface as a toast from the mutation cache, so there is nothing to render here.
   const onDelete = () => deleteNote(noteId).catch(() => {})
   const onBack = () => navigate('notes')
@@ -275,7 +276,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
           { label: 'Version history', icon: 'history', onSelect: () => setDialog('history'), disabled: session.phase !== 'ready' },
           { label: 'Import file into note', icon: 'import', onSelect: () => onImport('file'), disabled: !editable },
           { label: 'Import web page into note', icon: 'globe', onSelect: () => onImport('url'), disabled: !editable },
-          { label: 'Share summary', icon: 'share', onSelect: onShare },
+          { label: 'Share…', icon: 'share', onSelect: () => openShareDialog(noteId) },
           { label: 'Delete note', icon: 'trash', destructive: true, onSelect: () => setDialog('delete') },
         ]} />
         <TopBarTrailing />

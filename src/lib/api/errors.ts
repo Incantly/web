@@ -45,6 +45,13 @@ const messages: Record<string, string> = {
   NOTE_NOT_DELETED: 'This note is already restored. You’ll find it back in your notes.',
   ROOM_DOCUMENT_TOO_LARGE: 'This shared note is at its size limit. Split it or attach files instead.',
   LIVE_COLLABORATION_UNAVAILABLE: 'The shared-note service is unavailable right now. Nothing was applied — try again in a moment.',
+  COLLABORATOR_LIMIT_REACHED: 'This note has reached its sharing limit. Upgrade to share it with more people.',
+  SHARE_TARGET_INVALID: 'That address can’t be invited. Use a different email — not your own — with a verified Incantly account.',
+  GRANT_NOT_FOUND: 'That person is no longer a collaborator on this note.',
+  INVITATION_EMAIL_MISMATCH: 'This invitation was sent to a different email address. Sign in with that address to accept it.',
+  INVITATION_INVALID: 'This invitation is no longer valid. It may have expired, been revoked, or already been used.',
+  SHARE_LINK_INVALID: 'This share link is invalid or has expired. Ask the owner for a new one.',
+  COLLABORATION_DISABLED: 'Sharing is unavailable right now. Please try again shortly.',
 
   SPACE_NOT_FOUND: 'This Space no longer exists or you don’t have access to it.',
   SPACE_NOT_ACTIVE: 'This Space is archived. Restore it to make changes.',

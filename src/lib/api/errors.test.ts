@@ -24,4 +24,16 @@ describe('apiErrorMessage', () => {
   ] as const)('maps %s to friendly copy', (code, pattern) => {
     expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
   })
+
+  it.each([
+    ['COLLABORATOR_LIMIT_REACHED', /sharing limit.*Upgrade/],
+    ['SHARE_TARGET_INVALID', /can’t be invited/],
+    ['GRANT_NOT_FOUND', /no longer a collaborator/],
+    ['INVITATION_EMAIL_MISMATCH', /different email address.*Sign in with that address/],
+    ['INVITATION_INVALID', /no longer valid/],
+    ['SHARE_LINK_INVALID', /invalid or has expired/],
+    ['COLLABORATION_DISABLED', /unavailable right now/],
+  ] as const)('maps sharing code %s to friendly copy', (code, pattern) => {
+    expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
+  })
 })

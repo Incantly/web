@@ -8,9 +8,14 @@ export type DiagnosticEntry = { at: string; method: string; path: string; status
 const LIMIT = 50
 const entries: DiagnosticEntry[] = []
 
-/** Replaces opaque IDs in a path so entries stay comparable and carry no query data. */
+/**
+ * Replaces opaque IDs in a path so entries stay comparable and carry no query data.
+ * Share-link tokens are always redacted: even an all-letter token must never land in diagnostics.
+ */
 export function pathTemplate(path: string) {
-  return path.split('?')[0].split('/').map((segment) => (segment === '' || segment === 'v1' || /^[a-z-]+$/.test(segment) ? segment : ':id')).join('/')
+  const bare = path.split('?')[0]
+  if (bare === '/v1/shared' || bare.startsWith('/v1/shared/')) return '/v1/shared/:token'
+  return bare.split('/').map((segment) => (segment === '' || segment === 'v1' || /^[a-z-]+$/.test(segment) ? segment : ':id')).join('/')
 }
 
 export function recordDiagnostic(entry: Omit<DiagnosticEntry, 'at' | 'path'> & { path: string }) {

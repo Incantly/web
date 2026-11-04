@@ -7,6 +7,7 @@ export type WorkspaceView =
   | 'home'
   | 'notes'
   | 'shared'
+  | 'invitations'
   | 'spaces'
   | 'library'
   | 'trash'

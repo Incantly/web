@@ -23,7 +23,6 @@ export type NotesValue = {
   createNote: (options?: { title?: string; spaceId?: string | null }) => void
   /** Delete a note, drop its local sync queue, and leave for its Space or the notes list. */
   deleteNote: (noteId: string) => Promise<void>
-  shareNote: (noteId: string) => void
 }
 
 export const NotesContext = createFeatureContext<NotesValue>('Notes')
@@ -79,23 +78,16 @@ export function useNotesState(): NotesValue {
     navigate(spaceId ? `space:${spaceId}` : 'notes')
   }, [remove, user.id, client, noteSpaceId, navigate])
 
-  const shareNote = useCallback((noteId: string) => {
-    const text = notes.find((note) => note.id === noteId)?.title || 'Untitled note'
-    if (navigator.share) void navigator.share({ title: text, text }).catch(() => {})
-    else void navigator.clipboard.writeText(text).catch(() => {})
-  }, [notes])
-
   return useMemo<NotesValue>(() => ({
     notes,
     status: { loading: isPending, error: isError ? error : null, retry: () => void refetch(), hasMore: hasNextPage, loadMore: () => void fetchNextPage(), loadingMore: isFetchingNextPage },
     activeNote: activeNoteId ? notes.find((note) => note.id === activeNoteId) : undefined,
     createNote,
     deleteNote,
-    shareNote,
-  }), [notes, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, activeNoteId, createNote, deleteNote, shareNote])
+  }), [notes, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, activeNoteId, createNote, deleteNote])
 }
 
-/** `/v1/notes`: the notes list, the open note, and creating, deleting and sharing notes. Must be used inside `WorkspaceProviders`. */
+/** `/v1/notes`: the notes list, the open note, and creating and deleting notes. Sharing lives in `useSharing`. Must be used inside `WorkspaceProviders`. */
 export function useNotes(): NotesValue {
   return useFeatureContext(NotesContext)
 }

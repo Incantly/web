@@ -15,6 +15,7 @@ import { CommandSearch } from './CommandSearch'
 import { AddSourceDialog, SpaceFormDialog } from './dialogs'
 import { ImportDialog, ImportTray } from './imports'
 import { SettingsDialog } from './SettingsDialog'
+import { ShareDialog } from './ShareDialog'
 import { Sidebar, type NewAction } from './Sidebar'
 import { PlansDialog } from './PlansDialog'
 import { OfflineBanner } from './ui'
@@ -113,5 +114,6 @@ export function WorkspaceDialogs() {
     <ImportTray tracker={tracker} onOpenNote={(noteId) => openNote(noteId)} />
     <SpaceFormDialog open={ui.dialog === 'space'} onClose={ui.closeDialog} onSubmit={createSpace} />
     <AddSourceDialog open={ui.dialog === 'source'} onClose={ui.closeDialog} spaces={spaces} notes={notes} defaultSpaceId={activeSpace?.status === 'ACTIVE' ? activeSpace.id : undefined} onSubmit={addSource} />
+    <ShareDialog />
   </>
 }

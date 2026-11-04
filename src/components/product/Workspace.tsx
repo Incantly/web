@@ -8,6 +8,7 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceShortcuts } from '@/hooks/use-workspace-shortcuts'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
+import { InvitationsView } from './workspace/InvitationsView'
 import { LibraryView } from './workspace/LibraryView'
 import { NoteRoute } from './workspace/NoteView'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
@@ -75,7 +76,7 @@ function WorkspaceShell() {
 function PageTopBar() {
   const { view } = useNavigation()
   const { activeSpace } = useSpaces()
-  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'shared' ? 'Shared with me' : view === 'trash' ? 'Trash' : activeSpace ? activeSpace.name : null
+  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'shared' ? 'Shared with me' : view === 'invitations' ? 'Invitations' : view === 'trash' ? 'Trash' : activeSpace ? activeSpace.name : null
   return <TopBar banner={<ConnectionBanner />}>
     <TopBarLeading />
     {label ? <span className="min-w-0 truncate px-1 text-sm text-muted">{label}</span> : null}
@@ -90,6 +91,7 @@ function Page() {
   if (view === 'home') return <HomeView />
   if (view === 'notes') return <NotesView />
   if (view === 'shared') return <SharedWithMeView />
+  if (view === 'invitations') return <InvitationsView />
   if (view === 'spaces') return <SpacesView />
   if (view === 'library') return <LibraryView />
   if (view === 'trash') return <TrashView />

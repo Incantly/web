@@ -58,7 +58,48 @@ backend/API directly until Phase 4 lands its UI.
 10. At 320px on Trash: EXPECT rows wrap, no horizontal scroll, Restore
     tappable.
 
-## Phase 4 — Sharing + live + comments + notifications
+## Phase 4a — Note sharing UI
+
+Needs two users (Owner A, collaborator B) with verified emails, plus an
+unverified/new address C. A and B sign in on separate browsers/profiles.
+
+1. As A, open a note > Note actions (···) > Share…: EXPECT the share dialog
+   with "Who has access" listing only A as Owner, an invite form, and a
+   view-only links section.
+2. Invite validation: submit empty, then "not-an-email", then A's own
+   address: EXPECT inline errors ("Enter an email address.", "Enter a valid
+   email address…", "That’s your own address…"). No request leaves the
+   browser (check Network).
+3. Invite B as Editor: EXPECT notice "now has access", B appears in the
+   list with role Editor. Change B to Viewer via the role select: EXPECT
+   the row updates. Change back to Editor.
+4. Pending invite: invite C (unknown address) as Commenter: EXPECT "Invitation
+   sent to …", a Pending row with the email as text. Revoke it: EXPECT a
+   confirm dialog ("Revoke this invitation?"); confirm removes the row.
+5. Non-owner view: as B, open the shared note > Share…: EXPECT the same
+   people listed with role labels (no emails for pending invites), no role
+   selects, no Remove buttons, no invite form, no links section, and the
+   line "Only the owner can invite people or change who has access."
+6. Revoke grant: as A, Remove B, confirm ("They lose access…"): EXPECT B
+   disappears. As B, reload the note: EXPECT the "You no longer have
+   access" view. Re-share for the steps below.
+7. Invitations inbox: as A, invite a second verified user D. As D, open
+   sidebar Invitations (?view=invitations): EXPECT one row (note title,
+   "Invited by A", role + capability, Accept button). Click Accept: EXPECT
+   "is now in Shared with me" with Open note; open Shared with me: EXPECT
+   the note listed there. /invitations redirects to the same inbox.
+8. Share links: as A, Share… > Create link: EXPECT a "View-only link"
+   row with expiry and Copy/Revoke (the URL itself is never shown). Click
+   Copy: EXPECT "Copied". Paste into a signed-out/private window: EXPECT
+   the note title + read-only content, "View-only shared copy", no editing
+   UI. Back as A, Revoke the link (confirm): EXPECT the row goes; reload
+   the link: EXPECT "This link didn’t open / invalid or has expired".
+9. Offline: disconnect, open Share… and Invitations: EXPECT the offline
+   notice plus friendly error with Try again; reconnect + retry loads.
+10. At 320px on the dialog and Invitations: EXPECT rows wrap, no horizontal
+    scroll, all buttons tappable (44px targets).
+
+## Phase 4 (b–d) — Live + comments + notifications
 
 (TBD when the phase lands.)
 
