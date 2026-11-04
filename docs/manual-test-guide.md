@@ -4,6 +4,39 @@ Run the app against the local backend (main, `:3012`) with `npm run dev`
 (`:3000`). Sign in with a test account. Each section matches a phase in
 `docs/api-catchup-plan.md`.
 
+## Already verified automatically (2026-11-04, branch feat/backend-catchup)
+
+- `tsc --noEmit`: clean. `npm run lint`: 0 errors.
+- `npm test` (vitest): 661/662 — the single failure is the known flaky
+  `src/lib/auth/clientIdentity.test.ts` IPv6 timeout; it passes 43/43 in
+  isolation.
+- A temporary Playwright smoke spec ran the real backend on `:3012` through
+  a production frontend build and passed: authenticated workspace load,
+  sidebar (Trash, Shared with me, Quizzes & decks, Invitations, bell),
+  in-app Trash / Quizzes & decks / Invitations views, friendly bogus
+  quiz/deck copy, note creation, assistant "+" menu listing "Search the
+  web" and "Research papers", invalid unsubscribe/shared states, zero
+  console/page/unexpected-network errors, and no horizontal overflow at
+  320px on Trash and the note view. The spec was deleted after the green
+  run, so everything below still wants human eyes — the smoke proved the
+  surfaces render and the APIs answer, not that the flows feel right.
+
+## Known issues and gaps (pre-existing or accepted)
+
+- `GET /v1/billing/subscription` 404s: the frontend expects billing
+  routes the backend (PRs #29-31) does not have. Pre-existing drift, out
+  of scope for this catch-up; the UI falls back gracefully.
+- Shared-note rename is local-only: the title shows but reverts on
+  reload — the protocol has no title op (backend gap G2, see Phase 2.5).
+- Proposal decide/undo denial can double-toast (accepted, minor).
+- Flashcard generation progress is in-memory only and does not survive
+  reload (accepted; the server job continues).
+- Notifications bell has no Liveblocks inbox feed yet; email + REST only.
+- Backend auth budget is 30 requests / 60s per IP and OTP sends are
+  per-email rate-limited: rapid automated runs can trip 429s. Normal
+  manual testing will not hit this; the workspace gate recovers via its
+  "Try again" button.
+
 ## Phase 1 — Contract refresh (no UI change)
 
 - App boots with no console errors; workspace loads as before.
