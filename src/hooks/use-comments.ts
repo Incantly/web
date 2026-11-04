@@ -14,6 +14,7 @@ import {
   commentParagraphsHaveContent,
   extractMentionQuery,
   insertMention,
+  mentionMenuOpen,
   myCommentAccess,
   type CommentRole,
   type RecordedMention,
@@ -281,9 +282,8 @@ export function useCommentComposer(noteId: string, threadId: string | null): Com
     return () => clearTimeout(timer)
   }, [token])
 
-  const suggestions = useMentionSuggestions(noteId, debouncedQuery)
-  const menuOpen = token != null && token.query.length > 0 && token.start !== dismissedStart
-    && (suggestions.suggestions.length > 0 || suggestions.loading)
+  const suggestions = useMentionSuggestions(noteId, debouncedQuery, token != null && token.start !== dismissedStart)
+  const menuOpen = mentionMenuOpen(token, dismissedStart, suggestions.suggestions.length, suggestions.loading)
   const activeIndex = highlight < suggestions.suggestions.length ? highlight : 0
 
   const onInput = useCallback((value: string, selectionStart: number) => {

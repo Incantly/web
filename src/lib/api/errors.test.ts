@@ -36,4 +36,11 @@ describe('apiErrorMessage', () => {
   ] as const)('maps sharing code %s to friendly copy', (code, pattern) => {
     expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
   })
+
+  it.each([
+    ['NOTIFICATION_NOT_FOUND', /notification is gone/],
+    ['UNSUBSCRIBE_LINK_INVALID', /unsubscribe link is invalid or has expired/],
+  ] as const)('maps notification code %s to friendly copy', (code, pattern) => {
+    expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
+  })
 })

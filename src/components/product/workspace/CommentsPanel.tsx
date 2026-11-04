@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type Ref } from 'react'
 import type { CommentData, ThreadData } from '@liveblocks/client'
 import { AppIcon } from '../AppIcon'
 import { useLiveCollab } from '@/hooks/use-live-collab'
 import { useCommentComposer, useComments, type CommentComposer } from '@/hooks/use-comments'
+import { useNavigation } from '@/hooks/use-navigation'
+import { useNotifications } from '@/hooks/use-notifications'
 import { initialsFor } from './liveCollabModel'
 import {
   COMMENT_BODY_MAX_CHARS,
@@ -121,12 +123,14 @@ function CommentBox({ noteId, threadId, label, placeholder, submitLabel }: {
   </div>
 }
 
-/** One thread: its comments, resolve/reopen, and the reply box. */
-function ThreadCard({ thread }: { thread: ThreadData }) {
+/** One thread: its comments, resolve/reopen, mute, and the reply box. */
+function ThreadCard({ thread, highlight, targetRef }: { thread: ThreadData; highlight: boolean; targetRef?: Ref<HTMLLIElement> }) {
   const { noteId, canComment, liveRoom, resolvingId, actionError, setResolved } = useComments()
+  const { preferences, threadMuted, toggleThreadMute, muting } = useNotifications()
   const busy = resolvingId === thread.id
   const error = actionError?.scope === thread.id && actionError.kind === 'resolve' ? commentErrorCopy(actionError.error) : null
-  return <li className="min-w-0 rounded-xl border border-default bg-canvas p-4">
+  const muted = threadMuted(thread.id)
+  return <li ref={targetRef} className={`min-w-0 scroll-mt-4 rounded-xl border bg-canvas p-4 ${highlight ? 'border-button ring-2 ring-button/30' : 'border-default'}`}>
     <div className="space-y-4">
       {thread.comments.map((comment) => <ThreadComment key={comment.id} comment={comment} />)}
     </div>
@@ -141,6 +145,13 @@ function ThreadCard({ thread }: { thread: ThreadData }) {
         onClick={() => void setResolved(thread.id, !thread.resolved)}
         className={buttonQuiet}
       >{busy ? 'Working…' : threadResolveLabel(thread.resolved)}</button> : null}
+      {noteId ? <button
+        type="button"
+        disabled={muting || !preferences}
+        title={muted ? 'Unmute email for this thread' : 'Mute email for this thread'}
+        onClick={() => toggleThreadMute(noteId, thread.id)}
+        className={buttonQuiet}
+      >{muted ? 'Unmute' : 'Mute'}</button> : null}
       {!liveRoom && canComment ? <span className="text-xs text-subtle">Resolving needs the live connection.</span> : null}
     </div>
     {error ? <p role="alert" className="mt-2 text-sm text-danger">{error}</p> : null}
@@ -154,12 +165,30 @@ function ThreadCard({ thread }: { thread: ThreadData }) {
 export function CommentsPanel({ noteId }: { noteId: string }) {
   const comments = useComments()
   const { retry: liveRetry } = useLiveCollab()
+  const { focusThread } = useNavigation()
   const [showResolved, setShowResolved] = useState(false)
+  const targetRef = useRef<HTMLLIElement | null>(null)
+  const scrolledNonce = useRef<number | null>(null)
   const watch = comments.watch
   useEffect(() => watch(), [watch])
+  const targetId = focusThread?.noteId === noteId ? focusThread.threadId : null
+  const groups = comments.threads ? partitionThreads(comments.threads) : null
+  const targetResolved = targetId != null && (groups?.resolved.some((thread) => thread.id === targetId) ?? false)
+  // A deep-linked resolved thread opens its section so the highlight can land.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reveal the resolved section when a thread link targets it
+    if (targetResolved) setShowResolved(true)
+  }, [targetResolved])
+  // Scrolls the deep-linked thread into view once it renders — once per link,
+  // so background refreshes never yank the list.
+  useEffect(() => {
+    if (!targetId || !focusThread || scrolledNonce.current === focusThread.nonce) return
+    if (!targetRef.current) return
+    scrolledNonce.current = focusThread.nonce
+    targetRef.current.scrollIntoView({ block: 'nearest' })
+  })
   if (comments.noteId !== noteId) return null
 
-  const groups = comments.threads ? partitionThreads(comments.threads) : null
   return <div className="space-y-6">
     {!comments.online ? <p role="status" className="rounded-xl bg-surface px-3.5 py-2.5 text-sm text-muted">You’re offline. Reconnect to read or post comments.</p> : null}
 
@@ -182,7 +211,7 @@ export function CommentsPanel({ noteId }: { noteId: string }) {
           ? <EmptyState icon="comment" title="No comments yet" body="Start the conversation: threads, replies and @mentions live here." />
           : <>
             {groups && groups.open.length > 0 ? <ul className="space-y-3">
-              {groups.open.map((thread) => <ThreadCard key={thread.id} thread={thread} />)}
+              {groups.open.map((thread) => <ThreadCard key={thread.id} thread={thread} highlight={thread.id === targetId} targetRef={thread.id === targetId ? targetRef : undefined} />)}
             </ul> : null}
             {groups && groups.open.length === 0 && groups.resolved.length > 0 ? <p className="text-sm text-muted">Every thread is resolved.</p> : null}
             {groups && groups.resolved.length > 0 ? <>
@@ -191,7 +220,7 @@ export function CommentsPanel({ noteId }: { noteId: string }) {
                 {showResolved ? 'Hide resolved' : `Show resolved (${groups.resolved.length})`}
               </button>
               {showResolved ? <ul className="space-y-3">
-                {groups.resolved.map((thread) => <ThreadCard key={thread.id} thread={thread} />)}
+                {groups.resolved.map((thread) => <ThreadCard key={thread.id} thread={thread} highlight={thread.id === targetId} targetRef={thread.id === targetId ? targetRef : undefined} />)}
               </ul> : null}
             </> : null}
           </>}

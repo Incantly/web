@@ -25,6 +25,7 @@ import { useImports } from '@/hooks/use-imports'
 import { useLiveCollab, useSavedSyncPoll } from '@/hooks/use-live-collab'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
+import { useNotifications } from '@/hooks/use-notifications'
 import { useNoteSuggestions } from '@/hooks/use-note-suggestions'
 import { useHeaderFooter } from '@/hooks/use-header-footer'
 import { usePageSetup } from '@/hooks/use-page-setup'
@@ -224,11 +225,12 @@ export function NoteRoute({ noteId }: { noteId: string }) {
 
 /** The note's top bar, editor, and side panels. Everything beyond the session comes from the feature contexts. */
 export function NoteScreen({ noteId, session }: { noteId: string; session: NoteSession }) {
-  const { navigate, focusBlock: requestedBlock } = useNavigation()
+  const { navigate, focusBlock: requestedBlock, focusThread: requestedThread } = useNavigation()
   const { activeNote, deleteNote } = useNotes()
   const { noteSpace: space } = useSpaces()
   const { openShareDialog } = useSharing()
   const { noteId: liveNoteId } = useLiveCollab()
+  const { noteMuted, toggleNoteMute, muting, prefsLoading } = useNotifications()
   // Shared when the list says so, or live-status confirmed it (the list can lag a fresh share).
   const shared = (activeNote?.shared ?? false) || liveNoteId === noteId
   useSavedSyncPoll(noteId, session, shared)
@@ -257,6 +259,11 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     if (!focusBlock || !editor || editor.isDestroyed) return
     setMissingBlock(!revealBlockRange(editor, focusBlock.blockId, focusBlock.endBlockId))
   }, [focusBlock, editorReady])
+  // A `?thread=` deep link opens the comments panel; the panel scrolls to and highlights the thread.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- open the panel when a thread link arrives
+    if (requestedThread?.noteId === noteId) setCommentsOpen(true)
+  }, [requestedThread, noteId])
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
   const editable = session.phase === 'ready' && session.sync?.status !== 'gone' && session.sync?.status !== 'denied'
@@ -287,6 +294,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
           { label: 'Import file into note', icon: 'import', onSelect: () => onImport('file'), disabled: !editable },
           { label: 'Import web page into note', icon: 'globe', onSelect: () => onImport('url'), disabled: !editable },
           { label: 'Share…', icon: 'share', onSelect: () => openShareDialog(noteId) },
+          { label: noteMuted(noteId) ? 'Unmute email for this note' : 'Mute email for this note', icon: 'bell', onSelect: () => toggleNoteMute(noteId), disabled: muting || prefsLoading },
           { label: 'Delete note', icon: 'trash', destructive: true, onSelect: () => setDialog('delete') },
         ]} />
         <TopBarTrailing />

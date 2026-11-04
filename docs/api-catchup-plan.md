@@ -64,3 +64,4 @@ files, responsive check of touched views, manual steps appended to
 | 4a | feat(sharing): grants, invites, links, viewer | share dialog, invitations inbox, /shared/[token] read-only viewer; tokens clipboard/memory-only |
 | 4b | feat(live): presence + saved-sync polling | Liveblocks room lifecycle, avatar stack, 5s conditional poll; recheck recovery disarms + clears pause notices |
 | 4c | feat(comments): threads + mentions | REST create, room thread list/resolve, @mention autocomplete, viewer read-only |
+| 4d | feat(notifications): inbox, prefs, mutes | bell + popover, settings section, note/thread mutes, /unsubscribe, ?thread= deep-links |

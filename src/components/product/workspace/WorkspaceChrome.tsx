@@ -12,6 +12,7 @@ import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { CommandSearch } from './CommandSearch'
+import { NotificationsBell } from './NotificationsBell'
 import { AddSourceDialog, SpaceFormDialog } from './dialogs'
 import { ImportDialog, ImportTray } from './imports'
 import { SettingsDialog } from './SettingsDialog'
@@ -63,7 +64,7 @@ export function TopBarLeading() {
   </>
 }
 
-/** Chat (on a note only) and inbox at the end of the top bar. */
+/** Chat (on a note only), notifications and inbox at the end of the top bar. */
 export function TopBarTrailing() {
   const { toggleAssistant, inbox } = useWorkspaceUI()
   const { available, open } = useAssistant()
@@ -71,6 +72,7 @@ export function TopBarTrailing() {
   return <>
     {available ? <button type="button" onClick={toggleAssistant} aria-pressed={open} aria-label="Chat with AI" title="Chat with AI (⌘J)"
       className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface hover:text-foreground ${open ? 'bg-surface text-foreground' : 'text-muted'}`}><AppIcon name="sparkles" className="size-5" /></button> : null}
+    <NotificationsBell />
     <InboxPopover items={inbox.items} createFrom={(item) => { createNote({ title: item.title }); inbox.dismiss(item.id) }} dismiss={inbox.dismiss} />
   </>
 }

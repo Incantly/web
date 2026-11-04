@@ -377,15 +377,18 @@ export const mentionSuggestionsKey = (noteId: string, query: string) => ['live-m
 
 /**
  * People and agents the caller may mention in a note. Cached per note for a
- * minute; callers debounce keystrokes before changing `query`. Someone without
- * access cannot be mentioned — the share dialog is the way to add them.
+ * minute; callers debounce keystrokes before changing `query` and pass
+ * `active` only while a token is open, so idle composers never look up. An
+ * empty query looks up without `q` (the server's default list, for a bare
+ * `@`). Someone without access cannot be mentioned — the share dialog is the
+ * way to add them.
  */
-export function useMentionSuggestions(noteId: string, query: string): { suggestions: MentionSuggestion[]; loading: boolean; error: unknown } {
+export function useMentionSuggestions(noteId: string, query: string, active: boolean): { suggestions: MentionSuggestion[]; loading: boolean; error: unknown } {
   const trimmed = query.trim()
   const result = useQuery({
     queryKey: mentionSuggestionsKey(noteId, trimmed),
-    queryFn: ({ signal }) => liveApi.mentionSuggestions(noteId, { q: trimmed }, signal),
-    enabled: trimmed.length > 0,
+    queryFn: ({ signal }) => liveApi.mentionSuggestions(noteId, trimmed ? { q: trimmed } : {}, signal),
+    enabled: active,
     staleTime: 60_000,
     meta: { silentErrors: true },
   })

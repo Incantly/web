@@ -155,7 +155,51 @@ Two users + @mention; backend :3012 + Liveblocks.
 
 ## Phase 4d — Notifications
 
-(TBD when the phase lands.)
+Setup: two users, A (owner) and B (collaborator), in two browsers. A owns a
+note shared with B; both signed in.
+
+1. Bell + inbox. As A: open the note → Share… → share with B (if not
+   already). As B: EXPECT the top-bar bell shows an unread badge within ~45s
+   (or refocus the tab). Open the bell: EXPECT a row "A shared a note with
+   you" + the note title as text.
+2. Row navigation. As B: click the inbox row: EXPECT the note opens and the
+   row marks read (badge count drops). Reopen the bell: EXPECT the row reads
+   as read (no dot, no mark-read button).
+3. Per-row mark-read + read-all. As A: remove B's access, then share again
+   (two unread rows for B). As B: bell → mark-read button on one row:
+   EXPECT only that row marks read. "Mark all read": EXPECT every row read,
+   badge gone.
+4. Offline. As B: disconnect, open the bell: EXPECT the offline note; rows
+   stay readable. Reconnect + refocus: EXPECT a refresh.
+5. Master email switch. As B: Settings → Notifications: EXPECT
+   "Collaboration emails" On. Turn Off: EXPECT it persists after closing and
+   reopening Settings. Turn back On.
+6. Note mute. As B: open the shared note → Note actions → "Mute email for
+   this note": EXPECT the item flips to "Unmute…". Settings → Notifications:
+   EXPECT the note listed as Muted. Toggle it back On there: EXPECT the
+   Note-actions item flips back.
+7. Thread mute. As B: Note actions → Comments → Mute on one thread: EXPECT
+   the button flips to Unmute. Settings → Notifications: EXPECT "Thread on
+   {note}" listed as Muted.
+8. Thread deep link. As B: in the comments panel, note a thread's id (from
+   the muted entry's "Thread {id}" line, or the network tab). Open
+   `/notes?note={noteId}&thread={threadId}` fresh: EXPECT the note opens,
+   the Comments panel opens, and the thread scrolls into view highlighted.
+   Resolve the thread first, then reload the link: EXPECT the resolved
+   section auto-expands with the highlight. Also try the email shape
+   `/notes/{noteId}?thread={threadId}`: EXPECT a redirect to the same view.
+9. Bare-@ mentions. As B: in a comment box type "@" with no letters: EXPECT
+   the mention menu with the default list. Type letters: EXPECT filtering.
+   Escape: EXPECT the menu closes until the next keystroke.
+10. Unsubscribe. Open `/unsubscribe` with no token: EXPECT the "link isn't
+    complete" text (no request sent). Open `/unsubscribe?token=bogus`:
+    EXPECT the confirm screen; press "Yes, unsubscribe me": EXPECT the
+    expired-link text. With a real token from a collaboration email:
+    EXPECT the confirm screen on load (nothing unsubscribed yet); press the
+    button: EXPECT "You're unsubscribed".
+11. Missing access. As A: remove B's access. As B: bell row for the note:
+    EXPECT clicking still marks read; the note itself shows the no-access
+    state (unchanged from 4c).
 
 ## Phase 5 — Learning artifacts
 

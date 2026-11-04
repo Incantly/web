@@ -49,6 +49,20 @@ export function extractMentionQuery(draft: string, cursor: number): MentionToken
   return { query: match[1], start: before.length - match[1].length - 1 }
 }
 
+/**
+ * Whether the mention menu shows for a token. A bare `@` (empty query) opens
+ * it too: the lookup runs without `q` and the server answers its default
+ * list. A dismissed token stays closed until the next keystroke re-tokens.
+ */
+export function mentionMenuOpen(
+  token: MentionToken | null,
+  dismissedStart: number | null,
+  itemCount: number,
+  loading: boolean,
+): boolean {
+  return token != null && token.start !== dismissedStart && (itemCount > 0 || loading)
+}
+
 /** Replaces the token at `tokenStart` with the picked name plus a trailing space. */
 export function insertMention(draft: string, cursor: number, tokenStart: number, name: string): { text: string; cursor: number } {
   const text = `${draft.slice(0, tokenStart)}@${name} ${draft.slice(cursor)}`

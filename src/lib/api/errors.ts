@@ -52,6 +52,8 @@ const messages: Record<string, string> = {
   INVITATION_INVALID: 'This invitation is no longer valid. It may have expired, been revoked, or already been used.',
   SHARE_LINK_INVALID: 'This share link is invalid or has expired. Ask the owner for a new one.',
   COLLABORATION_DISABLED: 'Sharing is unavailable right now. Please try again shortly.',
+  NOTIFICATION_NOT_FOUND: 'That notification is gone. It may have been removed.',
+  UNSUBSCRIBE_LINK_INVALID: 'This unsubscribe link is invalid or has expired.',
 
   SPACE_NOT_FOUND: 'This Space no longer exists or you don’t have access to it.',
   SPACE_NOT_ACTIVE: 'This Space is archived. Restore it to make changes.',

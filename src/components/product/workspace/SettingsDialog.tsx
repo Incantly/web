@@ -3,12 +3,14 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useAssistant } from '@/hooks/use-assistant'
 import { useBilling } from '@/hooks/use-billing'
-import { isApiError } from '../../../lib/api/errors'
+import { useNotifications } from '@/hooks/use-notifications'
+import { apiErrorMessage, isApiError } from '../../../lib/api/errors'
 import { displayName } from '../../../lib/identity'
 import { AppIcon, type IconName } from '../AppIcon'
 import { useCurrentUser } from '../SessionGate'
 import { SignOutButton } from '../SignOutButton'
 import { BillingMessage, CancelPlanButton, ManageBillingButton, MarketingEmailToggle, PlanLink, RefundButton, ResumePlanButton, UsageValue } from './BillingControls'
+import { CollaborationEmailToggle, NoteEmailToggle, ThreadEmailToggle } from './NotificationsSettings'
 import { iconButton } from './ui'
 
 type Row = { id: string; label: string; description?: string; keywords?: string; control: ReactNode }
@@ -40,6 +42,7 @@ function useSections(): Section[] {
   const user = useCurrentUser()
   const { allowance } = useAssistant()
   const billing = useBilling()
+  const notifications = useNotifications()
   const resets = allowance.data ? resetTime(allowance.data.resetsAt) : null
   const allowanceValue = allowance.isPending ? 'Checking…'
     : allowance.data ? `$${allowance.data.remainingUsd.toFixed(2)} left today`
@@ -67,6 +70,36 @@ function useSections(): Section[] {
         ...(billing.can.manage ? [{ id: 'manage', label: 'Billing details', description: 'Invoices, receipts and your card, handled by Polar.', keywords: 'invoice receipt card payment polar portal', control: <ManageBillingButton /> }] : []),
         ...(billing.can.cancel ? [{ id: 'cancel', label: 'Cancel plan', description: 'Move to Free at the end of the period you paid for.', keywords: 'subscription downgrade', control: <CancelPlanButton /> }] : []),
         ...(billing.can.refund ? [{ id: 'refund', label: 'Refund', description: 'Within 5 days of a payment. Ends your paid plan straight away.', keywords: 'money back', control: <RefundButton /> }] : []),
+      ],
+    },
+    {
+      id: 'notifications', label: 'Notifications', icon: 'bell', rows: [
+        { id: 'email-all', label: 'Collaboration emails', description: 'Mentions, replies and shares by email. Turning this off stops every collaboration email; the notification bell here is unaffected.', keywords: 'email mute unsubscribe mention', control: <CollaborationEmailToggle /> },
+        ...(notifications.prefsLoading
+          ? [{ id: 'scopes-loading', label: 'Muted notes and threads', keywords: 'email mute', control: <Value>Loading…</Value> }]
+          : notifications.prefsError
+            ? [{
+              id: 'scopes-error', label: 'Muted notes and threads', description: apiErrorMessage(notifications.prefsError), keywords: 'email mute',
+              control: <button type="button" onClick={notifications.retryPrefs} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-button hover:bg-surface">Try again</button>,
+            }]
+            : notifications.preferences && (notifications.preferences.notes.length > 0 || notifications.preferences.threads.length > 0)
+              ? [
+                ...notifications.preferences.notes.map((entry) => ({
+                  id: `note-${entry.noteId}`,
+                  label: notifications.noteTitle(entry.noteId) ?? 'Untitled note',
+                  description: 'Email about this note.',
+                  keywords: 'email mute note',
+                  control: <NoteEmailToggle noteId={entry.noteId} />,
+                })),
+                ...notifications.preferences.threads.map((entry) => ({
+                  id: `thread-${entry.threadId}`,
+                  label: `Thread on ${entry.noteId ? (notifications.noteTitle(entry.noteId) ?? 'Untitled note') : 'a note'}`,
+                  description: `Thread ${entry.threadId}`,
+                  keywords: 'email mute thread comment',
+                  control: <ThreadEmailToggle noteId={entry.noteId} threadId={entry.threadId} />,
+                })),
+              ]
+              : [{ id: 'scopes-empty', label: 'Muted notes and threads', description: 'Nothing muted. Mute a note from its Note actions menu, or a thread from the comments panel.', keywords: 'email mute', control: <Value>None</Value> }]),
       ],
     },
     {

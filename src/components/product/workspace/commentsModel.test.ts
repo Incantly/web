@@ -10,6 +10,7 @@ import {
   formatCommentTime,
   insertMention,
   mentionDisplayName,
+  mentionMenuOpen,
   myCommentAccess,
   partitionThreads,
   sortThreads,
@@ -64,6 +65,29 @@ describe('extractMentionQuery', () => {
   it('clamps the caret into the draft', () => {
     expect(extractMentionQuery('@a', 99)).toEqual({ query: 'a', start: 0 })
     expect(extractMentionQuery('@a', -1)).toBeNull()
+  })
+
+  it('tokens a bare @ with an empty query', () => {
+    expect(extractMentionQuery('Hi @', 4)).toEqual({ query: '', start: 3 })
+  })
+})
+
+describe('mentionMenuOpen', () => {
+  it('opens on a bare @ while the lookup runs or has items', () => {
+    expect(mentionMenuOpen({ query: '', start: 3 }, null, 0, true)).toBe(true)
+    expect(mentionMenuOpen({ query: '', start: 3 }, null, 4, false)).toBe(true)
+  })
+
+  it('opens on a query with items and stays shut without a token', () => {
+    expect(mentionMenuOpen({ query: 'ad', start: 3 }, null, 2, false)).toBe(true)
+    expect(mentionMenuOpen(null, null, 2, false)).toBe(false)
+    expect(mentionMenuOpen({ query: 'ad', start: 3 }, null, 0, false)).toBe(false)
+  })
+
+  it('stays shut once dismissed until the token moves', () => {
+    expect(mentionMenuOpen({ query: '', start: 3 }, 3, 4, false)).toBe(false)
+    expect(mentionMenuOpen({ query: 'a', start: 3 }, 3, 4, false)).toBe(false)
+    expect(mentionMenuOpen({ query: '', start: 5 }, 3, 4, false)).toBe(true)
   })
 })
 
