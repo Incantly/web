@@ -6,10 +6,17 @@ import type { SpaceDto } from '../../../lib/api/spaces'
 export type WorkspaceView =
   | 'home'
   | 'notes'
+  | 'shared'
+  | 'invitations'
   | 'spaces'
   | 'library'
+  | 'trash'
+  | 'artifacts'
   | `space:${string}`
   | `note:${string}`
+  | `quiz:${string}`
+  | `deck:${string}`
+  | `artifact:${string}`
 
 export type Navigate = (view: WorkspaceView) => void
 
@@ -25,6 +32,8 @@ export type NoteRecord = {
   spaceId: string | null
   /** For adding the note to the Library as a fixed revision. */
   currentRevisionId: string | null
+  /** True when the backend reports a live-room collaboration on the note. */
+  shared: boolean
 }
 
 export type SpaceStatus = Exclude<Schema<'SpaceDto'>['status'], 'DELETED'>

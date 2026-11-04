@@ -4,10 +4,25 @@ import { apiFetch } from './client'
 import type { Page, Schema } from './types'
 
 export type NoteDto = Schema<'NoteDto'>
+export type TrashNoteDto = Schema<'TrashNoteDto'>
+export type SharedWithMeItemDto = Schema<'SharedWithMeItemDto'>
 export type NoteRevisionDto = Schema<'NoteRevisionDto'>
 export type NoteTransactionAck = Schema<'NoteTransactionAckDto'>
 /** The checkpoint document is untrusted JSON until it passes the load gate. */
 export type NoteCheckpoint = { revision: NoteRevisionDto; document: unknown }
+
+/**
+ * A conditional checkpoint read: either the checkpoint (with the ETag to send next time)
+ * or a cheap not-modified signal (no body). Narrow with `notModified`.
+ */
+export type CheckpointRead =
+  | { notModified: false; etag: string | null; revision: NoteRevisionDto; document: unknown }
+  | { notModified: true; etag: string | null }
+
+/** A note is shared exactly when the backend reports a live-room collaboration on it. */
+export function isSharedNote(note: Pick<NoteDto, 'collaboration'> | null | undefined): boolean {
+  return note?.collaboration != null
+}
 
 export type NoteTransaction = {
   version: 1
@@ -19,6 +34,19 @@ export type NoteTransaction = {
 }
 
 const id = (value: string) => encodeURIComponent(value)
+
+/** Reads the head checkpoint, with the ETag for a later conditional read. */
+async function readCheckpoint(noteId: string, signal?: AbortSignal): Promise<NoteCheckpoint & { etag: string | null }>
+/** Re-reads the head only if it changed: sends `If-None-Match` and surfaces 304 as not-modified. */
+async function readCheckpoint(noteId: string, signal: AbortSignal | undefined, ifNoneMatch: string): Promise<CheckpointRead>
+async function readCheckpoint(noteId: string, signal?: AbortSignal, ifNoneMatch?: string): Promise<(NoteCheckpoint & { etag: string | null }) | CheckpointRead> {
+  const response = await apiFetch<NoteCheckpoint>(`/v1/notes/${id(noteId)}/checkpoint`, {
+    signal,
+    headers: ifNoneMatch ? { 'If-None-Match': ifNoneMatch } : undefined,
+  })
+  if (response.status === 304) return { notModified: true, etag: response.etag }
+  return { ...response.data, notModified: false as const, etag: response.etag }
+}
 
 /** Thin wrappers over `/v1/notes/*` (frontend-api-integration.md, "Notes API"). */
 export const notesApi = {
@@ -33,9 +61,7 @@ export const notesApi = {
   async get(noteId: string, signal?: AbortSignal) {
     return (await apiFetch<NoteDto>(`/v1/notes/${id(noteId)}`, { signal })).data
   },
-  async checkpoint(noteId: string, signal?: AbortSignal) {
-    return (await apiFetch<NoteCheckpoint>(`/v1/notes/${id(noteId)}/checkpoint`, { signal })).data
-  },
+  checkpoint: readCheckpoint,
   async saveCheckpoint(noteId: string, baseRevisionNumber: number, document: IncantlyDocument) {
     return (await apiFetch<Schema<'NoteRevisionResultDto'>>(`/v1/notes/${id(noteId)}/checkpoint`, { method: 'PUT', body: { baseRevisionNumber, document } })).data
   },
@@ -50,6 +76,25 @@ export const notesApi = {
   },
   async restore(noteId: string, sourceRevisionId: string) {
     return (await apiFetch<Schema<'NoteRevisionResultDto'>>(`/v1/notes/${id(noteId)}/restore`, { method: 'POST', body: { sourceRevisionId } })).data
+  },
+  /** Owner's trash, newest first (`GET /v1/notes/trash`). Each item carries its own `purgeAt`. */
+  async trash(params: { cursor?: string | null; limit?: number } = {}, signal?: AbortSignal) {
+    const query = new URLSearchParams({ limit: String(params.limit ?? 25) })
+    if (params.cursor) query.set('cursor', params.cursor)
+    return (await apiFetch<Page<TrashNoteDto>>(`/v1/notes/trash?${query}`, { signal })).data
+  },
+  /**
+   * Trash restore: `POST /v1/notes/{id}/restore` with no body (200: the live note).
+   * A 409 NOTE_NOT_DELETED means it is already live: confirm with `get` instead of retrying.
+   */
+  async restoreTrash(noteId: string) {
+    return (await apiFetch<NoteDto>(`/v1/notes/${id(noteId)}/restore`, { method: 'POST' })).data
+  },
+  /** Notes others shared with the caller, newest first (`GET /v1/notes/shared-with-me`). */
+  async sharedWithMe(params: { cursor?: string | null; limit?: number } = {}, signal?: AbortSignal) {
+    const query = new URLSearchParams({ limit: String(params.limit ?? 25) })
+    if (params.cursor) query.set('cursor', params.cursor)
+    return (await apiFetch<Page<SharedWithMeItemDto>>(`/v1/notes/shared-with-me?${query}`, { signal })).data
   },
   async remove(noteId: string) {
     await apiFetch<void>(`/v1/notes/${id(noteId)}`, { method: 'DELETE' })

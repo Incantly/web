@@ -1,4 +1,4 @@
-import { createDocument, type DocumentOperation, type IncantlyDocument } from '@incantly/canvas-core/document'
+import { createDocument, createParagraph, type DocumentOperation, type IncantlyDocument } from '@incantly/canvas-core/document'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, NETWORK_ERROR } from '../api/errors'
 import type { NoteTransaction } from '../api/notes'
@@ -11,6 +11,10 @@ const revision = (revisionNumber: number) => ({ id: `rev${revisionNumber}`, revi
 function doc(title = 'Note', text = '') {
   const document = createDocument({ id: 'doc-1', title })
   return text ? { ...document, metadata: { ...document.metadata, tags: [text] } } as IncantlyDocument : document
+}
+
+function contentDoc(entries: [id: string, text: string][], title = 'Note') {
+  return createDocument({ id: 'doc-1', title, content: entries.map(([id, text]) => createParagraph({ id, text })) })
 }
 
 let store: MemoryNoteSyncStore
@@ -221,5 +225,182 @@ describe('NoteSync', () => {
     sync.record({ mode: 'none', operations: [], document: doc() })
     expect(sync.hasPending).toBe(false)
     expect(states.at(-1)?.status ?? 'saved').toBe('saved')
+  })
+
+  it('sends a shared rename with unsaved changes through transactions, never PUT', async () => {
+    const server = contentDoc([['paragraph:a', 'server']])
+    const sync = await open({ shared: true }, { revisionNumber: 1, document: server, title: 'Note' })
+    sync.record({ mode: 'checkpoint', operations: [], document: contentDoc([['paragraph:a', 'edited']]) })
+    sync.rename('Renamed')
+    await sync.flushNow()
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.checkpoint).not.toHaveBeenCalled()
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    expect(api.transact.mock.calls[0][1]).toMatchObject({ baseRevisionNumber: 1 })
+    expect(api.transact.mock.calls[0][1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
+    expect(sync.title).toBe('Renamed')
+    expect(sync.current.status).toBe('saved')
+  })
+
+  it('queues a shared checkpoint with mapped operations as transactions without a fetch', async () => {
+    const sync = await open({ shared: true })
+    sync.record({ mode: 'checkpoint', operations: [op('a')], document: doc() })
+    await sync.flushNow()
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    expect(api.transact.mock.calls[0][1].operations).toEqual([op('a')])
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.checkpoint).not.toHaveBeenCalled()
+    expect(sync.current.status).toBe('saved')
+  })
+
+  it('keeps a pure shared rename local: no PUT, no transaction, title kept', async () => {
+    const onAck = vi.fn()
+    const sync = await open({ shared: true, onAck })
+    sync.rename('Renamed')
+    await sync.flushNow()
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.transact).not.toHaveBeenCalled()
+    expect(api.checkpoint).not.toHaveBeenCalled()
+    expect(sync.title).toBe('Renamed')
+    expect(onAck).toHaveBeenCalledWith(1)
+    expect(sync.current).toMatchObject({ status: 'saved', pending: 0 })
+  })
+
+  it('saves Keep-my-version on a shared note as transactions on the latest base', async () => {
+    const server = contentDoc([['paragraph:a', 'server']])
+    const mine = contentDoc([['paragraph:a', 'mine']])
+    api.transact.mockRejectedValueOnce(new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: server })
+    const sync = await open({ shared: true }, { revisionNumber: 1, document: server, title: 'Note' })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: mine })
+    await sync.flushNow()
+    expect(sync.current.status).toBe('conflict')
+    await sync.keepMine()
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.checkpoint).toHaveBeenCalledTimes(1)
+    expect(api.transact).toHaveBeenLastCalledWith('n1', expect.objectContaining({ baseRevisionNumber: 9 }))
+    expect(api.transact.mock.calls.at(-1)?.[1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
+    expect(sync.current.status).toBe('saved')
+  })
+
+  it('stops read-only with edits kept when access is lost mid-session', async () => {
+    const onAccessDenied = vi.fn()
+    api.transact.mockRejectedValueOnce(new ApiError(403, 'NOTE_ACCESS_DENIED', 'req-denied', null))
+    const sync = await open({ shared: true, onAccessDenied })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    await sync.flushNow()
+    expect(sync.current.status).toBe('denied')
+    expect(onAccessDenied).toHaveBeenCalledTimes(1)
+    expect(onAccessDenied).toHaveBeenCalledWith(expect.objectContaining({ code: 'NOTE_ACCESS_DENIED', requestId: 'req-denied' }))
+    expect((await store.get(syncKey('u1', 'n1')))?.batches).toHaveLength(1)
+    await sync.flushNow()
+    expect(api.transact).toHaveBeenCalledTimes(1)
+  })
+
+  it('markAccessDenied stops the queue read-only without dropping work', async () => {
+    const onAccessDenied = vi.fn()
+    const sync = await open({ shared: true, onAccessDenied })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    const error = new ApiError(403, 'NOTE_ACCESS_DENIED', 'req-x', null)
+    sync.markAccessDenied(error)
+    expect(sync.current.status).toBe('denied')
+    expect(onAccessDenied).toHaveBeenCalledWith(error)
+    expect(sync.hasPending).toBe(true)
+    sync.record({ mode: 'incremental', operations: [op('b')], document: doc() })
+    expect(sync.hasPending).toBe(true)
+    await sync.flushNow()
+    expect(api.transact).not.toHaveBeenCalled()
+    await sync.dispose()
+    expect((await store.get(syncKey('u1', 'n1')))?.open).toHaveLength(2)
+  })
+
+  it('heals a note shared mid-session: USE_TRANSACTIONS flips to the transaction queue', async () => {
+    const server = contentDoc([['paragraph:a', 'server']])
+    api.saveCheckpoint.mockRejectedValueOnce(new ApiError(409, 'USE_TRANSACTIONS', null, null))
+    const sync = await open({}, { revisionNumber: 1, document: server, title: 'Note' })
+    sync.record({ mode: 'checkpoint', operations: [], document: contentDoc([['paragraph:a', 'edited']]) })
+    await sync.flushNow()
+    expect(api.saveCheckpoint).toHaveBeenCalledTimes(1)
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    expect(api.transact.mock.calls[0][1]).toMatchObject({ baseRevisionNumber: 1 })
+    expect(sync.current.status).toBe('saved')
+    // And the flip sticks: later full saves convert without another PUT.
+    sync.record({ mode: 'checkpoint', operations: [], document: contentDoc([['paragraph:a', 'edited again']]) })
+    await sync.flushNow()
+    expect(api.saveCheckpoint).toHaveBeenCalledTimes(1)
+    expect(api.transact).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops with the size-limit message when the room is full, without retrying', async () => {
+    api.transact.mockRejectedValueOnce(new ApiError(413, 'ROOM_DOCUMENT_TOO_LARGE', 'req-413', null))
+    const sync = await open({ shared: true })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    await sync.flushNow()
+    expect(sync.current.status).toBe('error')
+    expect(sync.current.message).toMatch(/size limit/)
+    expect(sync.hasPending).toBe(true)
+    expect(scheduled.some((entry) => entry.ms === 5000)).toBe(false)
+    await sync.flushNow()
+    expect(api.transact).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops with an error instead of a full save when a shared transaction is rejected', async () => {
+    api.transact.mockRejectedValueOnce(new ApiError(422, 'INVALID_NOTE_TRANSACTION', null, null))
+    const sync = await open({ shared: true })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    await sync.flushNow()
+    expect(sync.current.status).toBe('error')
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(sync.hasPending).toBe(true)
+  })
+
+  it('drops a stale conversion when a newer full document arrives mid-fetch', async () => {
+    const server = contentDoc([['paragraph:a', 'server']])
+    const sync = await open({ shared: true }, { revisionNumber: 1, document: server, title: 'Note' })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: contentDoc([['paragraph:a', 'server']]) })
+    await sync.flushNow()
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    const older = contentDoc([['paragraph:a', 'older']])
+    const newer = contentDoc([['paragraph:a', 'newer']])
+    let resolveFetch!: (value: never) => void
+    api.checkpoint.mockReturnValueOnce(new Promise<never>((resolve) => { resolveFetch = resolve }))
+    sync.record({ mode: 'checkpoint', operations: [], document: older })
+    const flushing = sync.flushNow()
+    await vi.waitFor(() => expect(api.checkpoint).toHaveBeenCalled())
+    sync.record({ mode: 'checkpoint', operations: [], document: newer })
+    resolveFetch({ revision: revision(2), document: older } as never)
+    await flushing
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.transact).toHaveBeenCalledTimes(2)
+    expect(api.transact.mock.calls[1][1]).toMatchObject({ baseRevisionNumber: 2 })
+    expect(api.transact.mock.calls[1][1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
+    expect(JSON.stringify(api.transact.mock.calls[1][1].operations)).toContain('newer')
+    expect(JSON.stringify(api.transact.mock.calls[1][1].operations)).not.toContain('older')
+    expect(sync.current.status).toBe('saved')
+  })
+
+  it('folds later checkpoints into a pending shared save instead of queueing their operations', async () => {
+    const server = contentDoc([['paragraph:a', 'server']])
+    const sync = await open({ shared: true }, { revisionNumber: 1, document: server, title: 'Note' })
+    sync.record({ mode: 'checkpoint', operations: [], document: contentDoc([['paragraph:a', 'first']]) })
+    sync.record({ mode: 'checkpoint', operations: [op('a')], document: contentDoc([['paragraph:a', 'second']]) })
+    await sync.flushNow()
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    expect(api.transact.mock.calls[0][1].operations).toHaveLength(1)
+    expect(api.transact.mock.calls[0][1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
+  })
+
+  it('stops with an error when the shared head cannot be read safely', async () => {
+    const sync = await open({ shared: true })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    await sync.flushNow()
+    api.checkpoint.mockResolvedValueOnce({ revision: revision(2), document: { bogus: true } })
+    sync.record({ mode: 'checkpoint', operations: [], document: doc('Note', 'local') })
+    await sync.flushNow()
+    expect(sync.current.status).toBe('error')
+    expect(sync.hasPending).toBe(true)
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.transact).toHaveBeenCalledTimes(1)
   })
 })

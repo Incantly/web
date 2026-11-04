@@ -8,9 +8,16 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceShortcuts } from '@/hooks/use-workspace-shortcuts'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
+import { ArtifactView, ArtifactsView } from './workspace/ArtifactViews'
+import { DeckView } from './workspace/FlashcardViews'
+import { InvitationsView } from './workspace/InvitationsView'
 import { LibraryView } from './workspace/LibraryView'
 import { NoteRoute } from './workspace/NoteView'
+import { QuizView } from './workspace/QuizViews'
+import { SharedLinkRoute } from './workspace/SharedLinkView'
+import { showsSharedLink } from './workspace/sharedLinkModel'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
+import { SharedWithMeView, TrashView } from './workspace/TrashViews'
 import { useAbandonedUploadCleanup } from './workspace/useAssets'
 import { EmptyState, PageFrame, TopBar, buttonSecondary } from './workspace/ui'
 import { HomeView, NotesView } from './workspace/views'
@@ -19,16 +26,17 @@ import type { CSSProperties } from 'react'
 import { dockedPanelWidth, sidebarWidth } from './workspace/panelWidthModel'
 import { PanelResizeHandle } from './workspace/sidePanel'
 
-export function Workspace() {
-  return <AppProviders><SessionGate><WorkspaceProviders><WorkspaceShell /></WorkspaceProviders></SessionGate></AppProviders>
+export function Workspace({ sharedToken }: { sharedToken?: string }) {
+  return <AppProviders><SessionGate><WorkspaceProviders><WorkspaceShell sharedToken={sharedToken} /></WorkspaceProviders></SessionGate></AppProviders>
 }
 
 /** Layout only: sidebar, content box, right-hand panel column, and the workspace dialogs. */
-function WorkspaceShell() {
+function WorkspaceShell({ sharedToken }: { sharedToken: string | undefined }) {
   const user = useCurrentUser()
   const { mobileOpen, closeMobileSidebar, rail, panelsOpen, setPanelSlot, panelWidth, contentMin } = useWorkspaceUI()
   const panelColumn = dockedPanelWidth(sidebarWidth(rail.expanded))
-  const { activeNoteId } = useNavigation()
+  const { view, activeNoteId } = useNavigation()
+  const linkView = showsSharedLink(sharedToken, view, activeNoteId)
   useWorkspaceShortcuts()
   useAbandonedUploadCleanup(user.id)
 
@@ -54,8 +62,9 @@ function WorkspaceShell() {
       {/* overflow-clip (not hidden) on small screens keeps the rounded corners without making this a
           scroll container, so the top bar can stick while the page scrolls. */}
       <section className="relative min-h-[calc(100svh-1rem)] overflow-clip overscroll-none rounded-[1.15rem] border border-default bg-raised lg:h-[calc(100svh-1rem)] lg:min-h-0 lg:overflow-y-auto" aria-label="Workspace content">
-        {/* A note draws its own top bar (title, sync state, note actions). */}
-        {activeNoteId ? <NoteRoute key={activeNoteId} noteId={activeNoteId} /> : <><PageTopBar /><Page /></>}
+        {/* A note draws its own top bar (title, sync state, note actions). A share link
+            renders the same way: the normal workspace around a read-only note. */}
+        {activeNoteId ? <NoteRoute key={activeNoteId} noteId={activeNoteId} /> : linkView ? <SharedLinkRoute key={sharedToken} token={sharedToken} /> : <><PageTopBar /><Page /></>}
       </section>
     </div>
     {/* Right column: docked panels render here and push the content box, mirroring the sidebar. Its
@@ -74,7 +83,7 @@ function WorkspaceShell() {
 function PageTopBar() {
   const { view } = useNavigation()
   const { activeSpace } = useSpaces()
-  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : activeSpace ? activeSpace.name : null
+  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'shared' ? 'Shared with me' : view === 'invitations' ? 'Invitations' : view === 'trash' ? 'Trash' : view === 'artifacts' ? 'Quizzes & decks' : view.startsWith('quiz:') ? 'Quiz' : view.startsWith('deck:') ? 'Flashcards' : view.startsWith('artifact:') ? 'Quizzes & decks' : activeSpace ? activeSpace.name : null
   return <TopBar banner={<ConnectionBanner />}>
     <TopBarLeading />
     {label ? <span className="min-w-0 truncate px-1 text-sm text-muted">{label}</span> : null}
@@ -88,8 +97,15 @@ function Page() {
   const { activeSpace, status } = useSpaces()
   if (view === 'home') return <HomeView />
   if (view === 'notes') return <NotesView />
+  if (view === 'shared') return <SharedWithMeView />
+  if (view === 'invitations') return <InvitationsView />
   if (view === 'spaces') return <SpacesView />
   if (view === 'library') return <LibraryView />
+  if (view === 'trash') return <TrashView />
+  if (view === 'artifacts') return <ArtifactsView />
+  if (view.startsWith('quiz:')) return <QuizView key={view} quizId={view.slice(5)} />
+  if (view.startsWith('deck:')) return <DeckView key={view} deckId={view.slice(5)} />
+  if (view.startsWith('artifact:')) return <ArtifactView key={view} artifactId={view.slice(9)} />
   if (activeSpace) return <SpaceView key={activeSpace.id} space={activeSpace} />
   if (activeSpaceId && status.loading) return <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame>
   if (activeSpaceId) return <PageFrame><EmptyState icon="space" title="Space not found" body="It may have been deleted." action={<button type="button" onClick={() => navigate('spaces')} className={buttonSecondary}>All Spaces</button>} /></PageFrame>

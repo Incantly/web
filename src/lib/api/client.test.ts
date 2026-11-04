@@ -35,8 +35,17 @@ const headerOf = (call: number, name: string) => (fetchMock.mock.calls[call][1] 
 describe('apiFetch', () => {
   it('returns parsed JSON with the request ID', async () => {
     replies.push({ status: 200, body: { items: [] }, headers: { 'X-Request-Id': 'req-1' } })
-    await expect(apiFetch('/v1/notes')).resolves.toEqual({ status: 200, data: { items: [] }, requestId: 'req-1' })
+    await expect(apiFetch('/v1/notes')).resolves.toEqual({ status: 200, data: { items: [] }, requestId: 'req-1', etag: null })
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'include', method: 'GET' })
+  })
+
+  it('surfaces the ETag header and 304 as a bodiless not-modified signal', async () => {
+    replies.push({ status: 200, body: { revision: 1 }, headers: { ETag: '"v1"' } })
+    await expect(apiFetch('/v1/notes/n1/checkpoint')).resolves.toMatchObject({ status: 200, etag: '"v1"' })
+
+    replies.push({ status: 304, headers: { ETag: '"v1"', 'X-Request-Id': 'req-3' } })
+    await expect(apiFetch('/v1/notes/n1/checkpoint', { headers: { 'If-None-Match': '"v1"' } })).resolves.toEqual({ status: 304, data: undefined, requestId: 'req-3', etag: '"v1"' })
+    expect(headerOf(1, 'If-None-Match')).toBe('"v1"')
   })
 
   it('returns undefined data for 204', async () => {
@@ -84,6 +93,35 @@ describe('apiFetch', () => {
     replies.push({ status: 503, body: { code: 'AI_ALLOWANCE_UNAVAILABLE' } })
     await expect(apiFetch('/v1/ai/allowance')).rejects.toMatchObject({ status: 503 })
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries 503 LIVE_COLLABORATION_UNAVAILABLE identically after Retry-After', async () => {
+    replies.push(
+      { status: 503, body: { code: 'LIVE_COLLABORATION_UNAVAILABLE' }, headers: { 'Retry-After': '1' } },
+      { status: 201, body: { revision: { revisionNumber: 2 } } },
+    )
+    const result = await apiFetch('/v1/notes/n1/transactions', { method: 'POST', body: { version: 1 }, maxAttempts: 2 })
+    expect(result.status).toBe(201)
+    expect(sleep).toHaveBeenCalledWith(1000, undefined)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[1][1].body).toBe(fetchMock.mock.calls[0][1].body)
+  })
+
+  it('retries 503 LIVE_COLLABORATION_UNAVAILABLE with backoff when Retry-After is missing', async () => {
+    replies.push({ status: 503, body: { code: 'LIVE_COLLABORATION_UNAVAILABLE' } }, { status: 201, body: {} })
+    await expect(apiFetch('/v1/notes/n1/transactions', { method: 'POST', body: {}, maxAttempts: 2 })).resolves.toMatchObject({ status: 201 })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [409, 'RESTORE_IN_PROGRESS'],
+    [413, 'ROOM_DOCUMENT_TOO_LARGE'],
+  ] as const)('never retries %i %s', async (status, code) => {
+    replies.push({ status, body: { code } })
+    await expect(apiFetch('/v1/notes/n1/restore', { method: 'POST', body: {}, idempotencyKey: 'key-12345678' })).rejects.toMatchObject({ status, code })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(sleep).not.toHaveBeenCalled()
   })
 
   it.each([400, 403, 404, 409, 422])('never retries %i', async (status) => {

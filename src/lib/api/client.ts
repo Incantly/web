@@ -1,7 +1,7 @@
 import { ApiError, NETWORK_ERROR } from './errors'
 import { recordDiagnostic } from './diagnostics'
 
-export type ApiResponse<T> = { status: number; data: T; requestId: string | null }
+export type ApiResponse<T> = { status: number; data: T; requestId: string | null; etag: string | null }
 
 export type ApiFetchInit = Omit<RequestInit, 'body' | 'credentials'> & {
   /** Serialized as JSON. */
@@ -15,7 +15,7 @@ export type ApiFetchInit = Omit<RequestInit, 'body' | 'credentials'> & {
 const DEFAULT_MAX_ATTEMPTS = 5
 const MAX_BACKOFF_MS = 8_000
 /** 503 codes the backend documents as safe to retry with the identical request. */
-const RETRYABLE_503 = new Set(['NOTE_TRANSACTION_RETRYABLE', 'DEPENDENCY_UNAVAILABLE', 'SERVICE_DRAINING'])
+const RETRYABLE_503 = new Set(['NOTE_TRANSACTION_RETRYABLE', 'DEPENDENCY_UNAVAILABLE', 'SERVICE_DRAINING', 'LIVE_COLLABORATION_UNAVAILABLE'])
 const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'])
 
 type Hooks = {
@@ -80,7 +80,8 @@ async function toApiError(response: Response): Promise<ApiError> {
  * The single entry point for `/v1/*` calls (same-origin; the web server proxies to the backend).
  * - Retries 429 and retryable 503 after `Retry-After` (or backoff) with the identical request and key.
  * - Retries network failures only when the request is safe to repeat (idempotent method or key).
- * - Never retries 400/401/403/404/409/422; callers handle 409 by code.
+ * - Never retries 400/401/403/404/409/413/422; callers handle 409/413 by code.
+ * - Surfaces 304 as `{ status: 304, data: undefined }` (no body is read) and every ETag header as `etag`.
  */
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<ApiResponse<T>> {
   if (!path.startsWith('/v1/')) throw new Error('apiFetch only calls /v1/* paths')
@@ -109,10 +110,13 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     }
 
     const requestId = response.headers.get('X-Request-Id')
+    const etag = response.headers.get('ETag')
+    // A 304 has no body by definition: surface it as a signal without reading one.
+    if (response.status === 304) return { status: 304, data: undefined as T, requestId, etag }
     if (response.ok) {
-      if (response.status === 204) return { status: 204, data: undefined as T, requestId }
+      if (response.status === 204) return { status: 204, data: undefined as T, requestId, etag }
       const data = (await response.json().catch(() => undefined)) as T
-      return { status: response.status, data, requestId }
+      return { status: response.status, data, requestId, etag }
     }
 
     const error = await toApiError(response)

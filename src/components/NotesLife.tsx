@@ -37,6 +37,7 @@ export default function NotesLife({ life }: { life: number }) {
   const hl = Math.min(1, Math.max(0, (life - 0.28) / 0.42))
   const alive = hl >= 0.97
   const viewRef = useRef({ hl, alive, fixed })
+  // eslint-disable-next-line react-hooks/refs -- latest-value mirror read by the canvas loop
   viewRef.current = { hl, alive, fixed }
 
   useEffect(() => {

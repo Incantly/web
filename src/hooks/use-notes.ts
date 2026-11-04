@@ -5,12 +5,13 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useCurrentUser } from '@/components/product/SessionGate'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
 import type { NoteRecord } from '@/components/product/workspace/model'
-import { createNoteVariables, useCreateNote, useDeleteNote, useNotesList } from '@/components/product/workspace/useNotes'
+import { createNoteVariables, trashKey, useCreateNote, useDeleteNote, useNotesList } from '@/components/product/workspace/useNotes'
 import { noteSyncStore, resumePendingNotes } from '@/components/product/workspace/useNoteSession'
 import type { ListStatus } from '@/components/product/workspace/views'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useSpaces } from '@/hooks/use-spaces'
 import { authClient } from '@/lib/auth-client'
+import { isSharedNote } from '@/lib/api/notes'
 import { syncKey } from '@/lib/notes/syncStore'
 
 export type NotesValue = {
@@ -22,7 +23,6 @@ export type NotesValue = {
   createNote: (options?: { title?: string; spaceId?: string | null }) => void
   /** Delete a note, drop its local sync queue, and leave for its Space or the notes list. */
   deleteNote: (noteId: string) => Promise<void>
-  shareNote: (noteId: string) => void
 }
 
 export const NotesContext = createFeatureContext<NotesValue>('Notes')
@@ -44,6 +44,7 @@ export function useNotesState(): NotesValue {
     updatedAt: Date.parse(note.updatedAt) || 0,
     spaceId: noteSpaceId(note.id),
     currentRevisionId: note.currentRevisionId ?? null,
+    shared: isSharedNote(note),
   })), [query.notes, noteSpaceId])
 
   // Send edits still waiting on this device: once on load, and again whenever the connection returns.
@@ -73,14 +74,9 @@ export function useNotesState(): NotesValue {
     await noteSyncStore().remove(syncKey(user.id, noteId)).catch(() => {})
     void client.invalidateQueries({ queryKey: ['space-notes'] })
     void client.invalidateQueries({ queryKey: ['spaces', user.id] })
+    void client.invalidateQueries({ queryKey: trashKey(user.id) })
     navigate(spaceId ? `space:${spaceId}` : 'notes')
   }, [remove, user.id, client, noteSpaceId, navigate])
-
-  const shareNote = useCallback((noteId: string) => {
-    const text = notes.find((note) => note.id === noteId)?.title || 'Untitled note'
-    if (navigator.share) void navigator.share({ title: text, text }).catch(() => {})
-    else void navigator.clipboard.writeText(text).catch(() => {})
-  }, [notes])
 
   return useMemo<NotesValue>(() => ({
     notes,
@@ -88,11 +84,10 @@ export function useNotesState(): NotesValue {
     activeNote: activeNoteId ? notes.find((note) => note.id === activeNoteId) : undefined,
     createNote,
     deleteNote,
-    shareNote,
-  }), [notes, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, activeNoteId, createNote, deleteNote, shareNote])
+  }), [notes, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, activeNoteId, createNote, deleteNote])
 }
 
-/** `/v1/notes`: the notes list, the open note, and creating, deleting and sharing notes. Must be used inside `WorkspaceProviders`. */
+/** `/v1/notes`: the notes list, the open note, and creating and deleting notes. Sharing lives in `useSharing`. Must be used inside `WorkspaceProviders`. */
 export function useNotes(): NotesValue {
   return useFeatureContext(NotesContext)
 }

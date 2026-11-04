@@ -12,9 +12,11 @@ import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { CommandSearch } from './CommandSearch'
+import { NotificationsBell } from './NotificationsBell'
 import { AddSourceDialog, SpaceFormDialog } from './dialogs'
 import { ImportDialog, ImportTray } from './imports'
 import { SettingsDialog } from './SettingsDialog'
+import { ShareDialog } from './ShareDialog'
 import { Sidebar, type NewAction } from './Sidebar'
 import { PlansDialog } from './PlansDialog'
 import { OfflineBanner } from './ui'
@@ -62,7 +64,7 @@ export function TopBarLeading() {
   </>
 }
 
-/** Chat (on a note only) and inbox at the end of the top bar. */
+/** Chat (on a note only), notifications and inbox at the end of the top bar. */
 export function TopBarTrailing() {
   const { toggleAssistant, inbox } = useWorkspaceUI()
   const { available, open } = useAssistant()
@@ -70,6 +72,7 @@ export function TopBarTrailing() {
   return <>
     {available ? <button type="button" onClick={toggleAssistant} aria-pressed={open} aria-label="Chat with AI" title="Chat with AI (⌘J)"
       className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface hover:text-foreground ${open ? 'bg-surface text-foreground' : 'text-muted'}`}><AppIcon name="sparkles" className="size-5" /></button> : null}
+    <NotificationsBell />
     <InboxPopover items={inbox.items} createFrom={(item) => { createNote({ title: item.title }); inbox.dismiss(item.id) }} dismiss={inbox.dismiss} />
   </>
 }
@@ -113,5 +116,6 @@ export function WorkspaceDialogs() {
     <ImportTray tracker={tracker} onOpenNote={(noteId) => openNote(noteId)} />
     <SpaceFormDialog open={ui.dialog === 'space'} onClose={ui.closeDialog} onSubmit={createSpace} />
     <AddSourceDialog open={ui.dialog === 'source'} onClose={ui.closeDialog} spaces={spaces} notes={notes} defaultSpaceId={activeSpace?.status === 'ACTIVE' ? activeSpace.id : undefined} onSubmit={addSource} />
+    <ShareDialog />
   </>
 }

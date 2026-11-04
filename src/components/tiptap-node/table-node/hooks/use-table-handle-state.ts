@@ -55,6 +55,7 @@ export function useTableHandleState(config: UseTableHandleStateConfig = {}) {
 
   useEffect(() => {
     if (!editor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset editor-derived state on detach
       setState(null)
       prevStateRef.current = null
       onStateChange?.(null)

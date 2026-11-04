@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { commandGroups, matchScore, moveActive } from './commandSearchModel'
 import type { NoteRecord, SourceRecord, SpaceRecord } from './model'
 
-const note = (id: string, title: string, updatedAt = 0): NoteRecord => ({ id, title, updatedAt, spaceId: null, currentRevisionId: null })
+const note = (id: string, title: string, updatedAt = 0): NoteRecord => ({ id, title, updatedAt, spaceId: null, currentRevisionId: null, shared: false })
 const space = (id: string, name: string) => ({ id, name, status: 'ACTIVE' }) as SpaceRecord
 const source = (id: string, title: string): SourceRecord => ({ id, kind: 'FILE', title, status: 'READY', sensitivity: 'PRIVATE', updatedAt: 0, stage: null, failureCode: null, partialReason: null, assetId: null })
 

@@ -12,8 +12,14 @@ export type CitationItem = {
   title: ReactNode
   /** Where in the original: "Page 4", a timestamp, or a heading path. */
   detail?: ReactNode
+  /** A second line under the row (paper identifiers): plain text that wraps. */
+  meta?: ReactNode
   icon?: IconName
   onOpen?: () => void
+  /** External page URL (web citations): the row becomes a link opening in a new tab. */
+  href?: string
+  /** Open-access PDF URL (paper citations): a second link. The only links are `href` and `pdfUrl`. */
+  pdfUrl?: string
 }
 
 export function citationTargetId(prefix: string, citationId: string) {
@@ -54,13 +60,28 @@ function CitationRow({ citation, index, idPrefix }: { citation: CitationItem; in
       <span className="min-w-0 truncate text-sm font-medium text-foreground">{citation.title}</span>
       {citation.detail ? <span className="min-w-0 truncate text-xs text-muted">{citation.detail}</span> : null}
     </span>
+    {citation.href ? <AppIcon name="link" className="size-3.5 shrink-0 text-muted" /> : null}
     <span className="grid size-5 shrink-0 place-items-center rounded-md bg-surface text-[0.65rem] font-semibold text-muted tabular-nums">{index}</span>
+    {citation.href ? <span className="sr-only">(opens in a new tab)</span> : null}
   </>
   const className = 'flex min-h-11 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors'
   const id = citationTargetId(idPrefix, citation.id)
-  return citation.onOpen
-    ? <button id={id} type="button" onClick={citation.onOpen} className={`${className} hover:bg-surface`}>{content}</button>
-    : <div id={id} tabIndex={-1} className={className}>{content}</div>
+  // A paper row carries a second line (identifiers, PDF link), so the focus target wraps both.
+  const rich = Boolean(citation.meta ?? citation.pdfUrl)
+  const main = citation.href
+    ? <a id={rich ? undefined : id} href={citation.href} target="_blank" rel="noopener noreferrer" className={`${className} hover:bg-surface`}>{content}</a>
+    : citation.onOpen
+      ? <button id={rich ? undefined : id} type="button" onClick={citation.onOpen} className={`${className} hover:bg-surface`}>{content}</button>
+      : <div id={rich ? undefined : id} tabIndex={-1} className={className}>{content}</div>
+  if (!rich) return main
+  return <div id={id} tabIndex={-1} className="min-w-0">
+    {main}
+    <div className="pb-1 pl-11 pr-2">
+      {citation.meta ? <p className="break-words text-xs leading-5 text-muted">{citation.meta}</p> : null}
+      {citation.pdfUrl ? <a href={citation.pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-md text-xs font-medium text-accent">
+        <AppIcon name="pdf" className="size-4" />Open PDF<span className="sr-only">(opens in a new tab)</span></a> : null}
+    </div>
+  </div>
 }
 
 export function CitationList({ citations, idPrefix, className = '' }: { citations: CitationItem[]; idPrefix: string; className?: string }) {

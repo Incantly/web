@@ -260,8 +260,11 @@ export const TableExtendRowColumnButtons: React.FC<
         className={
           portalToBody ? "tiptap-table-control-viewport-floating" : undefined
         }
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         ref={rowButton.ref}
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         style={rowButton.style}
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         inert={!rowButton.isMounted}
       >
         <TableExtendRowColumnButton
@@ -277,8 +280,11 @@ export const TableExtendRowColumnButtons: React.FC<
         className={
           portalToBody ? "tiptap-table-control-viewport-floating" : undefined
         }
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         ref={columnButton.ref}
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         style={columnButton.style}
+        // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
         inert={!columnButton.isMounted}
       >
         <TableExtendRowColumnButton

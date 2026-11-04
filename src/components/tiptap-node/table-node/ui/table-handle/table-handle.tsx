@@ -85,6 +85,7 @@ export function TableHandle({
   const [isColumnVisible, setIsColumnVisible] = useState(true)
   const [menuOpen, setMenuOpen] = useState<null | "row" | "column">(null)
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- hand-tuned memo for drag state; keep as-is
   const draggingState = useMemo(() => {
     if (!state?.draggingState) return undefined
 
@@ -142,7 +143,9 @@ export function TableHandle({
               ? "tiptap-table-handle-floating tiptap-table-handle-viewport-floating"
               : "tiptap-table-handle-floating"
           }
+          // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
           ref={rowHandle.ref}
+          // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
           style={rowHandle.style}
         >
           <RowButton
@@ -165,7 +168,9 @@ export function TableHandle({
               ? "tiptap-table-handle-floating tiptap-table-handle-viewport-floating"
               : "tiptap-table-handle-floating"
           }
+          // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
           ref={colHandle.ref}
+          // eslint-disable-next-line react-hooks/refs -- floating-ui handle props, read during render by design
           style={colHandle.style}
         >
           <ColumnButton

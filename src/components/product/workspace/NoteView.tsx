@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { DocumentBubbleToolbar, DocumentToolbarAction, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
@@ -10,29 +11,35 @@ import { TableExtendRowColumnButtons } from '@/components/tiptap-node/table-node
 import { TableCellHandleMenu } from '@/components/tiptap-node/table-node/ui/table-cell-handle-menu'
 import { incantlySlashMenuItems } from '../slashMenuItems'
 import { AppIcon, type IconName } from '../AppIcon'
-import { apiErrorMessage } from '../../../lib/api/errors'
+import { apiErrorMessage, isApiError } from '../../../lib/api/errors'
 import { notesApi } from '../../../lib/api/notes'
 import { loadDocument } from '../../../lib/notes/documentGate'
 import type { SyncState } from '../../../lib/notes/noteSync'
 import type { NoteSession } from './useNoteSession'
 import { SidePanel } from './sidePanel'
-import { useNotesCache, useRevisions } from './useNotes'
+import { DELETE_NOTE_COPY, deleteNoteTitle } from './trashModel'
+import { revisionsKey, useNotesCache, useRevisions } from './useNotes'
 import { useCurrentUser } from '../SessionGate'
 import { useAddSelectionToChat } from '@/hooks/use-assistant'
 import { useImports } from '@/hooks/use-imports'
+import { useLiveCollab, useSavedSyncPoll } from '@/hooks/use-live-collab'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
+import { useNotifications } from '@/hooks/use-notifications'
 import { useNoteSuggestions } from '@/hooks/use-note-suggestions'
 import { useHeaderFooter } from '@/hooks/use-header-footer'
 import { usePageSetup } from '@/hooks/use-page-setup'
 import { useNoteExport } from '@/hooks/use-note-export'
 import { ExportDialog } from './ExportDialog'
+import { useSharing } from '@/hooks/use-sharing'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { DocumentAssetsProvider } from '../../../lib/document-editor/assetHost'
 import { useNoteSession } from './useNoteSession'
 import { libraryFollowUp, useServerAssetHost } from './useAssets'
 import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChrome'
+import { LiveCollabNotice, LivePresence } from './LivePresence'
+import { CommentsPanel } from './CommentsPanel'
 import { NoteContextPanel } from './NoteContextPanel'
 import { NoteSourcesSection } from './NoteSourcesSection'
 import { NoteSuggestionsBar } from './NoteSuggestionsBar'
@@ -57,6 +64,7 @@ const syncCopy: Record<SyncState['status'], { label: (state: SyncState) => strin
   conflict: { label: () => 'Conflict', icon: 'alert', tone: 'text-danger' },
   error: { label: () => 'Not saving', icon: 'alert', tone: 'text-danger' },
   gone: { label: () => 'Deleted', icon: 'trash', tone: 'text-danger' },
+  denied: { label: () => 'Read only', icon: 'unlink', tone: 'text-muted' },
 }
 
 /** Saved · Saving · Offline (n pending) · Conflict, announced politely to assistive tech. */
@@ -87,32 +95,66 @@ function TitleInput({ title, disabled, onRename }: { title: string; disabled: bo
     aria-label="Note title" className="-mx-1.5 min-h-11 min-w-0 flex-1 bg-transparent px-1.5 font-display text-base text-foreground outline-none focus-visible:outline-none disabled:opacity-70" />
 }
 
-function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open: boolean; onClose: () => void; noteId: string; hasPending: boolean; onRestore: (revisionId: string) => Promise<void> }) {
+function HistoryDialog({ open, onClose, noteId, hasPending, onRestore, onAccessDenied }: { open: boolean; onClose: () => void; noteId: string; hasPending: boolean; onRestore: (revisionId: string) => Promise<void>; onAccessDenied: (error: unknown) => void }) {
   const revisions = useRevisions(noteId, open)
+  const queryClient = useQueryClient()
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ id: string; document: ReturnType<typeof loadDocument> } | null>(null)
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Latest callbacks for the effects below, whose deps must stay fetch-scoped to avoid refetch loops.
+  const callbacks = useRef({ onClose, onAccessDenied })
+  useEffect(() => { callbacks.current = { onClose, onAccessDenied } })
+
+  function close() { setPreviewId(null); setPreview(null); onClose() }
+  // Losing access mid-history is a mid-session denial, not a dialog error: drop the (now
+  // unreadable) history cache, toast and go read-only via the session, and close the dialog.
+  function denyAccess(error: unknown) {
+    queryClient.removeQueries({ queryKey: revisionsKey(noteId) })
+    callbacks.current.onAccessDenied(error)
+    setPreviewId(null); setPreview(null)
+    callbacks.current.onClose()
+  }
+
+  useEffect(() => {
+    if (!open || !isApiError(revisions.error, 'NOTE_ACCESS_DENIED')) return
+    // A denied revisions list means access was lost: same treatment as denyAccess, deferred past
+    // the commit so the effect itself stays side-effect free.
+    const error = revisions.error
+    queueMicrotask(() => {
+      queryClient.removeQueries({ queryKey: revisionsKey(noteId) })
+      callbacks.current.onAccessDenied(error)
+      setPreviewId(null); setPreview(null)
+      callbacks.current.onClose()
+    })
+  }, [open, revisions.error, queryClient, noteId])
 
   useEffect(() => {
     if (!previewId) return
     const controller = new AbortController()
     notesApi.revision(noteId, previewId, controller.signal)
       .then((result) => setPreview({ id: previewId, document: loadDocument(result.document) }))
-      .catch((cause) => { if (!controller.signal.aborted) setError(apiErrorMessage(cause)) })
+      .catch((cause) => {
+        if (controller.signal.aborted) return
+        if (isApiError(cause, 'NOTE_ACCESS_DENIED')) { queryClient.removeQueries({ queryKey: revisionsKey(noteId) }); callbacks.current.onAccessDenied(cause); setPreviewId(null); setPreview(null); callbacks.current.onClose(); return }
+        setError(apiErrorMessage(cause))
+      })
     return () => controller.abort()
-  }, [noteId, previewId])
+  }, [noteId, previewId, queryClient])
 
   const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   async function restore() {
     if (!previewId) return
     setBusy(true); setError('')
-    try { await onRestore(previewId); onClose() } catch (cause) { setError(apiErrorMessage(cause)) } finally { setBusy(false) }
+    try { await onRestore(previewId); onClose() } catch (cause) {
+      if (isApiError(cause, 'NOTE_ACCESS_DENIED')) { denyAccess(cause); return }
+      setError(apiErrorMessage(cause))
+    } finally { setBusy(false) }
   }
 
   return <>
-    <SidePanel open={open} onClose={() => { setPreviewId(null); setPreview(null); onClose() }} title="Version history" description="Restoring adds a new version; history is never rewritten."
+    <SidePanel open={open} onClose={close} title="Version history" description="Restoring adds a new version; history is never rewritten."
       footer={previewId ? <><button type="button" onClick={() => { setPreviewId(null); setPreview(null) }} className={buttonSecondary}>Back</button><button type="button" disabled={busy} onClick={() => (hasPending ? setConfirm(true) : void restore())} className={buttonPrimary}><AppIcon name="restore" className="size-4" />{busy ? 'Restoring…' : 'Restore this version'}</button></> : undefined}>
       {error ? <div className="mb-4"><ErrorState message={error} /></div> : null}
       {previewId ? (preview?.id === previewId
@@ -137,12 +179,16 @@ function HistoryDialog({ open, onClose, noteId, hasPending, onRestore }: { open:
   </>
 }
 
-function ConflictDialog({ open, onClose, state, onKeepMine, onTakeServer }: { open: boolean; onClose: () => void; state: SyncState | null; onKeepMine: () => Promise<void>; onTakeServer: () => Promise<void> }) {
+function ConflictDialog({ open, onClose, state, onKeepMine, onTakeServer, onAccessDenied }: { open: boolean; onClose: () => void; state: SyncState | null; onKeepMine: () => Promise<void>; onTakeServer: () => Promise<void>; onAccessDenied: (error: unknown) => void }) {
   const [busy, setBusy] = useState<'mine' | 'server' | null>(null)
   const [error, setError] = useState('')
   async function run(kind: 'mine' | 'server', action: () => Promise<void>) {
     setBusy(kind); setError('')
-    try { await action(); onClose() } catch (cause) { setError(apiErrorMessage(cause)) } finally { setBusy(null) }
+    try { await action(); onClose() } catch (cause) {
+      // A denied checkpoint read means access was lost: toast + read-only via the session, not inline text.
+      if (isApiError(cause, 'NOTE_ACCESS_DENIED')) { onAccessDenied(cause); onClose(); return }
+      setError(apiErrorMessage(cause))
+    } finally { setBusy(null) }
   }
   const isConflict = state?.status === 'conflict'
   return <Dialog open={open} onClose={onClose} title={isConflict ? 'This note changed elsewhere' : 'Saving paused'}
@@ -179,19 +225,26 @@ export function NoteRoute({ noteId }: { noteId: string }) {
 
 /** The note's top bar, editor, and side panels. Everything beyond the session comes from the feature contexts. */
 export function NoteScreen({ noteId, session }: { noteId: string; session: NoteSession }) {
-  const { navigate, focusBlock: requestedBlock } = useNavigation()
-  const { activeNote, deleteNote, shareNote } = useNotes()
+  const { navigate, focusBlock: requestedBlock, focusThread: requestedThread } = useNavigation()
+  const { activeNote, deleteNote } = useNotes()
   const { noteSpace: space } = useSpaces()
+  const { openShareDialog } = useSharing()
+  const { noteId: liveNoteId } = useLiveCollab()
+  const { noteMuted, toggleNoteMute, muting, prefsLoading } = useNotifications()
+  // Shared when the list says so, or live-status confirmed it (the list can lag a fresh share).
+  const shared = (activeNote?.shared ?? false) || liveNoteId === noteId
+  useSavedSyncPoll(noteId, session, shared)
   const { openImport } = useWorkspaceUI()
   const title = activeNote?.title ?? ''
   /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
   const focusBlock = requestedBlock?.noteId === noteId ? requestedBlock : null
   const onImport = (mode: 'file' | 'url') => openImport({ mode, intoNote: { id: noteId, title } })
   const onOpenSpace = (spaceId: string) => navigate(`space:${spaceId}`)
-  const onShare = () => shareNote(noteId)
-  const onDelete = () => deleteNote(noteId)
+  // Delete failures surface as a toast from the mutation cache, so there is nothing to render here.
+  const onDelete = () => deleteNote(noteId).catch(() => {})
   const onBack = () => navigate('notes')
   const [contextOpen, setContextOpen] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const editorRef = useRef<Editor | null>(null)
@@ -206,9 +259,14 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     if (!focusBlock || !editor || editor.isDestroyed) return
     setMissingBlock(!revealBlockRange(editor, focusBlock.blockId, focusBlock.endBlockId))
   }, [focusBlock, editorReady])
+  // A `?thread=` deep link opens the comments panel; the panel scrolls to and highlights the thread.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- open the panel when a thread link arrives
+    if (requestedThread?.noteId === noteId) setCommentsOpen(true)
+  }, [requestedThread, noteId])
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
-  const editable = session.phase === 'ready' && session.sync?.status !== 'gone'
+  const editable = session.phase === 'ready' && session.sync?.status !== 'gone' && session.sync?.status !== 'denied'
   const pageSetup = usePageSetup(editor, editable)
   const headerFooter = useHeaderFooter(editor, editable)
   // The loaded document keeps its original title; a rename made here wins until the list catches up.
@@ -224,16 +282,19 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
         <TitleInput key={noteId} title={shownTitle} disabled={!editable} onRename={rename} />
       </nav>
       <div className="ml-auto flex shrink-0 items-center gap-0.5">
+        <LivePresence />
         {session.phase === 'ready' || session.phase === 'cached' ? <SyncIndicator state={session.sync} cached={session.phase === 'cached'} onResolve={() => setDialog('conflict')} /> : null}
         <ActionMenu label="Note actions" items={[
           { label: 'Find in note', icon: 'search', hint: '⌘F', onSelect: () => setFindOpen(true), disabled: !session.document },
           { label: 'Note context', icon: 'link', onSelect: () => setContextOpen(true) },
+          ...(shared ? [{ label: 'Comments', icon: 'comment' as const, onSelect: () => setCommentsOpen(true) }] : []),
           { label: 'Page setup', icon: 'paper', onSelect: () => setPageSetupOpen(true), disabled: !session.document },
           { label: 'Export…', icon: 'upload', onSelect: noteExport.show, disabled: !editor },
           { label: 'Version history', icon: 'history', onSelect: () => setDialog('history'), disabled: session.phase !== 'ready' },
           { label: 'Import file into note', icon: 'import', onSelect: () => onImport('file'), disabled: !editable },
           { label: 'Import web page into note', icon: 'globe', onSelect: () => onImport('url'), disabled: !editable },
-          { label: 'Share summary', icon: 'share', onSelect: onShare },
+          { label: 'Share…', icon: 'share', onSelect: () => openShareDialog(noteId) },
+          { label: noteMuted(noteId) ? 'Unmute email for this note' : 'Mute email for this note', icon: 'bell', onSelect: () => toggleNoteMute(noteId), disabled: muting || prefsLoading },
           { label: 'Delete note', icon: 'trash', destructive: true, onSelect: () => setDialog('delete') },
         ]} />
         <TopBarTrailing />
@@ -242,12 +303,14 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
 
     {session.phase === 'loading' ? <div className="mx-auto mt-16 h-28 w-full max-w-[46rem] animate-pulse rounded-2xl bg-surface motion-reduce:animate-none" role="status" aria-label="Loading note" /> : null}
     {session.phase === 'not-found' || session.sync?.status === 'gone' ? <PageFrame><EmptyState icon="document" title="Note not found" body="It may have been deleted, or it belongs to another account." action={<button type="button" onClick={onBack} className={buttonSecondary}>All notes</button>} /></PageFrame> : null}
+    {session.phase === 'no-access' ? <PageFrame><EmptyState icon="unlink" title="You no longer have access" body="The owner stopped sharing this note with you, or it was deleted. Ask the owner to share it again." action={<button type="button" onClick={onBack} className={buttonSecondary}>All notes</button>} /></PageFrame> : null}
     {session.phase === 'error' ? <PageFrame><ErrorState message={session.errorMessage ?? 'This note couldn’t be opened.'} onRetry={session.retry} /></PageFrame> : null}
 
     {session.document && (session.phase === 'ready' || session.phase === 'cached') && session.sync?.status !== 'gone' ? <>
       {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
       {missingBlock ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">That passage has changed since it was indexed, so it can’t be highlighted.</p> : null}
       {selectionToChat.error ? <p role="status" className="mx-auto mt-2 flex w-fit items-center gap-1 rounded-full bg-surface pl-3 text-xs text-muted">{selectionToChat.error}<button type="button" onClick={selectionToChat.dismissError} aria-label="Dismiss" className="grid size-8 place-items-center rounded-full hover:text-foreground"><AppIcon name="close" className="size-3.5" /></button></p> : null}
+      <LiveCollabNotice />
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
       {/* No full-height stretch: the top bar shares this scroll box, so an empty note would scroll by its height. */}
       <div>
@@ -267,10 +330,13 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     <SidePanel open={pageSetupOpen} onClose={() => { setPageSetupOpen(false); pageSetup.clearError() }} title="Page setup" description="Paper, margins, headers and footers for this note.">
       <PageSetupPanel state={pageSetup} headerFooter={headerFooter} />
     </SidePanel>
+    {shared ? <SidePanel open={commentsOpen} onClose={() => setCommentsOpen(false)} title="Comments" description="Threads, replies and @mentions on this note.">
+      <CommentsPanel noteId={noteId} />
+    </SidePanel> : null}
     <ExportDialog state={noteExport} onOpenPageSetup={() => { noteExport.close(); setPageSetupOpen(true) }} />
-    <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} />
-    <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} />
-    <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel="Delete note" title={`Delete “${shownTitle || 'this note'}”?`}
-      body="It’s removed from your notes and any Space it’s in. This can’t be undone from here." onConfirm={() => void onDelete()} />
+    <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} onAccessDenied={session.markAccessDenied} />
+    <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} onAccessDenied={session.markAccessDenied} />
+    <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel={DELETE_NOTE_COPY.confirmLabel} title={deleteNoteTitle(shownTitle)}
+      body={DELETE_NOTE_COPY.body} onConfirm={() => void onDelete()} />
   </>
 }

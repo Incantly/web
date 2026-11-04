@@ -16,6 +16,10 @@ const eslintConfig = defineConfig([
     "src/lib/document-editor/**",
     // Generated from the backend OpenAPI schema (npm run api:types).
     "src/lib/api/schema.d.ts",
+    // Build output (Cloudflare): generated, git-ignored, never hand-edited.
+    ".open-next/**",
+    // Agent worktree checkouts: separate environments, excluded from git.
+    ".claude/worktrees/**",
   ]),
 ]);
 
