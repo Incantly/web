@@ -8,6 +8,7 @@ import { useNavigation } from '@/hooks/use-navigation'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceShortcuts } from '@/hooks/use-workspace-shortcuts'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
+import { DeckView } from './workspace/FlashcardViews'
 import { InvitationsView } from './workspace/InvitationsView'
 import { LibraryView } from './workspace/LibraryView'
 import { NoteRoute } from './workspace/NoteView'
@@ -77,7 +78,7 @@ function WorkspaceShell() {
 function PageTopBar() {
   const { view } = useNavigation()
   const { activeSpace } = useSpaces()
-  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'shared' ? 'Shared with me' : view === 'invitations' ? 'Invitations' : view === 'trash' ? 'Trash' : view.startsWith('quiz:') ? 'Quiz' : activeSpace ? activeSpace.name : null
+  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'shared' ? 'Shared with me' : view === 'invitations' ? 'Invitations' : view === 'trash' ? 'Trash' : view.startsWith('quiz:') ? 'Quiz' : view.startsWith('deck:') ? 'Flashcards' : activeSpace ? activeSpace.name : null
   return <TopBar banner={<ConnectionBanner />}>
     <TopBarLeading />
     {label ? <span className="min-w-0 truncate px-1 text-sm text-muted">{label}</span> : null}
@@ -97,6 +98,7 @@ function Page() {
   if (view === 'library') return <LibraryView />
   if (view === 'trash') return <TrashView />
   if (view.startsWith('quiz:')) return <QuizView key={view} quizId={view.slice(5)} />
+  if (view.startsWith('deck:')) return <DeckView key={view} deckId={view.slice(5)} />
   if (activeSpace) return <SpaceView key={activeSpace.id} space={activeSpace} />
   if (activeSpaceId && status.loading) return <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame>
   if (activeSpaceId) return <PageFrame><EmptyState icon="space" title="Space not found" body="It may have been deleted." action={<button type="button" onClick={() => navigate('spaces')} className={buttonSecondary}>All Spaces</button>} /></PageFrame>

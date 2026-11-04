@@ -7,7 +7,7 @@ const PAGES: ReadonlySet<string> = new Set(['notes', 'shared', 'invitations', 's
 
 /**
  * Reads the workspace view from a query string, so a refresh or shared link reopens the same page:
- * `?note=<id>` (optionally `&space=<id>`), `?space=<id>`, `?quiz=<id>`,
+ * `?note=<id>` (optionally `&space=<id>`), `?space=<id>`, `?quiz=<id>`, `?deck=<id|new>`,
  * or `?view=notes|shared|invitations|spaces|library|trash`.
  * Anything else is Home (including the old `?view=search`, now the ⌘K search bar).
  */
@@ -16,8 +16,10 @@ export function viewFromSearch(search: string): UrlState {
   const note = params.get('note')
   const space = params.get('space')
   const quiz = params.get('quiz')
+  const deck = params.get('deck')
   if (note) return { view: `note:${note}`, noteSpaceId: space || null }
   if (quiz) return { view: `quiz:${quiz}`, noteSpaceId: null }
+  if (deck) return { view: `deck:${deck}`, noteSpaceId: null }
   if (space) return { view: `space:${space}`, noteSpaceId: null }
   const page = params.get('view')
   return { view: page && PAGES.has(page) ? (page as WorkspaceView) : 'home', noteSpaceId: null }
@@ -31,6 +33,8 @@ export function searchForView(view: WorkspaceView, noteSpaceId: string | null = 
     if (noteSpaceId) params.set('space', noteSpaceId)
   } else if (view.startsWith('quiz:')) {
     params.set('quiz', view.slice(5))
+  } else if (view.startsWith('deck:')) {
+    params.set('deck', view.slice(5))
   } else if (view.startsWith('space:')) {
     params.set('space', view.slice(6))
   } else if (view !== 'home') {

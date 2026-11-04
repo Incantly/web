@@ -227,7 +227,41 @@ Needs backend :3012 with at least one READY quiz. Quiz entry is direct-URL
 10. Resize to 320px: no horizontal scroll; keyboard-tab through every
     input; focus ring visible.
 
-## Phase 5 (b–c) — Flashcards + generations
+## Phase 5b — Flashcard decks
+
+Needs backend :3012 with AI generation configured. Deck entry is direct-URL
+(?deck=new to generate, ?deck=\<id> to review); no deck list yet.
+
+Generate flow:
+
+1. Go to /workspace?deck=new. EXPECT "New deck" with a scope picker
+   (one note / a Space / sources / everything) and options.
+2. Pick "Everything", leave options default, click Generate deck. EXPECT
+   "Making your deck" with live "N cards ready…" progress.
+3. Wait for completion. EXPECT "Deck ready" + Start reviewing; click it.
+   EXPECT the review queue with a due count.
+4. Reload /workspace?deck=new mid-generation (start a second deck first).
+   EXPECT a blank form (generation progress is in-memory only and does not
+   survive reload; the server-side job itself continues).
+
+Review flow (need one READY deck; find ids via
+fetch('/v1/artifacts?type=FLASHCARD_DECK',{credentials:'include'})
+.then(r=>r.json()).then(d=>console.log(d.items.map(i=>i.id)))):
+
+5. Go to /workspace?deck=\<id>. EXPECT the first due card's front as text,
+   "N due", Show answer, and the due queue below.
+6. Click Show answer. EXPECT the answer as text (+ sources when present)
+   and four grading buttons: Again / Hard / Good / Easy.
+7. Click Good. EXPECT the next card appears and the queue count drops.
+8. DevTools Network → Offline; click Show answer on the new card. EXPECT
+   the button disabled + offline notice; go online → reveal works.
+9. With the answer shown, click "Replace this card" → confirm dialog
+   EXPECTS the keeps-schedules wording → Replace card. EXPECT
+   "Writing replacement cards…" then the queue refreshes.
+10. Resize to 320px: no horizontal scroll; keyboard-tab through Show
+    answer and all four grades; focus ring visible on each.
+
+## Phase 5c — Artifact generations
 
 (TBD when the phase lands.)
 

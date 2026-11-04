@@ -56,4 +56,27 @@ describe('apiErrorMessage', () => {
   ] as const)('maps quiz code %s to friendly copy', (code, pattern) => {
     expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
   })
+
+  it.each([
+    ['FLASHCARD_DECK_NOT_FOUND', /deck no longer exists/],
+    ['FLASHCARD_DECK_NOT_READY', /deck isn’t ready yet/],
+    ['FLASHCARD_VERSION_CHANGED', /deck changed.*latest cards/],
+    ['FLASHCARD_VERSION_NOT_FOUND', /deck changed.*latest cards/],
+    ['FLASHCARD_NOT_FOUND', /card is gone/],
+    ['FLASHCARD_REVIEW_CONFLICT', /changed before your review landed/],
+    ['FLASHCARD_REVIEW_INVALID', /didn’t fit the card/],
+    ['FLASHCARD_CARDS_INVALID', /up to 8 current cards/],
+    ['FLASHCARD_PAGE_INVALID', /Reload the deck/],
+    ['FLASHCARD_CURSOR_INVALID', /from the top/],
+    ['FLASHCARD_PREFERENCES_INVALID', /deck options/],
+    ['FLASHCARD_TOO_FEW_VALID_CARDS', /Not enough cards/],
+    ['FLASHCARD_REGENERATION_FAILED', /Nothing changed/],
+    ['ARTIFACT_SCOPE_EMPTY', /nothing to make cards from/],
+    ['ARTIFACT_SCOPE_NOT_READY', /still getting ready/],
+    ['ARTIFACT_ACCESS_REVOKED', /was removed/],
+    ['ARTIFACT_DEADLINE_EXHAUSTED', /timed out/],
+    ['ARTIFACT_JOB_NOT_FOUND', /generation is gone/],
+  ] as const)('maps flashcard code %s to friendly copy', (code, pattern) => {
+    expect(apiErrorMessage(new ApiError(500, code, 'req-1', null))).toMatch(pattern)
+  })
 })
