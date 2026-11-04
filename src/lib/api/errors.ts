@@ -42,6 +42,7 @@ const messages: Record<string, string> = {
   INVALID_NOTE_TRANSACTION: 'An edit couldn’t be saved. Copy any important text and reload the note.',
   USE_TRANSACTIONS: 'This note is shared, so it saves a different way. Try again in a moment.',
   RESTORE_IN_PROGRESS: 'Another restore is in progress. Try again shortly.',
+  NOTE_NOT_DELETED: 'This note is already restored. You’ll find it back in your notes.',
   ROOM_DOCUMENT_TOO_LARGE: 'This shared note is at its size limit. Split it or attach files instead.',
   LIVE_COLLABORATION_UNAVAILABLE: 'The shared-note service is unavailable right now. Nothing was applied — try again in a moment.',
 

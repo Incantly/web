@@ -5,12 +5,13 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useCurrentUser } from '@/components/product/SessionGate'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
 import type { NoteRecord } from '@/components/product/workspace/model'
-import { createNoteVariables, useCreateNote, useDeleteNote, useNotesList } from '@/components/product/workspace/useNotes'
+import { createNoteVariables, trashKey, useCreateNote, useDeleteNote, useNotesList } from '@/components/product/workspace/useNotes'
 import { noteSyncStore, resumePendingNotes } from '@/components/product/workspace/useNoteSession'
 import type { ListStatus } from '@/components/product/workspace/views'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useSpaces } from '@/hooks/use-spaces'
 import { authClient } from '@/lib/auth-client'
+import { isSharedNote } from '@/lib/api/notes'
 import { syncKey } from '@/lib/notes/syncStore'
 
 export type NotesValue = {
@@ -44,6 +45,7 @@ export function useNotesState(): NotesValue {
     updatedAt: Date.parse(note.updatedAt) || 0,
     spaceId: noteSpaceId(note.id),
     currentRevisionId: note.currentRevisionId ?? null,
+    shared: isSharedNote(note),
   })), [query.notes, noteSpaceId])
 
   // Send edits still waiting on this device: once on load, and again whenever the connection returns.
@@ -73,6 +75,7 @@ export function useNotesState(): NotesValue {
     await noteSyncStore().remove(syncKey(user.id, noteId)).catch(() => {})
     void client.invalidateQueries({ queryKey: ['space-notes'] })
     void client.invalidateQueries({ queryKey: ['spaces', user.id] })
+    void client.invalidateQueries({ queryKey: trashKey(user.id) })
     navigate(spaceId ? `space:${spaceId}` : 'notes')
   }, [remove, user.id, client, noteSpaceId, navigate])
 

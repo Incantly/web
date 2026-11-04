@@ -18,6 +18,7 @@ describe('apiErrorMessage', () => {
   it.each([
     ['USE_TRANSACTIONS', /shared.*different way/],
     ['RESTORE_IN_PROGRESS', /restore is in progress.*shortly/],
+    ['NOTE_NOT_DELETED', /already restored/],
     ['ROOM_DOCUMENT_TOO_LARGE', /size limit/],
     ['LIVE_COLLABORATION_UNAVAILABLE', /unavailable.*Nothing was applied/],
   ] as const)('maps %s to friendly copy', (code, pattern) => {

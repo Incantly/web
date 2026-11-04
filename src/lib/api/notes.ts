@@ -4,6 +4,8 @@ import { apiFetch } from './client'
 import type { Page, Schema } from './types'
 
 export type NoteDto = Schema<'NoteDto'>
+export type TrashNoteDto = Schema<'TrashNoteDto'>
+export type SharedWithMeItemDto = Schema<'SharedWithMeItemDto'>
 export type NoteRevisionDto = Schema<'NoteRevisionDto'>
 export type NoteTransactionAck = Schema<'NoteTransactionAckDto'>
 /** The checkpoint document is untrusted JSON until it passes the load gate. */
@@ -74,6 +76,25 @@ export const notesApi = {
   },
   async restore(noteId: string, sourceRevisionId: string) {
     return (await apiFetch<Schema<'NoteRevisionResultDto'>>(`/v1/notes/${id(noteId)}/restore`, { method: 'POST', body: { sourceRevisionId } })).data
+  },
+  /** Owner's trash, newest first (`GET /v1/notes/trash`). Each item carries its own `purgeAt`. */
+  async trash(params: { cursor?: string | null; limit?: number } = {}, signal?: AbortSignal) {
+    const query = new URLSearchParams({ limit: String(params.limit ?? 25) })
+    if (params.cursor) query.set('cursor', params.cursor)
+    return (await apiFetch<Page<TrashNoteDto>>(`/v1/notes/trash?${query}`, { signal })).data
+  },
+  /**
+   * Trash restore: `POST /v1/notes/{id}/restore` with no body (200: the live note).
+   * A 409 NOTE_NOT_DELETED means it is already live: confirm with `get` instead of retrying.
+   */
+  async restoreTrash(noteId: string) {
+    return (await apiFetch<NoteDto>(`/v1/notes/${id(noteId)}/restore`, { method: 'POST' })).data
+  },
+  /** Notes others shared with the caller, newest first (`GET /v1/notes/shared-with-me`). */
+  async sharedWithMe(params: { cursor?: string | null; limit?: number } = {}, signal?: AbortSignal) {
+    const query = new URLSearchParams({ limit: String(params.limit ?? 25) })
+    if (params.cursor) query.set('cursor', params.cursor)
+    return (await apiFetch<Page<SharedWithMeItemDto>>(`/v1/notes/shared-with-me?${query}`, { signal })).data
   },
   async remove(noteId: string) {
     await apiFetch<void>(`/v1/notes/${id(noteId)}`, { method: 'DELETE' })

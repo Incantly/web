@@ -130,6 +130,8 @@ export function Sidebar({ view, notes, spaces, sources, navigate, onNew, onOpenS
       <RailItem icon="search" label="Search" collapsed={collapsed} active={false} onClick={onOpenSearch}><span className={`hidden shrink-0 rounded bg-canvas px-1.5 py-0.5 text-[0.65rem] text-subtle sm:block ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>⌘ K</span></RailItem>
       <RailItem icon="home" label="Home" collapsed={collapsed} active={view === 'home'} onClick={() => navigate('home')} />
       <RailItem icon="document" label="All notes" collapsed={collapsed} active={view === 'notes'} onClick={() => navigate('notes')}>{notes.length ? <span className={`shrink-0 text-xs text-subtle ${fade} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{notes.length}</span> : null}</RailItem>
+      <RailItem icon="share" label="Shared with me" collapsed={collapsed} active={view === 'shared'} onClick={() => navigate('shared')} />
+      <RailItem icon="trash" label="Trash" collapsed={collapsed} active={view === 'trash'} onClick={() => navigate('trash')} />
     </nav>
 
     <Section id="sidebar-spaces" icon="space" title="Spaces" addLabel="New Space" collapsed={collapsed} open={open.spaces} onToggle={() => setOpen((current) => ({ ...current, spaces: !current.spaces }))} onOverview={() => navigate('spaces')} onAdd={() => onNew('space')} active={view === 'spaces'}>

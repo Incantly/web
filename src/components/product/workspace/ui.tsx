@@ -118,6 +118,11 @@ const statusStyles: Record<SourceStatus, { label: string; className: string; ico
   DELETED: { label: 'Deleted', className: 'bg-surface text-subtle', icon: 'trash' },
 }
 
+/** Marks a note row as shared: the backend reports a live-room collaboration on it. */
+export function SharedBadge() {
+  return <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs text-muted"><AppIcon name="share" className="size-3.5" />Shared</span>
+}
+
 /** Source status; while processing it names the stage, and images parked without a processor read "Not searchable". */
 export function StatusChip({ status, stage }: { status: SourceStatus; stage?: string | null }) {
   const style = statusStyles[status] ?? statusStyles.PENDING

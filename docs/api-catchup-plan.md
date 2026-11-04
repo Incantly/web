@@ -60,3 +60,4 @@ files, responsive check of touched views, manual steps appended to
 | --- | --- | --- |
 | 1 | chore(api): refresh contract to backend main | 127 paths/151 ops; webScope loosening; lint gate green (config ignores + 30 reasoned disables) |
 | 2 | feat(notes): shared-note correctness | denied states, transaction-only shared saves, 409/413/503 copy, conditional checkpoint GET; known: pure shared rename is local-only (backend G2), decide/undo denial double-toasts |
+| 3 | feat(notes): trash + shared-with-me | trash list/restore, 30-day delete copy, shared section + row badges |

@@ -17,6 +17,7 @@ import { loadDocument } from '../../../lib/notes/documentGate'
 import type { SyncState } from '../../../lib/notes/noteSync'
 import type { NoteSession } from './useNoteSession'
 import { SidePanel } from './sidePanel'
+import { DELETE_NOTE_COPY, deleteNoteTitle } from './trashModel'
 import { revisionsKey, useNotesCache, useRevisions } from './useNotes'
 import { useCurrentUser } from '../SessionGate'
 import { useAddSelectionToChat } from '@/hooks/use-assistant'
@@ -229,7 +230,8 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const onImport = (mode: 'file' | 'url') => openImport({ mode, intoNote: { id: noteId, title } })
   const onOpenSpace = (spaceId: string) => navigate(`space:${spaceId}`)
   const onShare = () => shareNote(noteId)
-  const onDelete = () => deleteNote(noteId)
+  // Delete failures surface as a toast from the mutation cache, so there is nothing to render here.
+  const onDelete = () => deleteNote(noteId).catch(() => {})
   const onBack = () => navigate('notes')
   const [contextOpen, setContextOpen] = useState(false)
   const [pageSetupOpen, setPageSetupOpen] = useState(false)
@@ -311,7 +313,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     <ExportDialog state={noteExport} onOpenPageSetup={() => { noteExport.close(); setPageSetupOpen(true) }} />
     <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} onAccessDenied={session.markAccessDenied} />
     <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} onAccessDenied={session.markAccessDenied} />
-    <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel="Delete note" title={`Delete “${shownTitle || 'this note'}”?`}
-      body="It’s removed from your notes and any Space it’s in. This can’t be undone from here." onConfirm={() => void onDelete()} />
+    <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel={DELETE_NOTE_COPY.confirmLabel} title={deleteNoteTitle(shownTitle)}
+      body={DELETE_NOTE_COPY.body} onConfirm={() => void onDelete()} />
   </>
 }

@@ -3,11 +3,11 @@ import type { WorkspaceView } from './model'
 /** Where a URL points: the view, plus the Space a note was opened from (the notes list has no Space field). */
 export type UrlState = { view: WorkspaceView; noteSpaceId: string | null }
 
-const PAGES: ReadonlySet<string> = new Set(['notes', 'spaces', 'library'])
+const PAGES: ReadonlySet<string> = new Set(['notes', 'shared', 'spaces', 'library', 'trash'])
 
 /**
  * Reads the workspace view from a query string, so a refresh or shared link reopens the same page:
- * `?note=<id>` (optionally `&space=<id>`), `?space=<id>`, or `?view=notes|spaces|library`.
+ * `?note=<id>` (optionally `&space=<id>`), `?space=<id>`, or `?view=notes|shared|spaces|library|trash`.
  * Anything else is Home (including the old `?view=search`, now the ⌘K search bar).
  */
 export function viewFromSearch(search: string): UrlState {

@@ -11,7 +11,7 @@ export const demoUser: CurrentUser = { id: 'demo', name: 'Ada Okafor', email: 'a
 const space = (id: string, name: string, icon: string): SpaceRecord => ({ id, name, icon, description: null, homeNoteId: null, status: 'ACTIVE', retentionHold: false, updatedAt: 0 })
 export const demoSpaces: SpaceRecord[] = [space('maths', 'Maths, slowly', '∑'), space('orbits', 'Sky & orbits', '☉'), space('waves', 'Sound & waves', '≈'), space('living', 'Living systems', '❦'), space('field', 'Field notes', '✎')]
 
-const note = (id: string, title: string, spaceId: string): NoteRecord => ({ id, title, spaceId, updatedAt: 0, currentRevisionId: null })
+const note = (id: string, title: string, spaceId: string): NoteRecord => ({ id, title, spaceId, updatedAt: 0, currentRevisionId: null, shared: false })
 export const demoNotes: NoteRecord[] = [
   note('euler', 'Unrolling Euler’s formula', 'maths'),
   note('kepler', 'Why planets speed up near the Sun', 'orbits'),

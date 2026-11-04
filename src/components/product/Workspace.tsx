@@ -11,6 +11,7 @@ import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
 import { LibraryView } from './workspace/LibraryView'
 import { NoteRoute } from './workspace/NoteView'
 import { SpaceView, SpacesView } from './workspace/SpaceViews'
+import { SharedWithMeView, TrashView } from './workspace/TrashViews'
 import { useAbandonedUploadCleanup } from './workspace/useAssets'
 import { EmptyState, PageFrame, TopBar, buttonSecondary } from './workspace/ui'
 import { HomeView, NotesView } from './workspace/views'
@@ -74,7 +75,7 @@ function WorkspaceShell() {
 function PageTopBar() {
   const { view } = useNavigation()
   const { activeSpace } = useSpaces()
-  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : activeSpace ? activeSpace.name : null
+  const label = view === 'spaces' ? 'Spaces' : view === 'library' ? 'Library' : view === 'notes' ? 'Notes' : view === 'shared' ? 'Shared with me' : view === 'trash' ? 'Trash' : activeSpace ? activeSpace.name : null
   return <TopBar banner={<ConnectionBanner />}>
     <TopBarLeading />
     {label ? <span className="min-w-0 truncate px-1 text-sm text-muted">{label}</span> : null}
@@ -88,8 +89,10 @@ function Page() {
   const { activeSpace, status } = useSpaces()
   if (view === 'home') return <HomeView />
   if (view === 'notes') return <NotesView />
+  if (view === 'shared') return <SharedWithMeView />
   if (view === 'spaces') return <SpacesView />
   if (view === 'library') return <LibraryView />
+  if (view === 'trash') return <TrashView />
   if (activeSpace) return <SpaceView key={activeSpace.id} space={activeSpace} />
   if (activeSpaceId && status.loading) return <PageFrame><span className="sr-only" role="status">Loading Space</span></PageFrame>
   if (activeSpaceId) return <PageFrame><EmptyState icon="space" title="Space not found" body="It may have been deleted." action={<button type="button" onClick={() => navigate('spaces')} className={buttonSecondary}>All Spaces</button>} /></PageFrame>

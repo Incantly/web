@@ -38,7 +38,25 @@ backend/API directly until Phase 4 lands its UI.
 
 ## Phase 3 — Trash + Shared-with-me
 
-(TBD when the phase lands.)
+1. Create note "Trash me", open Note actions (···) > Delete note. Confirm the
+   dialog reads "restorable for 30 days from Trash" and mentions immediate
+   access loss. Confirm.
+2. Verify it is gone from All notes and Home > Recent notes.
+3. Open sidebar Trash (?view=trash): EXPECT "Trash me" with "Deleted <date> ·
+   Permanently deleted on <date>".
+4. Click Restore: button shows "Restoring…", then banner "is back in your
+   notes" with Open note. Click Open note: EXPECT the note opens.
+5. All notes shows it again; Trash no longer does ("Trash is empty" if alone).
+6. Refresh on ?view=trash and ?view=shared: EXPECT the same page reopens.
+7. Shared-with-me: have another user share a note with you, open "Shared with
+   me" (?view=shared): EXPECT "Shared by <name>" row; open it: EXPECT normal
+   note session.
+8. Share one of your own notes: EXPECT a "Shared" pill on that row in All
+   notes and Home > Recent notes, and only there.
+9. Offline: disconnect, open Trash and Shared with me: EXPECT friendly
+   connection error with Try again; reconnect + retry loads.
+10. At 320px on Trash: EXPECT rows wrap, no horizontal scroll, Restore
+    tappable.
 
 ## Phase 4 — Sharing + live + comments + notifications
 
