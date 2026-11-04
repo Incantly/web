@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AiJob, AnswerCitation } from '../../../lib/api/ai'
-import { activitySteps, editsNotStored, answerBlocks, canRetry, chatModes, citationKind, citationLinks, stepsSummary, eventLabel, failureMessage, isGroundedAnswer, isNoteAssist, locatorLabel, modeRequest, paperByline, paperIds, resolveCitations, revealSegments, resolveMode, segmentAnswer, textLength, touchesApprovals } from './aiModel'
+import { activitySteps, editsNotStored, answerBlocks, canRetry, chatModes, citationKind, citationLinks, stepsSummary, eventLabel, failureMessage, isGroundedAnswer, isNoteAssist, isWebSearchFinished, locatorLabel, mentionChip, mentionMenu, mentionRequest, mergeWebSources, modeRequest, paperByline, paperIds, resolveCitations, revealSegments, resolveMode, segmentAnswer, textLength, touchesApprovals, WEB_BUSY_MESSAGE, webSearchBusy } from './aiModel'
 
 describe('segmentAnswer', () => {
   it('turns known refs into numbered markers and keeps unknown brackets as text', () => {
@@ -98,6 +98,45 @@ describe('answerBlocks', () => {
 
   it('leaves unclosed markers literal while an answer is still revealing', () => {
     expect(blocks('A **partial')[0]).toEqual({ kind: 'paragraph', content: [{ kind: 'text', text: 'A **partial' }] })
+  })
+
+  it('reads GFM tables with alignment, escapes, and ragged rows', () => {
+    const result = blocks('| Name | Count |\n| :--- | ---: |\n| **Ada** | 2 |\n| Bob \\| Jr |')
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ kind: 'table', align: ['left', 'right'] })
+    const table = result[0]
+    if (table.kind !== 'table') throw new Error('expected a table')
+    expect(table.header).toEqual([[{ kind: 'text', text: 'Name' }], [{ kind: 'text', text: 'Count' }]])
+    expect(table.rows[0]).toEqual([
+      [{ kind: 'strong', children: [{ kind: 'text', text: 'Ada' }] }],
+      [{ kind: 'text', text: '2' }],
+    ])
+    expect(table.rows[1]).toEqual([[{ kind: 'text', text: 'Bob | Jr' }], []])
+  })
+
+  it('drops extra cells and centers :---: delimiters', () => {
+    const table = blocks('A|B\n:-:|-\n1|2|3')[0]
+    expect(table).toMatchObject({ kind: 'table', align: ['center', 'left'] })
+    if (table.kind !== 'table') throw new Error('expected a table')
+    expect(table.header.map((cell) => cell)).toHaveLength(2)
+    expect(table.rows).toHaveLength(1)
+    expect(table.rows[0]).toHaveLength(2)
+  })
+
+  it('leaves pipe lines without a delimiter as paragraphs', () => {
+    expect(blocks('| just | pipes |')[0]).toMatchObject({ kind: 'paragraph' })
+    expect(blocks('| a |\n| not a delimiter |')[0]).toMatchObject({ kind: 'paragraph' })
+  })
+
+  it('keeps citations inside table cells and splits surrounding paragraphs', () => {
+    const result = blocks('Intro [S1E1].\n\n| Term | Meaning |\n| --- | --- |\n| Atom [S1E1] | `tiny` |\n\nOutro.', ['S1E1'])
+    expect(result.map((block) => block.kind)).toEqual(['paragraph', 'table', 'paragraph'])
+    const table = result[1]
+    if (table.kind !== 'table') throw new Error('expected a table')
+    expect(table.rows[0][0]).toEqual([
+      { kind: 'text', text: 'Atom' }, { kind: 'ref', ref: 'S1E1', index: 1 },
+    ])
+    expect(table.rows[0][1]).toEqual([{ kind: 'code', text: 'tiny' }])
   })
 })
 
@@ -239,6 +278,65 @@ describe('activity steps', () => {
   })
 })
 
+describe('@-menu web scope', () => {
+  it('offers exactly Search the web, Research papers, and Both', () => {
+    expect(mentionMenu.map((item) => [item.value, item.label])).toEqual([
+      ['web', 'Search the web'],
+      ['papers', 'Research papers'],
+      ['both', 'Both'],
+    ])
+  })
+
+  it('maps a pick to its request fields, and untouched to neither field', () => {
+    expect(mentionRequest('web')).toEqual({ webSearch: true, webScope: 'web' })
+    expect(mentionRequest('papers')).toEqual({ webSearch: true, webScope: 'papers' })
+    expect(mentionRequest('both')).toEqual({ webSearch: true, webScope: 'both' })
+    expect(mentionRequest('off')).toEqual({ webSearch: false })
+    expect(mentionRequest(null)).toBeUndefined()
+  })
+
+  it('labels every pick for its chip', () => {
+    expect(mentionChip('web').label).toBe('Web search')
+    expect(mentionChip('papers').label).toBe('Research papers')
+    expect(mentionChip('both').label).toBe('Web + papers')
+    expect(mentionChip('off').label).toBe('Web off')
+  })
+})
+
+describe('paper search activity', () => {
+  const started = (callId: string, tool: string) => ({ type: 'TOOL_STARTED' as const, data: { step: 1, callId, tool, effect: 'external' } })
+  const finished = (callId: string, tool: string, extra: Record<string, unknown>) => ({ type: 'TOOL_FINISHED' as const, data: { step: 1, callId, tool, effect: 'external', ...extra } })
+
+  it('reads paper_search like web_search, with its own copy and result counts', () => {
+    let steps = activitySteps([], started('p', 'paper_search'))
+    expect(steps[0]).toMatchObject({ tool: 'paper_search', state: 'running', label: 'Searching research papers' })
+    steps = activitySteps(steps, finished('p', 'paper_search', { outcome: 'ok', results: 4 }))
+    expect(steps[0]).toMatchObject({ state: 'done', label: 'Searched research papers', detail: '4 results' })
+  })
+
+  it('keeps the reason a step did not work', () => {
+    const steps = activitySteps([], finished('w', 'web_search', { outcome: 'failed', reason: 'AI_WEB_RATE_LIMITED' }))
+    expect(steps[0]).toMatchObject({ state: 'failed', reason: 'AI_WEB_RATE_LIMITED' })
+    expect(stepsSummary(steps)).toBe('1 step')
+  })
+
+  it('flags a busy or used-up web or paper search for the busy message', () => {
+    expect(WEB_BUSY_MESSAGE).toBe('Search is busy right now, so I answered from your material')
+    for (const tool of ['web_search', 'paper_search']) {
+      for (const reason of ['AI_WEB_RATE_LIMITED', 'AI_WEB_QUOTA_EXHAUSTED']) {
+        const steps = activitySteps([], finished(`${tool}-${reason}`, tool, { outcome: 'failed', reason }))
+        expect(webSearchBusy(steps)).toBe(true)
+        expect(stepsSummary(steps)).toBe('1 step')
+      }
+    }
+    expect(webSearchBusy([])).toBe(false)
+    expect(webSearchBusy(undefined)).toBe(false)
+    expect(webSearchBusy(activitySteps([], finished('ok', 'web_search', { outcome: 'ok', results: 2 })))).toBe(false)
+    expect(webSearchBusy(activitySteps([], finished('x', 'knowledge_search', { outcome: 'failed', reason: 'AI_WEB_RATE_LIMITED' })))).toBe(false)
+    expect(webSearchBusy(activitySteps([], finished('y', 'web_search', { outcome: 'failed', reason: 'AI_TOOL_TIMED_OUT' })))).toBe(false)
+  })
+})
+
 describe('editsNotStored', () => {
   const step = (state: 'done' | 'refused' | 'failed' | 'running', tool = 'propose_note_edits') => ({ id: `${tool}-${state}`, tool, state, label: '' })
   it('flags a reply whose every edit attempt was refused', () => {
@@ -249,6 +347,35 @@ describe('editsNotStored', () => {
     expect(editsNotStored([], [step('refused'), step('done')])).toBe(false)
     expect(editsNotStored([], [step('done', 'read_note_blocks')])).toBe(false)
     expect(editsNotStored([], undefined)).toBe(false)
+  })
+})
+
+describe('live web sources', () => {
+  const base = { manifestId: 'm', evidenceId: 'E1', sourceId: null, noteId: null, page: null, startMs: null } as const
+  const web = (ref: string): AnswerCitation => ({ ref, ...base, kind: 'web', url: `https://example.com/${ref}`, title: ref })
+
+  it('refetches only on a finished web or paper search', () => {
+    expect(isWebSearchFinished({ type: 'TOOL_FINISHED', data: { tool: 'web_search', outcome: 'ok' } })).toBe(true)
+    expect(isWebSearchFinished({ type: 'TOOL_FINISHED', data: { tool: 'paper_search', outcome: 'failed' } })).toBe(true)
+    expect(isWebSearchFinished({ type: 'TOOL_STARTED', data: { tool: 'web_search' } })).toBe(false)
+    expect(isWebSearchFinished({ type: 'TOOL_FINISHED', data: { tool: 'knowledge_search', outcome: 'ok' } })).toBe(false)
+    expect(isWebSearchFinished({ type: 'TOOL_FINISHED', data: null })).toBe(false)
+    expect(isWebSearchFinished({ type: 'STEP_STARTED', data: { step: 1 } })).toBe(false)
+  })
+
+  it('appends uncited web results after the cited refs, deduped by ref', () => {
+    const cited = { ref: 'W1R1', ...base, kind: 'web' as const, url: 'https://example.com/W1R1', title: 'Cited' }
+    const merged = mergeWebSources(['S1E1', 'W1R1'], [{ ref: 'S1E1', ...base }, cited], [web('W1R1'), web('W1R2'), web('W1R3')])
+    expect(merged.order).toEqual(['S1E1', 'W1R1', 'W1R2', 'W1R3'])
+    expect(merged.citations.map((item) => item.ref)).toEqual(['S1E1', 'W1R1', 'W1R2', 'W1R3'])
+    // The answer's own citation wins over the gathered copy.
+    expect(merged.citations[1]).toEqual(cited)
+  })
+
+  it('leaves cited order alone when nothing was gathered', () => {
+    const citations = [{ ref: 'S1E1', ...base }]
+    expect(mergeWebSources(['S1E1'], citations)).toEqual({ order: ['S1E1'], citations })
+    expect(mergeWebSources(['S1E1'], citations, [])).toEqual({ order: ['S1E1'], citations })
   })
 })
 

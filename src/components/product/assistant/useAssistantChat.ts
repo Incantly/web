@@ -7,7 +7,7 @@ import { aiApi, streamJobEvents, type AiCommand, type AiJobEvent, type ApprovalD
 import { ApiError, apiErrorMessage, isApiError } from '../../../lib/api/errors'
 import { newIdempotencyKey } from '../../../lib/api/idempotency'
 import { poll } from '../../../lib/api/poll'
-import { activitySteps, eventLabel, failureMessage, isNoteAssist, touchesApprovals, type ActivityStep, type AssistantTurn, type ScopeChoice, type Turn } from './aiModel'
+import { activitySteps, eventLabel, failureMessage, isNoteAssist, isWebSearchFinished, touchesApprovals, type ActivityStep, type AssistantTurn, type ScopeChoice, type Turn } from './aiModel'
 
 const MAX_KEPT = 60
 
@@ -75,6 +75,14 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
       const result = await aiApi.approvals(jobId, signal).catch(() => null)
       if (result && !signal.aborted) update(turnId, { approvals: result.approvals, stateVersion: result.stateVersion })
     }
+    // Web results land while the job runs: a 404 (AI_RESULT_NOT_READY) keeps the previous list.
+    const readWebSources = async () => {
+      const result = await aiApi.citations(jobId, signal).catch(() => null)
+      if (!result || signal.aborted) return
+      const previous = turnsRef.current.find((turn): turn is AssistantTurn => turn.id === turnId && turn.role === 'assistant')?.webSources?.length ?? 0
+      // Refetches can overtake each other; the list only grows, so never shrink it.
+      if (result.web.length >= previous) update(turnId, { webSources: result.web })
+    }
     try {
       // A resumed job may already be waiting: its APPROVAL_REQUESTED event is behind the cursor.
       if (after >= 0) await readApprovals()
@@ -84,6 +92,7 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
         const label = events.map(eventLabel).filter(Boolean).at(-1)
         update(turnId, { after: cursor, steps, ...(label ? { progress: label } : {}) })
         if (events.some(touchesApprovals)) void readApprovals()
+        if (events.some(isWebSearchFinished)) void readWebSources()
       }
       // Live over the stream; if it can't be used or closes early, poll on from the last event seen.
       const streamed = await streamJobEvents(jobId, cursor, (event) => take([event]), signal)
@@ -98,8 +107,8 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
       const job = await aiApi.job(jobId, signal)
       if (job.status === 'COMPLETED') {
         // Passages are kept 30 days; without them the answer still shows with bare markers.
-        const passages = await aiApi.citations(jobId, signal).then((result) => result.passages).catch(() => [])
-        update(turnId, { state: 'done', job, passages, progress: undefined, approvals: undefined })
+        const citations = await aiApi.citations(jobId, signal).catch(() => null)
+        update(turnId, { state: 'done', job, passages: citations?.passages ?? [], ...(citations ? { webSources: citations.web } : {}), progress: undefined, approvals: undefined })
         // The note assistant stored suggested edits: the open note draws them.
         if (isNoteAssist(job) && job.result.proposalIds.length && job.subject?.kind === 'NOTE' && job.subject.id) void client.invalidateQueries({ queryKey: noteProposalsKey(userId, job.subject.id) })
       } else if (job.status === 'CANCELED') {
@@ -117,10 +126,10 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
   }, [update, client, userId])
 
   const dispatch = useCallback(async (turnId: string, request: Request, clarified = false) => {
-    update(turnId, { state: 'sending', progress: 'Sending…', options: undefined, error: undefined, failureCode: undefined, job: undefined, passages: undefined, jobId: undefined, after: undefined, revealed: undefined, approvals: undefined, stateVersion: undefined, approvalError: undefined, steps: undefined, request })
+    update(turnId, { state: 'sending', progress: 'Sending…', options: undefined, error: undefined, failureCode: undefined, job: undefined, passages: undefined, webSources: undefined, jobId: undefined, after: undefined, revealed: undefined, approvals: undefined, stateVersion: undefined, approvalError: undefined, steps: undefined, request })
     try {
       // One key per user action; the client reuses it for network retries of this send.
-      const response = await aiApi.ask({ surface: 'chat', text: request.text, scope: request.scope.scope, ...(request.command ? { command: request.command } : {}), ...(request.selection ? { selection: request.selection } : {}), ...(request.webSearch ? { webSearch: true, webScope: request.webScope ?? 'web' } : {}), ...(clarified ? { clarified: true } : {}) }, newIdempotencyKey())
+      const response = await aiApi.ask({ surface: 'chat', text: request.text, scope: request.scope.scope, ...(request.command ? { command: request.command } : {}), ...(request.selection ? { selection: request.selection } : {}), ...(request.webSearch === undefined ? {} : request.webSearch ? { webSearch: true, webScope: request.webScope ?? 'web' } : { webSearch: false }), ...(clarified ? { clarified: true } : {}) }, newIdempotencyKey())
       if (response.outcome === 'CLARIFICATION_REQUIRED') {
         update(turnId, { state: 'clarify', options: response.options, progress: undefined })
         return
@@ -146,12 +155,13 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
 
   /**
    * `selection` (with its display `quote`) attaches text picked in the note; it needs the NOTE scope.
-   * `web` carries the "+"-menu web modes: `webSearch` with its `webScope`, or nothing for a
-   * normal mode (so switching back stops sending web search). The request keeps it for retries.
+   * `web` carries the "+"-menu web modes and the @-menu's one-submission pick: `webSearch` with
+   * its `webScope`, explicit `false` for "web off", or nothing for automatic (the server detects
+   * web need from the question). The request keeps it for retries.
    */
-  const send = useCallback((text: string, scope: ScopeChoice, command?: AiCommand, selection?: NoteSelection & { quote: string }, web?: { webSearch: true; webScope: NonNullable<Request['webScope']> }) => {
+  const send = useCallback((text: string, scope: ScopeChoice, command?: AiCommand, selection?: NoteSelection & { quote: string }, web?: { webSearch: boolean; webScope?: Request['webScope'] }) => {
     const userTurn: Turn = { id: crypto.randomUUID(), role: 'user', text, ...(command ? { command } : {}), ...(selection ? { quote: selection.quote } : {}) }
-    const request: Request = { text, scope, ...(command ? { command } : {}), ...(selection ? { selection: { revisionNumber: selection.revisionNumber, ranges: selection.ranges } } : {}), ...(web ? { webSearch: true as const, webScope: web.webScope } : {}) }
+    const request: Request = { text, scope, ...(command ? { command } : {}), ...(selection ? { selection: { revisionNumber: selection.revisionNumber, ranges: selection.ranges } } : {}), ...(web ? (web.webSearch ? { webSearch: true as const, webScope: web.webScope ?? 'web' } : { webSearch: false as const }) : {}) }
     const reply: AssistantTurn = { id: crypto.randomUUID(), role: 'assistant', state: 'sending', progress: 'Sending…', request }
     setTurns((current) => [...current, userTurn, reply])
     void dispatch(reply.id, request)

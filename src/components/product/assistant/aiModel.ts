@@ -53,6 +53,8 @@ export type AssistantTurn = {
   after?: number
   job?: AiJob
   passages?: CitedPassage[]
+  /** Every web result stored so far, oldest first: the live sources list, kept once the job ends. */
+  webSources?: AnswerCitation[]
   options?: ClarificationOption[]
   /** Friendly failure copy. */
   error?: string
@@ -73,7 +75,7 @@ export type AssistantTurn = {
 export type Turn = UserTurn | AssistantTurn
 
 /** One thing the assistant did: a tool call, from its TOOL_STARTED and TOOL_FINISHED events. */
-export type ActivityStep = { id: string; tool: string; state: 'running' | 'done' | 'refused' | 'failed'; label: string; detail?: string }
+export type ActivityStep = { id: string; tool: string; state: 'running' | 'done' | 'refused' | 'failed'; label: string; detail?: string; reason?: string }
 
 type ToolCopy = { running: string; done: string; failed: string; detail?: (data: Record<string, unknown>) => string | undefined }
 
@@ -87,6 +89,7 @@ const tools: Record<string, ToolCopy> = {
   read_pages: { running: 'Reading pages', done: 'Read pages', failed: 'Couldn’t read those pages', detail: (data) => count(data.evidence, 'passage', 'passages') },
   propose_note_edits: { running: 'Preparing suggested edits', done: 'Suggested edits', failed: 'Couldn’t prepare the edits', detail: (data) => count(data.changes, 'change', 'changes') },
   web_search: { running: 'Searching the web', done: 'Searched the web', failed: 'Couldn’t search the web', detail: (data) => count(data.results, 'result', 'results') },
+  paper_search: { running: 'Searching research papers', done: 'Searched research papers', failed: 'Couldn’t search research papers', detail: (data) => count(data.results, 'result', 'results') },
   read_web_page: { running: 'Reading a web page', done: 'Read a web page', failed: 'Couldn’t read the web page' },
   list_images: { running: 'Looking through your images', done: 'Looked through your images', failed: 'Couldn’t look through your images', detail: (data) => (data.images === 0 ? 'none found' : count(data.images, 'image', 'images')) },
   web_task: { running: 'Researching on the web', done: 'Researched on the web', failed: 'Couldn’t finish the web research', detail: (data) => count(data.sources, 'source', 'sources') },
@@ -129,7 +132,8 @@ export function activitySteps(steps: readonly ActivityStep[], event: Pick<AiJobE
   }
   const outcome = data.outcome === 'refused' || data.outcome === 'failed' ? data.outcome : 'done'
   const detail = outcome === 'done' ? copy.detail?.(data) : refusalReasons[String(data.reason ?? '')]
-  const finished: ActivityStep = { id, tool, state: outcome, label: outcome === 'done' ? copy.done : copy.failed, ...(detail ? { detail } : {}) }
+  const reason = outcome !== 'done' && typeof data.reason === 'string' && data.reason ? data.reason : undefined
+  const finished: ActivityStep = { id, tool, state: outcome, label: outcome === 'done' ? copy.done : copy.failed, ...(detail ? { detail } : {}), ...(reason ? { reason } : {}) }
   return existing >= 0 ? steps.map((step, index) => (index === existing ? finished : step)) : [...steps, finished]
 }
 
@@ -143,11 +147,58 @@ export function editsNotStored(proposalIds: readonly string[], steps: readonly A
   return proposalIds.length === 0 && tries.length > 0 && tries.every((step) => step.state === 'refused' || step.state === 'failed')
 }
 
-/** "3 steps" for the collapsed list under a finished answer. */
+/** Tool activity reasons meaning the shared web allowance was busy or spent: the answer came from the user's material. */
+const WEB_BUSY_REASONS: ReadonlySet<string> = new Set(['AI_WEB_RATE_LIMITED', 'AI_WEB_QUOTA_EXHAUSTED'])
+
+/** One web or paper search that ended busy: an aside under the answer, never a failure to retry. */
+function webBusyStep(step: ActivityStep) {
+  return (step.tool === 'web_search' || step.tool === 'paper_search') && step.reason !== undefined && WEB_BUSY_REASONS.has(step.reason)
+}
+
+/** True when a web or paper search ended busy or used up, so the answer used the user's material. */
+export function webSearchBusy(steps: readonly ActivityStep[] = []) {
+  return steps.some(webBusyStep)
+}
+
+/** Shown under an answer whose web search was busy or used up (integration guide, "/search and /research"). */
+export const WEB_BUSY_MESSAGE = 'Search is busy right now, so I answered from your material'
+
+/** "3 steps" for the collapsed list under a finished answer. A busy web search is not a problem: the answer already came from the user's material. */
 export function stepsSummary(steps: readonly ActivityStep[]) {
-  const problems = steps.filter((step) => step.state === 'refused' || step.state === 'failed').length
+  const problems = steps.filter((step) => (step.state === 'refused' || step.state === 'failed') && !webBusyStep(step)).length
   const total = steps.length === 1 ? '1 step' : `${steps.length} steps`
   return problems ? `${total} · ${problems} didn’t work` : total
+}
+
+/** One @-menu pick in the chat box: the web scope for that submission only. `off` is the explicit "never search" state. */
+export type WebMention = 'web' | 'papers' | 'both' | 'off'
+
+/** The @-menu's exact options: Search the web · Research papers · Both. Untouched (or dismissed) means automatic. */
+export const mentionMenu: { value: 'web' | 'papers' | 'both'; label: string; description: string; icon: 'globe' | 'paper' }[] = [
+  { value: 'web', label: 'Search the web', description: 'Answers from your material, plus the public web when it helps.', icon: 'globe' },
+  { value: 'papers', label: 'Research papers', description: 'Answers with research papers: authors, venue and open PDFs.', icon: 'paper' },
+  { value: 'both', label: 'Both', description: 'Answers from your material, plus the web and research papers.', icon: 'globe' },
+]
+
+/** The chip above the box for an @-menu pick (or the web-off toggle). */
+export function mentionChip(pick: WebMention): { label: string; icon: 'globe' | 'paper' } {
+  switch (pick) {
+    case 'web': return { label: 'Web search', icon: 'globe' }
+    case 'papers': return { label: 'Research papers', icon: 'paper' }
+    case 'both': return { label: 'Web + papers', icon: 'globe' }
+    case 'off': return { label: 'Web off', icon: 'globe' }
+  }
+}
+
+/**
+ * The request fields for one @-menu pick. Search/Papers/Both send `webSearch: true` with their
+ * scope; "off" sends `webSearch: false`; untouched (null) sends neither field so the server
+ * detects web need from the question. A pick overrides the "+"-menu mode for that submission.
+ */
+export function mentionRequest(pick: WebMention | null): { webSearch: boolean; webScope?: AiWebScope } | undefined {
+  if (pick === null) return undefined
+  if (pick === 'off') return { webSearch: false }
+  return { webSearch: true, webScope: pick }
 }
 
 export const TERMINAL: ReadonlySet<AiJob['status']> = new Set(['COMPLETED', 'FAILED', 'CANCELED', 'EXPIRED'])
@@ -266,6 +317,26 @@ export function touchesApprovals(event: Pick<AiJobEvent, 'type'>) {
   return event.type === 'APPROVAL_REQUESTED' || event.type === 'APPROVED' || event.type === 'REJECTED' || event.type === 'APPROVAL_EXPIRED'
 }
 
+/** A finished web or paper search: new results may have landed, so the live sources are refetched. */
+export function isWebSearchFinished(event: Pick<AiJobEvent, 'type' | 'data'>) {
+  return event.type === 'TOOL_FINISHED' && (event.data?.tool === 'web_search' || event.data?.tool === 'paper_search')
+}
+
+/**
+ * Final sources: the cited refs in answer order, plus every gathered web result appended, deduped
+ * by ref — so uncited finds still appear. Runs through the same `resolveCitations` as before.
+ */
+export function mergeWebSources(order: readonly string[], citations: readonly AnswerCitation[], web: readonly AnswerCitation[] = []): { order: string[]; citations: AnswerCitation[] } {
+  const mergedOrder = [...order]
+  const merged = [...citations]
+  for (const result of web) {
+    if (mergedOrder.includes(result.ref)) continue
+    mergedOrder.push(result.ref)
+    merged.push(result)
+  }
+  return { order: mergedOrder, citations: merged }
+}
+
 export function isPracticeQuestions(job: AiJob | undefined): job is AiJob & { result: PracticeQuestions } {
   return job?.jobType === 'agent.practice_questions' && Boolean(job.result) && 'questions' in (job.result as object)
 }
@@ -354,12 +425,14 @@ export type InlineNode =
   | { kind: 'ref'; ref: string; index: number }
 
 /** Block-level Markdown in an answer. */
+export type TableAlign = 'left' | 'center' | 'right'
 export type AnswerBlock =
   | { kind: 'heading'; level: 1 | 2 | 3; content: InlineNode[] }
   | { kind: 'paragraph'; content: InlineNode[] }
   | { kind: 'list'; ordered: boolean; items: InlineNode[][] }
   | { kind: 'code'; text: string }
   | { kind: 'math'; tex: string }
+  | { kind: 'table'; align: TableAlign[]; header: InlineNode[][]; rows: InlineNode[][][] }
 
 // Citation markers ride through the Markdown pass as private-use placeholders, so `*`, `_` and
 // backticks inside the answer can never split or swallow them.
@@ -401,10 +474,35 @@ function plainRefs(text: string) {
   return text.replace(new RegExp(`${REF_OPEN}(\\d+)${REF_MID}[^${REF_CLOSE}]*${REF_CLOSE}`, 'g'), '[$1]')
 }
 
+/** Splits a GFM table row on unescaped pipes, dropping outer-pipe empties. */
+function splitTableRow(line: string): string[] {
+  const cells: string[] = []
+  let current = ''
+  let escaped = false
+  for (const char of line.trim()) {
+    if (escaped) { current += char; escaped = false; continue }
+    if (char === '\\') { escaped = true; continue }
+    if (char === '|') { cells.push(current); current = ''; continue }
+    current += char
+  }
+  cells.push(current)
+  if (cells.length > 1 && !cells[0].trim()) cells.shift()
+  if (cells.length > 1 && !cells[cells.length - 1].trim()) cells.pop()
+  return cells.map((cell) => cell.trim())
+}
+
+/** A delimiter row (`---`, `:---`, `:--:`, `---:`) as column alignments, or null. */
+function parseTableDelimiter(line: string): TableAlign[] | null {
+  const cells = splitTableRow(line)
+  if (!cells.length || !cells.every((cell) => /^:?-+:?$/.test(cell))) return null
+  return cells.map((cell) => (cell.startsWith(':') && cell.endsWith(':') ? 'center' : cell.endsWith(':') ? 'right' : 'left'))
+}
+
 /**
  * Turns answer segments into Markdown blocks: headings, paragraphs, bullet and numbered lists,
- * fenced code, and inline emphasis and code. The result is data rendered as React elements, never
- * HTML, so model text stays untrusted text. Unclosed markers (mid-reveal) stay literal.
+ * fenced code, GFM tables, and inline emphasis and code. The result is data rendered as React
+ * elements, never HTML, so model text stays untrusted text. Unclosed markers (mid-reveal) stay
+ * literal.
  */
 export function answerBlocks(segments: AnswerSegment[]): AnswerBlock[] {
   const source = segments.map((segment) => (segment.kind === 'text' ? segment.text : `${REF_OPEN}${segment.index}${REF_MID}${segment.ref}${REF_CLOSE}`)).join('')
@@ -444,6 +542,33 @@ export function answerBlocks(segments: AnswerSegment[]): AnswerBlock[] {
       flush()
       blocks.push({ kind: 'heading', level: Math.min(heading[1].length, 3) as 1 | 2 | 3, content: parseInline(heading[2]) })
       continue
+    }
+    // GFM tables: a pipe row immediately followed by a delimiter row. Body rows are the
+    // consecutive pipe rows after it; anything else ends the table. Without the delimiter
+    // (or mid-reveal) the lines stay plain paragraphs.
+    if (line.includes('|') && index + 1 < lines.length) {
+      const align = parseTableDelimiter(lines[index + 1])
+      if (align) {
+        flush()
+        const header = splitTableRow(line)
+        const body: string[][] = []
+        index += 2
+        while (index < lines.length && lines[index].trim() && lines[index].includes('|')) {
+          body.push(splitTableRow(lines[index]))
+          index++
+        }
+        index--
+        const width = Math.max(header.length, 1)
+        const cells = (row: string[]): InlineNode[][] =>
+          Array.from({ length: width }, (_, cell) => parseInline(row[cell] ?? ''))
+        blocks.push({
+          kind: 'table',
+          align: Array.from({ length: width }, (_, cell) => align[cell] ?? 'left'),
+          header: cells(header),
+          rows: body.map(cells),
+        })
+        continue
+      }
     }
     const item = /^\s*(?:([-*+])|(\d+)[.)])\s+(.*)$/.exec(line)
     if (item) {
