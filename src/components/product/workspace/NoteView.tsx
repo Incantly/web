@@ -22,6 +22,7 @@ import { revisionsKey, useNotesCache, useRevisions } from './useNotes'
 import { useCurrentUser } from '../SessionGate'
 import { useAddSelectionToChat } from '@/hooks/use-assistant'
 import { useImports } from '@/hooks/use-imports'
+import { useLiveCollab, useSavedSyncPoll } from '@/hooks/use-live-collab'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useNoteSuggestions } from '@/hooks/use-note-suggestions'
@@ -36,6 +37,7 @@ import { DocumentAssetsProvider } from '../../../lib/document-editor/assetHost'
 import { useNoteSession } from './useNoteSession'
 import { libraryFollowUp, useServerAssetHost } from './useAssets'
 import { ConnectionBanner, TopBarLeading, TopBarTrailing } from './WorkspaceChrome'
+import { LiveCollabNotice, LivePresence } from './LivePresence'
 import { NoteContextPanel } from './NoteContextPanel'
 import { NoteSourcesSection } from './NoteSourcesSection'
 import { NoteSuggestionsBar } from './NoteSuggestionsBar'
@@ -225,6 +227,9 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const { activeNote, deleteNote } = useNotes()
   const { noteSpace: space } = useSpaces()
   const { openShareDialog } = useSharing()
+  const { noteId: liveNoteId } = useLiveCollab()
+  // Shared when the list says so, or live-status confirmed it (the list can lag a fresh share).
+  useSavedSyncPoll(noteId, session, (activeNote?.shared ?? false) || liveNoteId === noteId)
   const { openImport } = useWorkspaceUI()
   const title = activeNote?.title ?? ''
   /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
@@ -267,6 +272,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
         <TitleInput key={noteId} title={shownTitle} disabled={!editable} onRename={rename} />
       </nav>
       <div className="ml-auto flex shrink-0 items-center gap-0.5">
+        <LivePresence />
         {session.phase === 'ready' || session.phase === 'cached' ? <SyncIndicator state={session.sync} cached={session.phase === 'cached'} onResolve={() => setDialog('conflict')} /> : null}
         <ActionMenu label="Note actions" items={[
           { label: 'Find in note', icon: 'search', hint: '⌘F', onSelect: () => setFindOpen(true), disabled: !session.document },
@@ -292,6 +298,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
       {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
       {missingBlock ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">That passage has changed since it was indexed, so it can’t be highlighted.</p> : null}
       {selectionToChat.error ? <p role="status" className="mx-auto mt-2 flex w-fit items-center gap-1 rounded-full bg-surface pl-3 text-xs text-muted">{selectionToChat.error}<button type="button" onClick={selectionToChat.dismissError} aria-label="Dismiss" className="grid size-8 place-items-center rounded-full hover:text-foreground"><AppIcon name="close" className="size-3.5" /></button></p> : null}
+      <LiveCollabNotice />
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
       {/* No full-height stretch: the top bar shares this scroll box, so an empty note would scroll by its height. */}
       <div>

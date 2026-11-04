@@ -99,7 +99,36 @@ unverified/new address C. A and B sign in on separate browsers/profiles.
 10. At 320px on the dialog and Invitations: EXPECT rows wrap, no horizontal
     scroll, all buttons tappable (44px targets).
 
-## Phase 4 (b–d) — Live + comments + notifications
+## Phase 4b — Live presence
+
+Two browsers: A owner, B collaborator. Backend :3012 with Liveblocks dev
+credentials.
+
+1. As A, open any unshared note: EXPECT no presence pill, no notice.
+2. As A, Share… the note with B as Editor. As B, open Invitations, Accept:
+   EXPECT the note under Shared-with-me.
+3. Both open the shared note: EXPECT a "Live" pill within seconds (B may
+   briefly show "Connecting…").
+4. EXPECT each header shows the other's initials avatar.
+5. As A, type a sentence, wait ~2s. As B, focus the window / wait 5s: EXPECT
+   A's sentence appears with no toast, no conflict dialog.
+6. As B, type without waiting: EXPECT A picks it up on poll; neither toasts.
+7. As A, history → preview an old version → restore. As B: EXPECT inline
+   notice "A restored the version from {time}." with Dismiss; dismiss it.
+8. As B, switch notes: EXPECT B's avatar leaves A's stack within seconds.
+9. As B, reopen; as A, revoke B's grant: EXPECT B's tab leaves for the notes
+   list with one toast; reopening shows "You no longer have access".
+10. Hide A's tab 3+ min (or throttle offline briefly): EXPECT Reconnecting…
+    then Live on return, at most one inline notice, no toast storm.
+11. Budget/pause path (needs exhausted guard on backend): EXPECT pill hidden,
+    at most one inline "paused… Your changes still save." with Try again;
+    edits still save.
+12. Full room (11th tab): EXPECT "This note is full (10 people). Your changes
+    still save." once; saves still work via poll.
+13. At 320px with 2+ collaborators: EXPECT no horizontal scroll, title
+    truncates.
+
+## Phase 4 (c–d) — Comments + notifications
 
 (TBD when the phase lands.)
 

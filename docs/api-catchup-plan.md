@@ -62,3 +62,4 @@ files, responsive check of touched views, manual steps appended to
 | 2 | feat(notes): shared-note correctness | denied states, transaction-only shared saves, 409/413/503 copy, conditional checkpoint GET; known: pure shared rename is local-only (backend G2), decide/undo denial double-toasts |
 | 3 | feat(notes): trash + shared-with-me | trash list/restore, 30-day delete copy, shared section + row badges |
 | 4a | feat(sharing): grants, invites, links, viewer | share dialog, invitations inbox, /shared/[token] read-only viewer; tokens clipboard/memory-only |
+| 4b | feat(live): presence + saved-sync polling | Liveblocks room lifecycle, avatar stack, 5s conditional poll; recheck recovery disarms + clears pause notices |
