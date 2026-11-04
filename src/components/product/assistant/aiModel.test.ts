@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { AiJob } from '../../../lib/api/ai'
-import { activitySteps, editsNotStored, answerBlocks, canRetry, chatModes, stepsSummary, eventLabel, failureMessage, isGroundedAnswer, isNoteAssist, locatorLabel, resolveCitations, revealSegments, resolveMode, segmentAnswer, textLength, touchesApprovals } from './aiModel'
+import type { AiJob, AnswerCitation } from '../../../lib/api/ai'
+import { activitySteps, editsNotStored, answerBlocks, canRetry, chatModes, citationKind, citationLinks, stepsSummary, eventLabel, failureMessage, isGroundedAnswer, isNoteAssist, locatorLabel, modeRequest, paperByline, paperIds, resolveCitations, revealSegments, resolveMode, segmentAnswer, textLength, touchesApprovals } from './aiModel'
 
 describe('segmentAnswer', () => {
   it('turns known refs into numbered markers and keeps unknown brackets as text', () => {
@@ -133,6 +133,73 @@ describe('chat modes', () => {
     expect(resolveMode('NOTE', 'practice').command).toBe('practice')
     expect(resolveMode('SPACE', 'note.assist').command).toBe('ask')
     expect(chatModes('SPACE').map((mode) => mode.command)).not.toContain('note.assist')
+  })
+})
+
+describe('web search modes', () => {
+  const base = { manifestId: 'm', evidenceId: 'E1', sourceId: null, noteId: null, page: null, startMs: null } as const
+  const web: AnswerCitation = { ref: 'W1R2', ...base, kind: 'web', url: 'https://example.com/guide', title: 'A field guide' }
+  const paper: AnswerCitation = {
+    ref: 'W1R3', ...base, kind: 'web', url: 'https://example.com/paper', title: 'Attention Is All You Need',
+    paper: { authors: ['Ashish Vaswani', 'Illia Polosukhin'], year: 2017, venue: 'NeurIPS', citedBy: 120_000, doi: '10.5555/3295222', arxivId: '1706.03762', pdfUrl: 'https://example.com/paper.pdf' },
+  }
+
+  it('maps each mode to its request: webSearch only for the web modes', () => {
+    for (const kind of ['NOTE', 'SPACE', 'LIBRARY'] as const) {
+      const modes = chatModes(kind)
+      expect(modes.map((mode) => mode.key)).toEqual(kind === 'NOTE'
+        ? ['note.assist', 'ask', 'web', 'papers', 'practice']
+        : ['ask', 'web', 'papers', 'practice'])
+      expect(new Set(modes.map((mode) => mode.key)).size).toBe(modes.length)
+      expect(modeRequest(modes.find((mode) => mode.key === 'ask')!)).toEqual({ command: 'ask' })
+      expect(modeRequest(modes.find((mode) => mode.key === 'web')!)).toEqual({ command: 'ask', webSearch: true, webScope: 'web' })
+      expect(modeRequest(modes.find((mode) => mode.key === 'papers')!)).toEqual({ command: 'ask', webSearch: true, webScope: 'papers' })
+    }
+    const modes = chatModes('LIBRARY')
+    expect(modeRequest(modes.find((mode) => mode.key === 'practice')!)).toEqual({ command: 'practice' })
+  })
+
+  it('resolves the web modes by key in every scope, and normal modes stop sending webSearch', () => {
+    expect(resolveMode('NOTE', 'web').key).toBe('web')
+    expect(resolveMode('SPACE', 'papers').key).toBe('papers')
+    expect(resolveMode('LIBRARY', 'web').key).toBe('web')
+    expect(resolveMode('NOTE', 'ask').key).toBe('ask')
+    expect(modeRequest(resolveMode('NOTE', 'ask'))).not.toHaveProperty('webSearch')
+    expect(resolveMode('SPACE', 'note.assist').key).toBe('ask')
+  })
+
+  it('routes citations to web, paper, note, source, or plain material', () => {
+    expect(citationKind(web)).toBe('web')
+    expect(citationKind(paper)).toBe('paper')
+    expect(citationKind({ ...web, sourceId: 's1' })).toBe('source')
+    expect(citationKind({ ...web, noteId: 'n1' })).toBe('note')
+    expect(citationKind({ ref: 'S1E1', ...base })).toBe('material')
+    // A stored library passage wins over a url: it is the user's material.
+    expect(citationKind(web, { ref: 'W1R2', sourceId: 's1', noteId: null, page: null, startMs: null, endMs: null, headingPath: [], text: 't' })).toBe('source')
+  })
+
+  it('links only url and pdfUrl: doi and arXiv ids stay plain text', () => {
+    expect(citationLinks(web)).toEqual({ href: 'https://example.com/guide' })
+    expect(citationLinks(paper)).toEqual({ href: 'https://example.com/paper', pdfUrl: 'https://example.com/paper.pdf' })
+    const links = citationLinks(paper)
+    expect(JSON.stringify(links)).not.toContain('doi')
+    expect(JSON.stringify(links)).not.toContain('arxiv')
+    expect(citationLinks({ ...paper, sourceId: 's1' })).toEqual({})
+    expect(citationLinks({ ref: 'S1E1', ...base })).toEqual({})
+  })
+
+  it('formats paper metadata as text', () => {
+    expect(paperByline(paper.paper!)).toBe('Ashish Vaswani, Illia Polosukhin · 2017 · NeurIPS · Cited by 120,000')
+    expect(paperIds(paper.paper!)).toBe('DOI 10.5555/3295222 · arXiv 1706.03762')
+    expect(paperByline({})).toBeUndefined()
+    expect(paperIds({})).toBeUndefined()
+    expect(paperByline({ authors: ['Solo'] })).toBe('Solo')
+  })
+
+  it('words web allowance limits plainly, with no retry implied', () => {
+    const finish = (reason: string) => activitySteps([], { type: 'TOOL_FINISHED', data: { step: 1, callId: 'w', tool: 'web_search', effect: 'read', outcome: 'failed', reason } })
+    expect(finish('AI_WEB_RATE_LIMITED')[0]).toMatchObject({ state: 'failed', label: 'Couldn’t search the web', detail: 'Web search is busy right now' })
+    expect(finish('AI_WEB_QUOTA_EXHAUSTED')[0]).toMatchObject({ state: 'failed', detail: 'Today’s free web searches are used up' })
   })
 })
 

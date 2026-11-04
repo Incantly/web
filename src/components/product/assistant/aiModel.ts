@@ -1,27 +1,35 @@
-import type { AiCommand, AiJob, AiJobEvent, AiScope, AnswerCitation, CitedPassage, ClarificationOption, GroundedAnswer, NoteAssistResult, NoteSelection, PendingApproval, PracticeQuestions } from '../../../lib/api/ai'
+import type { AiCommand, AiJob, AiJobEvent, AiScope, AiWebScope, AnswerCitation, CitedPassage, ClarificationOption, GroundedAnswer, NoteAssistResult, NoteSelection, PendingApproval, PracticeQuestions, WebPaper } from '../../../lib/api/ai'
 
 export type ScopeKind = AiScope['kind']
 
 /** A mode in the chat's "+" menu: the explicit task each message is sent as. `icon` is an AppIcon name. */
-export type ChatMode = { command: AiCommand; label: string; description: string; icon: 'sparkles' | 'quote' | 'edit'; chip: string; placeholder: string }
+export type ChatMode = { key: string; command: AiCommand; label: string; description: string; icon: 'sparkles' | 'quote' | 'edit' | 'globe' | 'paper'; chip: string; placeholder: string; webSearch?: boolean; webScope?: AiWebScope }
 
-const noteAssistant: ChatMode = { command: 'note.assist', label: 'Help with this note', description: 'Answers, explains and suggests edits you accept or reject.', icon: 'sparkles', chip: 'Note assistant', placeholder: 'Ask anything, or ask for changes…' }
-const askWithSources: ChatMode = { command: 'ask', label: 'Ask with sources', description: 'Answers only from your notes and files, cited.', icon: 'quote', chip: 'Sources only', placeholder: 'Ask about your notes…' }
-const quiz: ChatMode = { command: 'practice', label: 'Quiz me', description: 'Practice questions from your material.', icon: 'edit', chip: 'Quiz me', placeholder: 'What should the quiz cover?' }
+const noteAssistant: ChatMode = { key: 'note.assist', command: 'note.assist', label: 'Help with this note', description: 'Answers, explains and suggests edits you accept or reject.', icon: 'sparkles', chip: 'Note assistant', placeholder: 'Ask anything, or ask for changes…' }
+const askWithSources: ChatMode = { key: 'ask', command: 'ask', label: 'Ask with sources', description: 'Answers only from your notes and files, cited.', icon: 'quote', chip: 'Sources only', placeholder: 'Ask about your notes…' }
+const quiz: ChatMode = { key: 'practice', command: 'practice', label: 'Quiz me', description: 'Practice questions from your material.', icon: 'edit', chip: 'Quiz me', placeholder: 'What should the quiz cover?' }
+const searchWeb: ChatMode = { key: 'web', command: 'ask', label: 'Search the web', description: 'Answers from your material, plus the public web when it helps.', icon: 'globe', chip: 'Web search', placeholder: 'Ask anything…', webSearch: true, webScope: 'web' }
+const researchPapers: ChatMode = { key: 'papers', command: 'ask', label: 'Research papers', description: 'Answers with research papers: authors, venue and open PDFs.', icon: 'paper', chip: 'Research papers', placeholder: 'What should I research…', webSearch: true, webScope: 'papers' }
 
 /**
  * The modes on offer for a scope, default first. On one note the note assistant is the default: it
  * can explain beyond the note and suggest edits, where "Ask with sources" only answers from the
- * user's material (and says so when it doesn't cover the question).
+ * user's material (and says so when it doesn't cover the question). The web modes ask a cited
+ * answer that may also search outside the user's material.
  */
 export function chatModes(kind: ScopeKind | undefined): ChatMode[] {
-  return kind === 'NOTE' ? [noteAssistant, askWithSources, quiz] : [askWithSources, quiz]
+  return kind === 'NOTE' ? [noteAssistant, askWithSources, searchWeb, researchPapers, quiz] : [askWithSources, searchWeb, researchPapers, quiz]
 }
 
 /** The mode a message goes out as: the user's pick while it is on offer, else the scope's default. */
-export function resolveMode(kind: ScopeKind | undefined, picked: AiCommand | null): ChatMode {
+export function resolveMode(kind: ScopeKind | undefined, picked: string | null): ChatMode {
   const modes = chatModes(kind)
-  return modes.find((mode) => mode.command === picked) ?? modes[0]
+  return modes.find((mode) => mode.key === picked) ?? modes[0]
+}
+
+/** What a mode sends: its command, plus `webSearch`/`webScope` only for the web modes. */
+export function modeRequest(mode: ChatMode): { command: AiCommand; webSearch?: boolean; webScope?: AiWebScope } {
+  return mode.webSearch ? { command: mode.command, webSearch: true, webScope: mode.webScope ?? 'web' } : { command: mode.command }
 }
 
 /** What the assistant may search, with the label shown on the scope pill. */
@@ -37,7 +45,7 @@ export type AssistantTurn = {
   role: 'assistant'
   state: AssistantState
   /** The request this turn answers, kept so "Try again" and clarification can resend it. */
-  request: { text: string; scope: ScopeChoice; command?: AiCommand; selection?: NoteSelection }
+  request: { text: string; scope: ScopeChoice; command?: AiCommand; selection?: NoteSelection; webSearch?: boolean; webScope?: AiWebScope }
   jobId?: string
   /** Progress copy from the latest job event. */
   progress?: string
@@ -95,6 +103,10 @@ const refusalReasons: Record<string, string> = {
   not_markdown: 'the content wasn’t in a usable form',
   unknown_block: 'it pointed at the wrong paragraph',
   invalid_change: 'the change was incomplete',
+  // Web search runs on a shared free allowance: when it is busy or spent, the job still succeeds
+  // from the learner's material, so these read as an aside, never as a failure to retry.
+  AI_WEB_RATE_LIMITED: 'Web search is busy right now',
+  AI_WEB_QUOTA_EXHAUSTED: 'Today’s free web searches are used up',
 }
 
 const unknownTool: ToolCopy = { running: 'Working', done: 'Worked on a step', failed: 'A step didn’t work' }
@@ -268,6 +280,55 @@ export function resolveCitations(order: string[], citations: AnswerCitation[], p
     citation: citations.find((item) => item.ref === ref),
     passage: passages.find((item) => item.ref === ref),
   }))
+}
+
+/** Where a citation points: a research paper, a web page, the user's library, or nowhere known. */
+export type CitationKind = 'paper' | 'web' | 'source' | 'note' | 'material'
+
+/**
+ * Routes a citation to how it renders. Library ids win (a stored passage is always the user's
+ * material); otherwise paper metadata means a research paper, a url means a web page. A web or
+ * paper citation never renders as "Your material".
+ */
+export function citationKind(citation?: AnswerCitation, passage?: CitedPassage): CitationKind {
+  const sourceId = passage?.sourceId ?? citation?.sourceId ?? null
+  const noteId = passage?.noteId ?? citation?.noteId ?? null
+  if (sourceId) return 'source'
+  if (noteId) return 'note'
+  if (citation?.paper) return 'paper'
+  if (citation?.url) return 'web'
+  return 'material'
+}
+
+/**
+ * The only links a citation row may render, from the spec link rules: a web citation links its
+ * `url`, a paper citation adds `paper.pdfUrl`. Library citations link nowhere here (they open in
+ * the workspace), and doi/arxivId never become links.
+ */
+export function citationLinks(citation?: AnswerCitation, passage?: CitedPassage): { href?: string; pdfUrl?: string } {
+  if ((passage?.sourceId ?? citation?.sourceId ?? null) || (passage?.noteId ?? citation?.noteId ?? null)) return {}
+  const links: { href?: string; pdfUrl?: string } = {}
+  if (citation?.url) links.href = citation.url
+  if (citation?.paper?.pdfUrl) links.pdfUrl = citation.paper.pdfUrl
+  return links
+}
+
+/** "Ada Lovelace, Alan Turing · 2024 · Nature · Cited by 120": the paper's byline, or nothing known. */
+export function paperByline(paper: WebPaper): string | undefined {
+  const parts: string[] = []
+  if (paper.authors?.length) parts.push(paper.authors.join(', '))
+  if (paper.year !== undefined && paper.year !== null) parts.push(String(paper.year))
+  if (paper.venue) parts.push(paper.venue)
+  if (paper.citedBy !== undefined && paper.citedBy !== null) parts.push(`Cited by ${paper.citedBy.toLocaleString()}`)
+  return parts.length ? parts.join(' · ') : undefined
+}
+
+/** "DOI 10.… · arXiv 2401.01234": paper identifiers as plain text, never links. */
+export function paperIds(paper: WebPaper): string | undefined {
+  const parts: string[] = []
+  if (paper.doi) parts.push(`DOI ${paper.doi}`)
+  if (paper.arxivId) parts.push(`arXiv ${paper.arxivId}`)
+  return parts.length ? parts.join(' · ') : undefined
 }
 
 /** "Page 4", "2:05", or the heading path: where in the original the passage sits. */

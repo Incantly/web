@@ -8,6 +8,10 @@ export type AiRequest = Omit<Schema<'AiRequestDto'>, 'clarified' | 'webSearch' |
 export type NoteSelection = Schema<'NoteSelectionDto'>
 export type SelectionRange = Schema<'SelectionRangeDto'>
 export type AiCommand = NonNullable<AiRequest['command']>
+/** What web search looks for, when `webSearch` is true: the web, or research papers. */
+export type AiWebScope = Schema<'AiRequestDto'>['webScope']
+/** Research-paper metadata on a paper citation (`CitationDto.paper`). Every field is optional. */
+export type WebPaper = Schema<'WebPaperDto'>
 export type AiJob = Schema<'AiJobDto'>
 export type AiJobStatus = AiJob['status']
 export type AiJobEvent = Schema<'AiJobEventDto'>

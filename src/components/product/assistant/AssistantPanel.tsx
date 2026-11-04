@@ -16,7 +16,7 @@ import { suggestionBlockId, suggestionCountLabel } from '../workspace/suggestion
 import { sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from '../workspace/model'
 import { SidePanel, useMediaQuery } from '../workspace/sidePanel'
 import { iconButton } from '../workspace/ui'
-import { canRetry, chatModes, editsNotStored, stepsSummary, type ActivityStep, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
+import { canRetry, chatModes, citationKind, citationLinks, editsNotStored, stepsSummary, type ActivityStep, modeRequest, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, paperByline, paperIds, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
 import { Citation, citationTargetId, type CitationItem } from './Citations'
 import { PromptInput, type PromptAction } from './PromptInput'
 import { StreamingResponse } from './StreamingResponse'
@@ -86,12 +86,12 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
   // A pick holds while it is on offer; otherwise the narrowest context wins. Everything is only ever an explicit pick.
   // Selected note text is read from that note, so it always searches the note.
   const scope = (selection ? choices.find((choice) => choice.kind === 'NOTE') : undefined) ?? choices.find((choice) => choice.kind === picked) ?? choices.find((choice) => choice.kind !== 'LIBRARY') ?? null
-  const [pickedMode, setMode] = useState<AiCommand | null>(null)
+  const [pickedMode, setMode] = useState<string | null>(null)
   const modes = chatModes(scope?.kind)
   const mode = resolveMode(scope?.kind, pickedMode)
   // The default needs no chip; a picked mode shows one that turns it off.
   const chip = mode === modes[0] ? null : mode
-  const menu: PromptAction[] = modes.map((item) => ({ value: item.command, label: item.label, description: item.description, icon: item.icon }))
+  const menu: PromptAction[] = modes.map((item) => ({ value: item.key, label: item.label, description: item.description, icon: item.icon }))
   const [draft, setDraft] = useState(initialDraft)
   const { clearAssistantPrompt } = useWorkspaceUI()
   // The box has the handed-off text now; moving to another note shouldn't bring it back.
@@ -106,13 +106,22 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
     : tooShort ? 'Type a little more.'
     : draft.length > MAX_PROMPT ? `Keep it under ${MAX_PROMPT.toLocaleString()} characters.` : undefined
 
-  function send(text: string, command: AiCommand = mode.command) {
+  /**
+   * The composer sends the active "+"-menu mode (a web mode adds `webSearch`/`webScope`); a
+   * welcome suggestion sends its own plain command instead.
+   */
+  function send(text: string, command?: AiCommand) {
     if (!scope || limited) return
     // Selected text always goes to the note assistant, which answers about it and may suggest edits to it.
     if (selection && scope.kind === 'NOTE') {
       chat.send(text, scope, 'note.assist', selection)
       clearSelection()
-    } else chat.send(text, scope, command)
+    } else if (command) {
+      chat.send(text, scope, command)
+    } else {
+      const web = modeRequest(mode)
+      chat.send(text, scope, web.command, undefined, web.webSearch ? { webSearch: true, webScope: web.webScope ?? 'web' } : undefined)
+    }
     setDraft('')
   }
 
@@ -131,7 +140,7 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
         canSubmit={Boolean(scope) && !limited && draft.trim().length >= MIN_PROMPT}
         loading={Boolean(chat.active)} onStop={chat.active ? () => chat.stop(chat.active!) : undefined}
         placeholder={selection ? 'Ask about the selected text, or ask for changes…' : mode.placeholder}
-        actions={menu} onAction={(value) => setMode(value as AiCommand)} hint={draft || limited || !scope ? hint : undefined}
+        actions={menu} onAction={(value) => setMode(value)} hint={draft || limited || !scope ? hint : undefined}
         header={chip || selection ? <div className="flex flex-col items-start gap-1 px-1">
           {selection ? <div className="flex w-full min-w-0 items-start gap-2 rounded-xl bg-surface py-1.5 pl-3 pr-0.5">
             <AppIcon name="quote" className="mt-1 size-3.5 shrink-0 text-muted" />
@@ -332,6 +341,22 @@ function notFound(turn: AssistantTurn, onRetry: () => void) {
 }
 
 function toItem({ ref, citation, passage }: ResolvedCitation, { notes, sources, target }: Lookup): CitationItem {
+  const kind = citationKind(citation, passage)
+  if (kind === 'paper' && citation?.paper) {
+    const links = citationLinks(citation, passage)
+    return {
+      id: ref,
+      title: citation.title ?? 'Research paper',
+      detail: paperByline(citation.paper),
+      meta: paperIds(citation.paper),
+      icon: 'paper',
+      ...(links.href ? { href: links.href } : {}),
+      ...(links.pdfUrl ? { pdfUrl: links.pdfUrl } : {}),
+    }
+  }
+  if (kind === 'web' && citation?.url) {
+    return { id: ref, title: citation.title ?? citation.url, icon: 'globe', href: citation.url }
+  }
   const sourceId = passage?.sourceId ?? citation?.sourceId ?? null
   const noteId = passage?.noteId ?? citation?.noteId ?? null
   const source = sourceId ? sources.find((item) => item.id === sourceId) : undefined

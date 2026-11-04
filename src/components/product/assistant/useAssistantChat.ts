@@ -120,7 +120,7 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
     update(turnId, { state: 'sending', progress: 'Sending…', options: undefined, error: undefined, failureCode: undefined, job: undefined, passages: undefined, jobId: undefined, after: undefined, revealed: undefined, approvals: undefined, stateVersion: undefined, approvalError: undefined, steps: undefined, request })
     try {
       // One key per user action; the client reuses it for network retries of this send.
-      const response = await aiApi.ask({ surface: 'chat', text: request.text, scope: request.scope.scope, ...(request.command ? { command: request.command } : {}), ...(request.selection ? { selection: request.selection } : {}), ...(clarified ? { clarified: true } : {}) }, newIdempotencyKey())
+      const response = await aiApi.ask({ surface: 'chat', text: request.text, scope: request.scope.scope, ...(request.command ? { command: request.command } : {}), ...(request.selection ? { selection: request.selection } : {}), ...(request.webSearch ? { webSearch: true, webScope: request.webScope ?? 'web' } : {}), ...(clarified ? { clarified: true } : {}) }, newIdempotencyKey())
       if (response.outcome === 'CLARIFICATION_REQUIRED') {
         update(turnId, { state: 'clarify', options: response.options, progress: undefined })
         return
@@ -144,10 +144,14 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
 
   useEffect(() => { save(userId, thread, turns) }, [userId, thread, turns])
 
-  /** `selection` (with its display `quote`) attaches text picked in the note; it needs the NOTE scope. */
-  const send = useCallback((text: string, scope: ScopeChoice, command?: AiCommand, selection?: NoteSelection & { quote: string }) => {
+  /**
+   * `selection` (with its display `quote`) attaches text picked in the note; it needs the NOTE scope.
+   * `web` carries the "+"-menu web modes: `webSearch` with its `webScope`, or nothing for a
+   * normal mode (so switching back stops sending web search). The request keeps it for retries.
+   */
+  const send = useCallback((text: string, scope: ScopeChoice, command?: AiCommand, selection?: NoteSelection & { quote: string }, web?: { webSearch: true; webScope: NonNullable<Request['webScope']> }) => {
     const userTurn: Turn = { id: crypto.randomUUID(), role: 'user', text, ...(command ? { command } : {}), ...(selection ? { quote: selection.quote } : {}) }
-    const request: Request = { text, scope, ...(command ? { command } : {}), ...(selection ? { selection: { revisionNumber: selection.revisionNumber, ranges: selection.ranges } } : {}) }
+    const request: Request = { text, scope, ...(command ? { command } : {}), ...(selection ? { selection: { revisionNumber: selection.revisionNumber, ranges: selection.ranges } } : {}), ...(web ? { webSearch: true as const, webScope: web.webScope } : {}) }
     const reply: AssistantTurn = { id: crypto.randomUUID(), role: 'assistant', state: 'sending', progress: 'Sending…', request }
     setTurns((current) => [...current, userTurn, reply])
     void dispatch(reply.id, request)

@@ -68,3 +68,4 @@ files, responsive check of touched views, manual steps appended to
 | 5a | feat(quiz): taking flow | attempts, autosave, 7 question types, server-scored results; entry via ?quiz= for now |
 | 5b | feat(flashcards): decks + review | generate flow, due queue, reveal, AGAIN/HARD/GOOD/EASY reviews, regen; progress in-memory only |
 | 5c | feat(artifacts): generations + versions | Quizzes & decks list, streamed generation with cancel, detail/version views, confirmed regen/archive/delete |
+| 6 | feat(assistant): web/papers search modes | Search-the-web + Research-papers modes, web/paper citation rows, rate-limit step copy |

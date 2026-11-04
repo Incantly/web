@@ -314,4 +314,28 @@ Detail flow (need one READY quiz id; list shows them):
 
 ## Phase 6 — Web/papers search
 
-(TBD when the phase lands.)
+1. Open any note, open Chat (assistant panel).
+2. Click "+" in the composer: confirm 5 entries incl. "Search the web"
+   and "Research papers" with descriptions.
+3. Pick "Search the web": confirm a "Web search" chip appears above the
+   composer with placeholder "Ask anything…".
+4. Ask "What changed in the 2026 EU AI Act guidance?" and send; in
+   devtools confirm POST /v1/ai/requests has webSearch:true,
+   webScope:"web", command:"ask".
+5. When the answer arrives, open its sources: confirm web rows show page
+   titles (never "Your material") with a link icon; click one, confirm it
+   opens the page in a new tab.
+6. Pick "Research papers" (chip "Research papers"), ask about a research
+   topic; confirm the request has webScope:"papers".
+7. In sources, confirm paper rows show authors/year/venue/Cited-by line,
+   DOI/arXiv as plain text (not clickable), title linking to url, and an
+   "Open PDF" link opening the PDF in a new tab.
+8. Pick "Ask with sources" (or clear the chip), send again; confirm the
+   request body has no webSearch key.
+9. If web search is busy/spent: confirm the finished answer still shows
+   with a step reading "Couldn't search the web · Web search is busy
+   right now" (or "… Today's free web searches are used up") and no extra
+   retry prompt for it; job-level Try again still appears only on real
+   failures.
+10. Reload mid-run and after done: confirm the thread restores and
+    retry/clarify resend the same web flags.
