@@ -17,7 +17,10 @@ export const liveApi = {
    * The token is memory-only: return it to the Liveblocks SDK and never store or log it.
    */
   async authorize(noteId: string, signal?: AbortSignal) {
-    return (await apiFetch<AuthorizeLiveblocksResultDto>('/v1/liveblocks/authorize', { method: 'POST', body: { noteId }, signal })).data
+    // Single attempt: a 429/5xx degrades to saved-sync with the recheck loop owning
+    // recovery via live-status. Retrying here would multiply the SDK's own retries
+    // into an authorize storm and ignore Retry-After/resetsAt.
+    return (await apiFetch<AuthorizeLiveblocksResultDto>('/v1/liveblocks/authorize', { method: 'POST', body: { noteId }, signal, maxAttempts: 1 })).data
   },
   /**
    * Resolves Liveblocks user IDs to display profiles (`POST /v1/liveblocks/users`).

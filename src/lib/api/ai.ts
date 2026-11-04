@@ -2,14 +2,14 @@ import { apiFetch } from './client'
 import type { Schema } from './types'
 
 export type AiScope = Schema<'AiScopeDto'>
+/** What web search looks for, when `webSearch` is true: the web, research papers, or both per step. `both` is live on the backend but missing from the committed schema copy; widened here until the types are regenerated (§1.2). */
+export type AiWebScope = Schema<'AiRequestDto'>['webScope'] | 'both'
 /** `clarified`, `webSearch`, and `webScope` have server defaults (the generated schema marks them required). */
-export type AiRequest = Omit<Schema<'AiRequestDto'>, 'clarified' | 'webSearch' | 'webScope'> & { clarified?: boolean; webSearch?: boolean; webScope?: Schema<'AiRequestDto'>['webScope'] }
+export type AiRequest = Omit<Schema<'AiRequestDto'>, 'clarified' | 'webSearch' | 'webScope'> & { clarified?: boolean; webSearch?: boolean; webScope?: AiWebScope }
 /** Text selected in the note editor: block IDs and UTF-16 offsets, never the text itself. */
 export type NoteSelection = Schema<'NoteSelectionDto'>
 export type SelectionRange = Schema<'SelectionRangeDto'>
 export type AiCommand = NonNullable<AiRequest['command']>
-/** What web search looks for, when `webSearch` is true: the web, or research papers. */
-export type AiWebScope = Schema<'AiRequestDto'>['webScope']
 /** Research-paper metadata on a paper citation (`CitationDto.paper`). Every field is optional. */
 export type WebPaper = Schema<'WebPaperDto'>
 export type AiJob = Schema<'AiJobDto'>
@@ -23,6 +23,8 @@ export type GroundedAnswer = Schema<'GroundedAnswerResultDto'>
 export type PracticeQuestions = Schema<'PracticeQuestionsResultDto'>
 export type AnswerCitation = Schema<'CitationDto'>
 export type CitedPassage = Schema<'CitedPassageDto'>
+/** `web` is live on the backend but missing from the committed schema copy; widened here until the types are regenerated (§1.2, like AiWebScope). */
+export type AiCitations = Schema<'AiCitationsDto'> & { web: AnswerCitation[] }
 export type AiAllowance = Schema<'AiAllowanceDto'>
 export type NoteAssistResult = Schema<'NoteAssistResultDto'>
 export type AiApprovals = Schema<'AiApprovalsDto'>
@@ -43,9 +45,12 @@ export const aiApi = {
   async events(jobId: string, after: number, signal?: AbortSignal) {
     return (await apiFetch<AiJobEvents>(`/v1/ai/jobs/${id(jobId)}/events?after=${after}`, { signal })).data
   },
-  /** Completed jobs only (`404 AI_RESULT_NOT_READY` otherwise). Passage text is untrusted: render it as text. */
+  /**
+   * `passages` needs a completed job; `web` is served while the job runs once the first result
+   * lands (`404 AI_RESULT_NOT_READY` until then). Passage text is untrusted: render it as text.
+   */
   async citations(jobId: string, signal?: AbortSignal) {
-    return (await apiFetch<Schema<'AiCitationsDto'>>(`/v1/ai/jobs/${id(jobId)}/citations`, { signal })).data
+    return (await apiFetch<AiCitations>(`/v1/ai/jobs/${id(jobId)}/citations`, { signal })).data
   },
   /** Idempotent: cancelling a finished job returns it unchanged. */
   async cancel(jobId: string) {

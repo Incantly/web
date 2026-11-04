@@ -16,8 +16,8 @@ import { suggestionBlockId, suggestionCountLabel } from '../workspace/suggestion
 import { sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from '../workspace/model'
 import { SidePanel, useMediaQuery } from '../workspace/sidePanel'
 import { iconButton } from '../workspace/ui'
-import { canRetry, chatModes, citationKind, citationLinks, editsNotStored, stepsSummary, type ActivityStep, modeRequest, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, MIN_PROMPT, paperByline, paperIds, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn } from './aiModel'
-import { Citation, citationTargetId, type CitationItem } from './Citations'
+import { canRetry, chatModes, citationKind, citationLinks, editsNotStored, stepsSummary, type ActivityStep, mentionChip, mentionMenu, mentionRequest, modeRequest, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, mergeWebSources, MIN_PROMPT, paperByline, paperIds, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, WEB_BUSY_MESSAGE, webSearchBusy, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn, type WebMention } from './aiModel'
+import { Citation, Citations, citationTargetId, type CitationItem } from './Citations'
 import { PromptInput, type PromptAction } from './PromptInput'
 import { StreamingResponse } from './StreamingResponse'
 import { useAssistantChat } from './useAssistantChat'
@@ -92,6 +92,9 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
   // The default needs no chip; a picked mode shows one that turns it off.
   const chip = mode === modes[0] ? null : mode
   const menu: PromptAction[] = modes.map((item) => ({ value: item.key, label: item.label, description: item.description, icon: item.icon }))
+  // The @-menu's pick (or the web-off toggle): the web scope for the next submission only.
+  const [webPick, setWebPick] = useState<WebMention | null>(null)
+  const webChip = webPick ? mentionChip(webPick) : null
   const [draft, setDraft] = useState(initialDraft)
   const { clearAssistantPrompt } = useWorkspaceUI()
   // The box has the handed-off text now; moving to another note shouldn't bring it back.
@@ -107,22 +110,27 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
     : draft.length > MAX_PROMPT ? `Keep it under ${MAX_PROMPT.toLocaleString()} characters.` : undefined
 
   /**
-   * The composer sends the active "+"-menu mode (a web mode adds `webSearch`/`webScope`); a
-   * welcome suggestion sends its own plain command instead.
+   * The composer sends the active "+"-menu mode (a web mode adds `webSearch`/`webScope`),
+   * overridden for this submission by the @-menu's pick (or the web-off toggle); a welcome
+   * suggestion sends its own plain command instead.
    */
   function send(text: string, command?: AiCommand) {
     if (!scope || limited) return
+    const at = mentionRequest(webPick)
     // Selected text always goes to the note assistant, which answers about it and may suggest edits to it.
     if (selection && scope.kind === 'NOTE') {
-      chat.send(text, scope, 'note.assist', selection)
+      chat.send(text, scope, 'note.assist', selection, at)
       clearSelection()
     } else if (command) {
       chat.send(text, scope, command)
     } else {
       const web = modeRequest(mode)
-      chat.send(text, scope, web.command, undefined, web.webSearch ? { webSearch: true, webScope: web.webScope ?? 'web' } : undefined)
+      chat.send(text, scope, web.command, undefined, at ?? (web.webSearch ? { webSearch: true as const, webScope: web.webScope ?? 'web' } : undefined))
     }
     setDraft('')
+    // The @-menu (and the web-off toggle) pick one submission only: reset, so the next question
+    // is automatic again unless the user picks again.
+    setWebPick(null)
   }
 
   return <div className="flex min-h-0 flex-1 flex-col">
@@ -140,8 +148,9 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
         canSubmit={Boolean(scope) && !limited && draft.trim().length >= MIN_PROMPT}
         loading={Boolean(chat.active)} onStop={chat.active ? () => chat.stop(chat.active!) : undefined}
         placeholder={selection ? 'Ask about the selected text, or ask for changes…' : mode.placeholder}
-        actions={menu} onAction={(value) => setMode(value)} hint={draft || limited || !scope ? hint : undefined}
-        header={chip || selection ? <div className="flex flex-col items-start gap-1 px-1">
+        actions={menu} onAction={(value) => setMode(value)} mentions={mentionMenu} onMention={(value) => setWebPick(value as WebMention)}
+        hint={draft || limited || !scope ? hint : undefined}
+        header={chip || webChip || selection ? <div className="flex flex-col items-start gap-1 px-1">
           {selection ? <div className="flex w-full min-w-0 items-start gap-2 rounded-xl bg-surface py-1.5 pl-3 pr-0.5">
             <AppIcon name="quote" className="mt-1 size-3.5 shrink-0 text-muted" />
             <p className="min-w-0 flex-1 py-0.5 text-xs leading-5 text-muted"><span className="font-medium text-foreground">Selected text</span><span className="line-clamp-2 break-words">{selection.quote}</span></p>
@@ -150,8 +159,11 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
           {chip ? <button type="button" onClick={() => setMode(null)} aria-label={`${chip.chip} on. Turn off`} className="group inline-flex min-h-11 items-center">
             <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-2.5 text-xs font-medium text-foreground transition-colors group-hover:bg-canvas">
               <AppIcon name={chip.icon} className="size-3.5 text-muted" />{chip.chip}<AppIcon name="close" className="size-3.5 text-muted" /></span></button> : null}
+          {webChip ? <button type="button" onClick={() => setWebPick(null)} aria-label={`${webChip.label} on. Turn off`} className="group inline-flex min-h-11 items-center">
+            <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-2.5 text-xs font-medium text-foreground transition-colors group-hover:bg-canvas">
+              <AppIcon name={webChip.icon} className="size-3.5 text-muted" />{webChip.label}<AppIcon name="close" className="size-3.5 text-muted" /></span></button> : null}
         </div> : null}
-        leadingAction={<ScopeMenu choices={choices} value={scope} onChange={setPicked} />} />
+        leadingAction={<><ScopeMenu choices={choices} value={scope} onChange={setPicked} /><WebOffToggle off={webPick === 'off'} onToggle={() => setWebPick((pick) => (pick === 'off' ? null : 'off'))} /></>} />
     </div>
   </div>
 }
@@ -196,6 +208,16 @@ function ScopeMenu({ choices, value, onChange }: { choices: ScopeChoice[]; value
       </button>)}
     </div> : null}
   </div>
+}
+
+/** Explicit "web off" for the next submission: sends `webSearch: false`, which never auto-enables. Untoggled, the request leaves web search to the server. */
+function WebOffToggle({ off, onToggle }: { off: boolean; onToggle: () => void }) {
+  return <button type="button" onClick={onToggle} aria-pressed={off}
+    aria-label={off ? 'Web search off for this question. Turn back to automatic' : 'Turn web search off for this question'}
+    title={off ? 'Web search off for this question' : 'Turn web search off for this question'}
+    className={`grid size-11 shrink-0 place-items-center rounded-xl transition-colors hover:bg-surface ${off ? 'bg-surface text-foreground' : 'text-muted hover:text-foreground'}`}>
+    <AppIcon name="globe" className="size-4" />
+  </button>
 }
 
 function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify, onRevealed, onApproval }: {
@@ -312,6 +334,7 @@ function AssistantReply(props: { turn: AssistantTurn; lookup: Lookup; onRetry: (
 function ReplyBody({ turn, lookup, onRetry, onClarify, onRevealed, onApproval }: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void }) {
   if (turn.state === 'sending' || turn.state === 'running') return <div className="space-y-3">
     {turn.steps?.length ? <StepList steps={turn.steps} /> : null}
+    <LiveSources turn={turn} lookup={lookup} />
     {turn.steps?.some((step) => step.state === 'running') ? null : <Progress label={turn.progress ?? 'Working…'} />}
     {turn.approvals?.map((approval) => <ApprovalCard key={approval.toolCallId} approval={approval} busy={turn.deciding === approval.toolCallId} disabled={Boolean(turn.deciding)} onDecide={(decision) => onApproval(approval.toolCallId, decision)} />)}
     {turn.approvalError ? <p role="alert" className="text-sm text-danger">{turn.approvalError}</p> : null}
@@ -320,8 +343,14 @@ function ReplyBody({ turn, lookup, onRetry, onClarify, onRevealed, onApproval }:
     <p className="text-sm text-foreground">Did you want…</p>
     <div className="flex flex-col items-start gap-2">{turn.options?.map((option) => <button key={option.command} type="button" onClick={() => onClarify(option)} className={smallButton}>{option.description}</button>)}</div>
   </div>
-  if (turn.state === 'failed') return <Notice tone="danger" action={canRetry(turn.failureCode) ? <button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Try again</button> : null}>{turn.error ?? 'Something went wrong.'}</Notice>
-  if (turn.state === 'canceled') return <Notice action={<button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Ask again</button>}>Stopped.</Notice>
+  if (turn.state === 'failed') return <div className="space-y-3">
+    <Notice tone="danger" action={canRetry(turn.failureCode) ? <button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Try again</button> : null}>{turn.error ?? 'Something went wrong.'}</Notice>
+    <LiveSources turn={turn} lookup={lookup} />
+  </div>
+  if (turn.state === 'canceled') return <div className="space-y-3">
+    <Notice action={<button type="button" onClick={onRetry} className={smallButton}><AppIcon name="restore" className="size-4" />Ask again</button>}>Stopped.</Notice>
+    <LiveSources turn={turn} lookup={lookup} />
+  </div>
   if (isGroundedAnswer(turn.job)) return <GroundedReply turn={turn} result={turn.job.result} lookup={lookup} onRetry={onRetry} onRevealed={onRevealed} />
   if (isNoteAssist(turn.job)) return <div className="space-y-3">
     <GroundedReply turn={turn} result={turn.job.result} lookup={lookup} onRetry={onRetry} onRevealed={onRevealed} />
@@ -371,6 +400,13 @@ function toItem({ ref, citation, passage }: ResolvedCitation, { notes, sources, 
   }
 }
 
+/** Web results gathered so far, through the same rows as the final list. Stays closed until opened. */
+function LiveSources({ turn, lookup }: { turn: AssistantTurn; lookup: Lookup }) {
+  if (!turn.webSources?.length) return null
+  const items = turn.webSources.map((citation, index) => toItem({ ref: citation.ref, index: index + 1, citation }, lookup))
+  return <Citations citations={items} idPrefix={`live-${turn.id}`} />
+}
+
 /** Inline Markdown nodes: text, emphasis, code, math and citation markers. */
 function Inline({ nodes, idPrefix, onCite }: { nodes: InlineNode[]; idPrefix: string; onCite: (ref: string) => void }) {
   return <>{nodes.map((node, index) => node.kind === 'text' ? <span key={index}>{node.text}</span>
@@ -393,6 +429,7 @@ function TeX({ tex, display = false }: { tex: string; display?: boolean }) {
 }
 
 const headingClass = { 1: 'font-display text-lg leading-snug', 2: 'font-display text-base leading-snug', 3: 'text-[0.9375rem] font-semibold' } as const
+const tableAlignClass = { left: 'text-left', center: 'text-center', right: 'text-right' } as const
 
 /** Renders an answer's Markdown as React elements (never HTML): model text stays untrusted text. */
 function AnswerText({ segments, idPrefix, onCite }: { segments: AnswerSegment[]; idPrefix: string; onCite: (ref: string) => void }) {
@@ -401,6 +438,12 @@ function AnswerText({ segments, idPrefix, onCite }: { segments: AnswerSegment[];
     if (block.kind === 'heading') { const Heading = block.level === 1 ? 'h4' : 'h5'; return <Heading key={index} className={`text-foreground ${headingClass[block.level]} ${index ? 'pt-1' : ''}`}><Inline nodes={block.content} idPrefix={idPrefix} onCite={onCite} /></Heading> }
     if (block.kind === 'math') return <TeX key={index} tex={block.tex} display />
     if (block.kind === 'code') return <pre key={index} className="overflow-x-auto rounded-xl border border-default bg-surface p-3 text-[0.8125rem] leading-6"><code className="font-mono">{block.text}</code></pre>
+    if (block.kind === 'table') return <div key={index} role="region" aria-label="Table" tabIndex={0} className="overflow-x-auto rounded-xl border border-default">
+      <table className="w-full border-collapse text-[0.8125rem] leading-6">
+        <thead><tr className="bg-surface">{block.header.map((cell, cellIndex) => <th key={cellIndex} scope="col" className={`border-b border-default px-3 py-2 font-semibold text-foreground ${tableAlignClass[block.align[cellIndex]]}`}><Inline nodes={cell} idPrefix={idPrefix} onCite={onCite} /></th>)}</tr></thead>
+        <tbody>{block.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className={`px-3 py-2 text-foreground ${tableAlignClass[block.align[cellIndex]]} ${rowIndex ? 'border-t border-default' : ''}`}><Inline nodes={cell} idPrefix={idPrefix} onCite={onCite} /></td>)}</tr>)}</tbody>
+      </table>
+    </div>
     if (block.kind === 'list') {
       const List = block.ordered ? 'ol' : 'ul'
       return <List key={index} className={`space-y-1.5 pl-5 ${block.ordered ? 'list-decimal' : 'list-disc'} marker:text-muted`}>{block.items.map((item, itemIndex) => <li key={itemIndex} className="pl-1"><Inline nodes={item} idPrefix={idPrefix} onCite={onCite} /></li>)}</List>
@@ -494,10 +537,12 @@ function GroundedReply({ turn, result, lookup, onRetry, onRevealed }: { turn: As
   const chars = useReveal(total, Boolean(turn.revealed), onRevealed)
   const cite = useCiteFocus(idPrefix)
   if (result.sufficiency === 'NOT_FOUND') return notFound(turn, onRetry)
-  const items = resolveCitations(order, result.citations, turn.passages).map((item) => toItem(item, lookup))
+  const merged = mergeWebSources(order, result.citations, turn.webSources)
+  const items = resolveCitations(merged.order, merged.citations, turn.passages).map((item) => toItem(item, lookup))
   const plain = segments.map((segment) => (segment.kind === 'text' ? segment.text : '')).join('').trim()
   return <div className="space-y-2">
     {result.sufficiency === 'PARTIAL' ? <p className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-xs text-muted"><AppIcon name="alert" className="size-3.5" />Only partly covered by your material</p> : null}
+    {webSearchBusy(turn.steps) ? <Notice>{WEB_BUSY_MESSAGE}</Notice> : null}
     <StreamingResponse status={chars < total ? 'streaming' : 'complete'} announce={false} copyText={plain} onRetry={onRetry} sources={items} sourceIdPrefix={idPrefix} sourcesOpen={cite.open} onSourcesOpenChange={cite.setOpen}>
       <AnswerText segments={revealSegments(segments, chars)} idPrefix={idPrefix} onCite={cite.cite} />
     </StreamingResponse>
@@ -518,7 +563,8 @@ function PracticeReply({ turn, lookup, onRetry }: { turn: AssistantTurn; lookup:
   const cite = useCiteFocus(idPrefix)
   if (!result) return null
   if (result.sufficiency === 'NOT_FOUND' || !parsed.questions.length) return notFound(turn, onRetry)
-  const items = resolveCitations(parsed.order, parsed.citations, turn.passages).map((item) => toItem(item, lookup))
+  const merged = mergeWebSources(parsed.order, parsed.citations, turn.webSources)
+  const items = resolveCitations(merged.order, merged.citations, turn.passages).map((item) => toItem(item, lookup))
   const copy = parsed.questions.map((item, index) => `${index + 1}. ${item.question}`).join('\n')
   return <StreamingResponse status="complete" announce={false} copyText={copy} onRetry={onRetry} sources={items} sourceIdPrefix={idPrefix} sourcesOpen={cite.open} onSourcesOpenChange={cite.setOpen}>
     <p className="mb-3 text-sm text-muted">{parsed.questions.length} practice {parsed.questions.length === 1 ? 'question' : 'questions'}. Answer in your head, then check.</p>
