@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BASE_FONT_SIZE_PT,
   FONT_SIZE_MAX_PT,
   FONT_SIZE_MIN_PT,
   FONT_SIZE_PRESETS,
@@ -54,6 +55,14 @@ describe('parseFontSizeToPt', () => {
 describe('fontSizeToCss', () => {
   it('writes canonical points', () => {
     expect(fontSizeToCss(12)).toBe('12pt')
+  })
+})
+
+describe('BASE_FONT_SIZE_PT', () => {
+  it('is an integer inside the canonical gate', () => {
+    expect(Number.isInteger(BASE_FONT_SIZE_PT)).toBe(true)
+    expect(BASE_FONT_SIZE_PT).toBeGreaterThanOrEqual(FONT_SIZE_MIN_PT)
+    expect(BASE_FONT_SIZE_PT).toBeLessThanOrEqual(FONT_SIZE_MAX_PT)
   })
 })
 

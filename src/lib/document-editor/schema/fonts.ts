@@ -47,6 +47,9 @@ export function fontStackForKey(key: FontFamilyKey): string {
 export const FONT_SIZE_MIN_PT = 1
 export const FONT_SIZE_MAX_PT = 200
 
+/** Editor body size (1rem = 16px) in points, shown when no size mark applies. */
+export const BASE_FONT_SIZE_PT = 12
+
 /** Word's preset size list, in points. */
 export const FONT_SIZE_PRESETS: readonly number[] = [8, 9, 10, 11, 12, 14, 18, 24, 36, 48, 72]
 

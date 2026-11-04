@@ -9,6 +9,7 @@ import { TableGridSelector } from '@/components/tiptap-node/table-node/ui/table-
 import { Card, CardBody } from '@/components/tiptap-ui-primitive/card'
 import { Button } from '@/components/tiptap-ui-primitive/button'
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from '@/components/tiptap-ui-primitive/toolbar'
+import { TextColorSmallIcon } from '@/components/tiptap-icons/text-color-small-icon'
 import { TypeIcon } from '@/components/tiptap-icons/type-icon'
 import { ListTodoIcon } from '@/components/tiptap-icons/list-todo-icon'
 import { TableIcon } from '@/components/tiptap-icons/table-icon'
@@ -26,7 +27,7 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import { useDocumentEditor } from '../DocumentEditorContext'
 import { CODE_BLOCK_LANGUAGES } from '../schema/codeHighlight'
 import { documentRichCommands } from '../richCommands'
-import { DOCUMENT_FONT_FAMILIES, FONT_SIZE_PRESETS, matchFontFamilyKey, parseFontSizeToPt } from '../schema/fonts'
+import { BASE_FONT_SIZE_PT, DOCUMENT_FONT_FAMILIES, FONT_SIZE_PRESETS, matchFontFamilyKey, parseFontSizeToPt } from '../schema/fonts'
 
 type Command = (editor: Editor) => boolean
 
@@ -313,6 +314,7 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leadi
   if (!editor || !state || !state.editable) return null
   // A detected formula gets a single-purpose bubble: just the convert
   // button, no Bold/Italic/Underline/Code noise. One click converts.
+  const validTextColor = /^#[0-9a-f]{6}$/i.test(state.textColor ?? '') ? (state.textColor as string) : null
   const convertOnly = state.dollarMath !== null && !state.mathBlock && !state.inlineMath && !state.inCodeBlock
   // A selected formula gets only its LaTeX editor for the same reason:
   // text marks cannot apply inside a math atom, so the buttons would lie.
@@ -382,19 +384,20 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leadi
               </label>
             </span>
             <span className="incantly-format-font-size" role="group" aria-label="Font size">
-              <span className="incantly-format-font-glyph" aria-hidden="true">A</span>
               <label>
                 <span className="sr-only">Font size</span>
                 <select
                   aria-label="Font size"
-                  value={state.fontSize !== null && FONT_SIZE_PRESETS.includes(state.fontSize) ? String(state.fontSize) : ''}
+                  value={state.fontSize !== null ? String(state.fontSize) : ''}
                   onChange={(event) => {
                     const size = event.target.value ? Number(event.target.value) : null
                     if (size === null) documentRichCommands.unsetFontSize(editor)
                     else documentRichCommands.setFontSize(editor, size)
                   }}
                 >
-                  <option value="">Size</option>
+                  {/* Unset shows the inherited body size as a bare number; set text offers Default to clear it. */}
+                  <option value="">{state.fontSize === null ? BASE_FONT_SIZE_PT : 'Default'}</option>
+                  {state.fontSize !== null && !FONT_SIZE_PRESETS.includes(state.fontSize) ? <option value={state.fontSize}>{state.fontSize}</option> : null}
                   {FONT_SIZE_PRESETS.map((size) => (
                     <option key={size} value={size}>{size}</option>
                   ))}
@@ -414,12 +417,17 @@ export function DocumentBubbleToolbar({ editor: suppliedEditor, className, leadi
             <ToolbarGroup>
             {!state.inCodeBlock ? (
               <span className="incantly-format-color" role="group" aria-label="Text color">
-                <label title="Text color">
+                <label title="Text color" className="incantly-format-color-picker">
                   <span className="sr-only">Text color</span>
+                  <span aria-hidden="true" className="incantly-format-color-face">
+                    <TextColorSmallIcon width={18} height={18} />
+                    <span className="incantly-format-color-bar" style={{ backgroundColor: validTextColor ?? 'transparent' }} />
+                  </span>
                   <input
                     type="color"
                     aria-label="Text color"
-                    value={/^#[0-9a-f]{6}$/i.test(state.textColor ?? '') ? (state.textColor as string) : '#000000'}
+                    className="incantly-format-color-input"
+                    value={validTextColor ?? '#000000'}
                     onChange={(event) => { documentRichCommands.setTextColor(editor, event.target.value) }}
                   />
                 </label>
