@@ -123,10 +123,16 @@ unverified/new address C. A and B sign in on separate browsers/profiles.
    the note listed there. /invitations redirects to the same inbox.
 8. Share links: as A, Share… > Create link: EXPECT a "View-only link"
    row with expiry and Copy/Revoke (the URL itself is never shown). Click
-   Copy: EXPECT "Copied". Paste into a signed-out/private window: EXPECT
-   the note title + read-only content, "View-only shared copy", no editing
-   UI. Back as A, Revoke the link (confirm): EXPECT the row goes; reload
-   the link: EXPECT "This link didn’t open / invalid or has expired".
+   Copy: EXPECT "Copied". Paste into a second signed-in browser: EXPECT
+   the NORMAL note page (sidebar, top bar, panels) with the note loaded
+   read-only, a "View only" pill, and no Note-actions menu. Paste into a
+   signed-out/private window: EXPECT the sign-in screen first, then the
+   same normal note page after signing in. From the link page, click a
+   sidebar item (e.g. Trash): EXPECT the normal view; press Back: EXPECT
+   the shared note again. Back as A, Revoke the link (confirm): EXPECT
+   the row goes; reload the link: EXPECT "This link didn’t open /
+   invalid or has expired" with Try again and All notes (inside the
+   workspace chrome).
 9. Offline: disconnect, open Share… and Invitations: EXPECT the offline
    notice plus friendly error with Try again; reconnect + retry loads.
 10. At 320px on the dialog and Invitations: EXPECT rows wrap, no horizontal
