@@ -63,3 +63,20 @@ export function diffTransactionGroups(diff: DocumentDiff, maxOps: number): Docum
   for (let at = 0; at < diff.content.length; at += maxOps) groups.push(diff.content.slice(at, at + maxOps))
   return groups
 }
+
+type Metadata = IncantlyDocument['metadata']
+
+function metadataMinusPageSetup(meta: Metadata) {
+  const rest = { ...meta }
+  delete (rest as Partial<Metadata>).pageSetup
+  return rest
+}
+
+/**
+ * True when the local document differs from the server in metadata no typed operation can
+ * express (title, language, authors, tags, layout, research). Callers must carry such a delta
+ * as a full-document save, never as transactions: `diffDocuments` silently drops it.
+ */
+export function hasNonTransmittableChanges(server: IncantlyDocument, mine: IncantlyDocument): boolean {
+  return !deepEqual(metadataMinusPageSetup(server.metadata), metadataMinusPageSetup(mine.metadata))
+}

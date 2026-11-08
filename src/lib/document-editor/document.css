@@ -1726,6 +1726,332 @@ a.incantly-asset__button {
   box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-text) 6%, transparent), 0 4px 16px color-mix(in srgb, var(--ui-text) 6%, transparent);
 }
 
+/* Interactive figures (Solutus SDK node view). The live drawing renders inside the SDK's
+   sandboxed frame; these rules style only the host shell: the card, the snapshot/skeleton
+   placeholder, the status line, the version history, and the text-alternative caption. */
+.incantally-document-editor .ProseMirror figure.incantally-figure {
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--incantly-document-surface);
+  break-inside: avoid;
+}
+
+.incantally-document-editor .ProseMirror figure.incantally-figure.ProseMirror-selectednode,
+.incantally-document-editor .ProseMirror figure.incantally-figure.is-selected {
+  outline: 2px solid var(--incantly-document-focus);
+  outline-offset: 2px;
+}
+
+.incantally-figure__frame {
+  position: relative;
+  width: 100%;
+  background: var(--incantly-document-background);
+}
+
+.incantally-figure__frame iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  overflow: hidden;
+}
+
+.incantally-figure__snapshot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.incantally-figure__skeleton {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--incantly-document-text) 8%, transparent) 50%, transparent 80%),
+    color-mix(in srgb, var(--incantly-document-text) 5%, transparent);
+  background-size: 200% 100%, 100% 100%;
+  animation: incantly-figure-shimmer 1.6s linear infinite;
+}
+
+@keyframes incantly-figure-shimmer {
+  from { background-position: 180% 0, 0 0; }
+  to { background-position: -80% 0, 0 0; }
+}
+
+.incantally-figure__status {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  color: var(--incantly-document-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* The text alternative never shows visually (the figure speaks for itself); it stays
+   in the accessibility tree for screen readers. The in-frame description is off
+   separately via the figure style (`show.description: false`). */
+.incantally-figure__description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.incantally-figure__description:empty {
+  display: none;
+}
+
+.incantally-figure__reset,
+.incantally-figure__restore {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.625rem;
+  background: var(--incantly-document-surface);
+  color: var(--incantly-document-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.incantally-figure__reset:hover,
+.incantally-figure__restore:hover {
+  border-color: var(--incantly-document-focus);
+}
+
+.incantally-figure__reset:focus-visible,
+.incantally-figure__restore:focus-visible,
+.incantally-figure__versions summary:focus-visible {
+  outline: 2px solid var(--incantly-document-focus);
+  outline-offset: 2px;
+}
+
+.incantally-figure__versions {
+  margin: 0;
+  padding: 0 0.875rem 0.625rem;
+  color: var(--incantly-document-muted);
+  font-size: 0.8125rem;
+}
+
+.incantally-figure__versions summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.incantally-figure__versions ol {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.25rem;
+}
+
+.incantally-figure__versions li {
+  margin-block: 0.375rem;
+}
+
+/* In-note generation placeholder: a block-sized pixel shader breathing (zoom in and out)
+   where the figure will land, with the live stage beneath it. It takes real layout space
+   so swapping in the finished figure never jumps the note. */
+.incantally-document-editor .ProseMirror [data-simulation-placeholder] {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 19rem;
+  margin-block: 0.75rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--incantly-document-surface);
+  transition: opacity 0.45s ease;
+}
+
+.incantally-document-editor .ProseMirror [data-simulation-placeholder].is-leaving {
+  opacity: 0;
+}
+
+.incantally-simulation-pending__pixels {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  image-rendering: pixelated;
+}
+
+.incantally-simulation-pending__caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0.875rem;
+  margin: 0 auto;
+  padding: 0.375rem 0.875rem;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--incantly-document-surface) 82%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--incantly-document-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incantally-simulation-pending.is-failed .incantly-simulation-pending__caption {
+  display: none;
+}
+
+/* "Change this figure": a zero-height block above each figure, holding one button that
+   overlays the figure's top-right corner. It takes no layout space and never enters the
+   document; the popup it opens lives in React, anchored under the button. */
+.incantally-figure-change {
+  display: block;
+  height: 0;
+  overflow: visible;
+  position: relative;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.incantally-figure-change__button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--incantly-document-surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--incantly-document-muted);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.incantally-figure-change__button:hover {
+  color: #2b62d9;
+  border-color: #2b62d9;
+}
+
+.incantally-figure-change__button--delete {
+  right: 2.625rem;
+}
+
+.incantally-figure-change__button--delete:hover {
+  color: #b3261e;
+  border-color: #b3261e;
+}
+
+.incantally-figure-change__button--delete:focus-visible {
+  outline-color: #b3261e;
+}
+
+.incantally-figure-change__button:focus-visible {
+  outline: 2px solid #2b62d9;
+  outline-offset: 2px;
+}
+
+.incantally-simulation-pending__error {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0.875rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 auto;
+  padding: 0.375rem 0.875rem;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--incantly-document-surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--incantly-document-text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.incantally-simulation-pending__message {
+  margin: 0;
+  flex-basis: 100%;
+}
+
+.incantally-simulation-pending__retry,
+.incantally-simulation-pending__dismiss {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--incantly-document-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--incantly-document-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.incantally-simulation-pending__retry:hover,
+.incantally-simulation-pending__dismiss:hover {
+  border-color: var(--incantly-document-focus);
+}
+
+/* The finished figure settles in slowly over the fading placeholder. */
+.incantally-document-editor .ProseMirror figure.incantally-figure.is-revealing {
+  animation: incantly-figure-reveal 0.65s ease both;
+}
+
+@keyframes incantly-figure-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .incantly-figure__skeleton {
+    animation: none;
+  }
+
+  .incantly-document-editor .ProseMirror [data-simulation-placeholder] {
+    transition: none;
+  }
+
+  .incantly-document-editor .ProseMirror figure.incantally-figure.is-revealing {
+    animation-duration: 0.01s;
+  }
+}
+
+@media (forced-colors: active) {
+  .incantly-document-editor .ProseMirror figure.incantally-figure {
+    border: 1px solid CanvasText;
+  }
+
+  .incantly-figure__reset,
+  .incantly-figure__restore {
+    border: 1px solid ButtonText;
+  }
+}
+
 /* Printing an export preview prints its pages only (see printPagedPreview). */
 @media print {
   html.incantly-printing,
@@ -1743,5 +2069,39 @@ a.incantly-asset__button {
 
   html.incantly-printing .incantly-print-root .incantly-print-page:last-child {
     break-after: auto;
+  }
+}
+
+/* Remote collaborator carets and selections (Liveblocks presence). Never printed. */
+.incantly-remote-caret {
+  position: relative;
+  border-left: 2px solid;
+  margin-left: -2px;
+  pointer-events: none;
+}
+
+.incantly-remote-caret__flag {
+  position: absolute;
+  left: -2px;
+  bottom: 100%;
+  margin-bottom: 3px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.incantly-remote-selection {
+  border-radius: 2px;
+}
+
+@media print {
+  .incantly-remote-caret,
+  .incantly-remote-selection {
+    display: none !important;
   }
 }

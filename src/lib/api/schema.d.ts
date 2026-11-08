@@ -4459,6 +4459,8 @@ export interface components {
             /** @example note:5b0c… */
             id: string;
             title: string;
+            /** @description Whether the caller may edit this note. Viewers must open read-only and never submit. */
+            canEdit: boolean;
             /** @enum {string} */
             status: "active" | "archived";
             /** @description Incantly document schema version. */
@@ -4586,6 +4588,8 @@ export interface components {
             transactionId: string;
             /** @description Stable ID of this browser/device install. */
             clientId: string;
+            /** @description Per-tab session ID (same-browser tabs share a clientId). Scopes conflict recovery; omit for non-browser writers. */
+            tabSessionId?: string;
             /**
              * @description Per-client increasing sequence, as a decimal string. Reusing one returns 409 CLIENT_SEQUENCE_REUSED.
              * @example 42
@@ -6127,6 +6131,12 @@ export interface components {
              * @example false
              */
             offlineEnabled: boolean;
+            /**
+             * @description Which realtime writer the client must construct for this note (`legacy`: the noteSync send path; `yjs`: the canonical fold — never both). The server decides from COLLAB_YJS_ENABLED plus the note allowlist; the client never decides alone. Always `legacy` until the Yjs rollout begins.
+             * @example legacy
+             * @enum {string}
+             */
+            collabMode: "legacy" | "yjs";
         };
         CreateCommentDto: {
             /**

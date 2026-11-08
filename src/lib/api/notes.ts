@@ -28,6 +28,7 @@ export type NoteTransaction = {
   version: 1
   transactionId: string
   clientId: string
+  tabSessionId: string
   localSequence: string
   baseRevisionNumber: number
   operations: readonly DocumentOperation[]

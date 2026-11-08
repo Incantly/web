@@ -14,9 +14,13 @@ const MAX_AVATARS = 3
 export function LivePresence() {
   const { noteId, connection, collaborators } = useLiveCollab()
   if (!noteId || connection === 'unavailable') return null
-  const shown = collaborators.slice(0, MAX_AVATARS)
-  const extra = collaborators.length - shown.length
-  const names = collaborators.map((person) => person.name).join(', ')
+  // One avatar per user: the same account can hold several room connections
+  // (two tabs, a reconnect overlap), which would otherwise duplicate React keys.
+  const seen = new Set<string>()
+  const unique = collaborators.filter((person) => (seen.has(person.id) ? false : (seen.add(person.id), true)))
+  const shown = unique.slice(0, MAX_AVATARS)
+  const extra = unique.length - shown.length
+  const names = unique.map((person) => person.name).join(', ')
   return <span role="status" aria-label={collaborators.length ? `${LIVE_CONNECTION_COPY[connection]}. Also here: ${names}` : LIVE_CONNECTION_COPY[connection]}
     className="flex min-h-11 shrink-0 items-center gap-1.5 px-1.5">
     <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${connection === 'live' ? 'bg-added motion-safe:animate-pulse motion-reduce:animate-none' : 'bg-disabled'}`} />

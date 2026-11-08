@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { DocumentBubbleToolbar, DocumentToolbarAction, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
 import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
@@ -23,10 +23,18 @@ import { useCurrentUser } from '../SessionGate'
 import { useAddSelectionToChat } from '@/hooks/use-assistant'
 import { useImports } from '@/hooks/use-imports'
 import { useLiveCollab, useSavedSyncPoll } from '@/hooks/use-live-collab'
+import { useYjsNoteBinding } from '@/lib/document-editor/yjsBinding'
+import { selectCollabWriter, subscribeOnlineStatus } from '@/lib/document-editor/yjsDegraded'
+import { writerKindForCollabMode, type NoteWriterKind } from '@/lib/document-editor/yjsFold'
+import { useYjsFoldWriter } from '@/hooks/use-yjs-fold-writer'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useNotifications } from '@/hooks/use-notifications'
+import { useSelectionPresence } from '@/hooks/use-selection-presence'
 import { useNoteSuggestions } from '@/hooks/use-note-suggestions'
+import { useSimulationFigure } from '@/hooks/use-simulations'
+import { CHAT_SIMULATION_EVENT, hideSimulationPlaceholder, showSimulationPlaceholder, updateSimulationPlaceholder, type ChatSimulationDetail } from '@/lib/document-editor/simulationPlaceholder'
+import { FigureChangePopup } from './FigureChangePopup'
 import { useHeaderFooter } from '@/hooks/use-header-footer'
 import { usePageSetup } from '@/hooks/use-page-setup'
 import { useNoteExport } from '@/hooks/use-note-export'
@@ -191,25 +199,45 @@ function ConflictDialog({ open, onClose, state, onKeepMine, onTakeServer, onAcce
     } finally { setBusy(null) }
   }
   const isConflict = state?.status === 'conflict'
+  // An error wedge (e.g. a transaction the server keeps rejecting) offers the same
+  // escape hatch as a conflict: without it the only action re-sends the payload
+  // that already failed, and the note can never resume syncing.
+  const canTakeServer = isConflict || state?.status === 'error'
   return <Dialog open={open} onClose={onClose} title={isConflict ? 'This note changed elsewhere' : 'Saving paused'}
     description={state?.message}
     footer={<>
-      {isConflict ? <button type="button" disabled={Boolean(busy)} onClick={() => void run('server', onTakeServer)} className={buttonSecondary}>{busy === 'server' ? 'Loading…' : 'Use the latest version'}</button> : null}
+      {canTakeServer ? <button type="button" disabled={Boolean(busy)} onClick={() => void run('server', onTakeServer)} className={buttonSecondary}>{busy === 'server' ? 'Loading…' : 'Use the latest version'}</button> : null}
       <button type="button" disabled={Boolean(busy)} onClick={() => void run('mine', onKeepMine)} className={buttonPrimary}>{busy === 'mine' ? 'Saving…' : isConflict ? 'Keep my version' : 'Save my version'}</button>
     </>}>
     <p className="text-sm leading-6 text-muted">{isConflict
       ? 'Your edits overlap with a newer version saved on another device or tab. Keep your version to save it as the newest, or load the latest version and discard the edits made here.'
-      : 'Your edits are safe on this device. Save your version to continue syncing it as the newest version.'}</p>
+      : 'Your edits are safe on this device. Save your version to continue syncing it as the newest version, or load the latest version and discard the edits made here.'}</p>
     {error ? <p role="alert" className="mt-3 text-sm text-danger">{error}</p> : null}
   </Dialog>
 }
 
 /** One open note: its session (load, sync, history) plus the screen. Mounted per note id. */
 export function NoteRoute({ noteId }: { noteId: string }) {
+  // Single-writer selection (Yjs migration): the server flag plus live room
+  // state picks exactly one persistence writer per open note. The scope below
+  // remounts on a flip (teardown flushes pending work first), so the note is
+  // never without a writer and never has two.
+  const { collabMode, connection, mode } = useLiveCollab()
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine)
+  useEffect(() => subscribeOnlineStatus(setOnline), [])
+  const writerKind: NoteWriterKind = useMemo(() => {
+    const writer = selectCollabWriter({ collabMode: collabMode ?? 'legacy', connection, online, liveMode: mode })
+    return writerKindForCollabMode(writer === 'yjs' ? 'yjs' : 'legacy')
+  }, [collabMode, connection, mode, online])
+  return <NoteSessionScope key={`${noteId}:${writerKind}`} noteId={noteId} writerKind={writerKind} />
+}
+
+function NoteSessionScope({ noteId, writerKind }: { noteId: string; writerKind: NoteWriterKind }) {
   const user = useCurrentUser()
   const cache = useNotesCache(user.id)
   const { registerNoteReloader } = useImports()
   const session = useNoteSession(user.id, noteId, {
+    writerKind,
     onAck: (_revision, title) => cache.upsert({ id: noteId, updatedAt: new Date().toISOString(), ...(title ? { title } : {}) }),
   })
   // An import into this note finished: show it now, unless local edits are still on their way.
@@ -217,7 +245,7 @@ export function NoteRoute({ noteId }: { noteId: string }) {
   useEffect(() => { sessionRef.current = session })
   useEffect(() => registerNoteReloader(noteId, () => {
     const current = sessionRef.current
-    if (current.phase === 'ready' && !current.sync?.pending) void current.takeServer().catch(() => {})
+    if (current.phase === 'ready' && !current.sync?.pending) void current.applyServerHead('import').catch(() => {})
   }), [registerNoteReloader, noteId])
   const assets = useServerAssetHost(user.id)
   return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} /></DocumentAssetsProvider>
@@ -229,11 +257,17 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const { activeNote, deleteNote } = useNotes()
   const { noteSpace: space } = useSpaces()
   const { openShareDialog } = useSharing()
-  const { noteId: liveNoteId } = useLiveCollab()
+  const { noteId: liveNoteId, room, connection, collabMode } = useLiveCollab()
   const { noteMuted, toggleNoteMute, muting, prefsLoading } = useNotifications()
   // Shared when the list says so, or live-status confirmed it (the list can lag a fresh share).
   const shared = (activeNote?.shared ?? false) || liveNoteId === noteId
-  useSavedSyncPoll(noteId, session, shared)
+  useSavedSyncPoll(noteId, session)
+  // Yjs realtime (migration Phase 1, flagged notes only): the binding owns the
+  // note's Yjs doc and room provider. Null keeps the legacy editor untouched.
+  const yjsBinding = useYjsNoteBinding({ noteId, seed: session.document, room, roomSettled: room != null || connection === 'unavailable', collabMode })
+  // Canonical fold (migration Phase 2): when live, Yjs updates persist through
+  // the fold and legacy editor transactions must not record (double submit).
+  const foldLive = useYjsFoldWriter({ noteId, binding: yjsBinding, session, editable: session.phase === 'ready' && session.canEdit })
   const { openImport } = useWorkspaceUI()
   const title = activeNote?.title ?? ''
   /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
@@ -252,6 +286,41 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   const [editor, setEditor] = useState<Editor | null>(null)
   const review = useNoteSuggestions(noteId, session, editor)
   const selectionToChat = useAddSelectionToChat(noteId, session)
+  const simulation = useSimulationFigure(noteId, session, editor)
+  // Remote carets and selections render once both the editor and the room exist.
+  useSelectionPresence(editor, room)
+  // An assistant run generating into this note draws its progress here, at the end where the
+  // figure will attach. Other notes' jobs are ignored; a reload drops the widget anyway.
+  useEffect(() => {
+    const shown = new Set<string>()
+    const onChatSimulation = (event: Event) => {
+      const detail = (event as CustomEvent<ChatSimulationDetail>).detail
+      if (!detail || detail.noteId !== noteId) return
+      const live = editorRef.current
+      if (!live || live.isDestroyed) return
+      const key = `chat:${detail.jobId}`
+      if (detail.phase === 'hide') {
+        if (!shown.delete(key)) return
+        hideSimulationPlaceholder(live, key, false)
+        return
+      }
+      if (!shown.has(key)) {
+        shown.add(key)
+        showSimulationPlaceholder(live, {
+          key,
+          anchorNodeId: null,
+          label: detail.label,
+          energy: detail.energy,
+          onRetry: () => {},
+          onDismiss: () => {},
+        })
+        return
+      }
+      updateSimulationPlaceholder(live, key, detail.label, detail.energy)
+    }
+    window.addEventListener(CHAT_SIMULATION_EVENT, onChatSimulation)
+    return () => window.removeEventListener(CHAT_SIMULATION_EVENT, onChatSimulation)
+  }, [noteId])
   const [missingBlock, setMissingBlock] = useState(false)
   // Jump to a cited passage once the editor (re)loads; the nonce repeats a jump to the same block.
   useEffect(() => {
@@ -266,7 +335,7 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   }, [requestedThread, noteId])
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
-  const editable = session.phase === 'ready' && session.sync?.status !== 'gone' && session.sync?.status !== 'denied'
+  const editable = session.phase === 'ready' && session.canEdit && session.sync?.status !== 'gone' && session.sync?.status !== 'denied'
   const pageSetup = usePageSetup(editor, editable)
   const headerFooter = useHeaderFooter(editor, editable)
   // The loaded document keeps its original title; a rename made here wins until the list catches up.
@@ -314,11 +383,12 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
       {/* No full-height stretch: the top bar shares this scroll box, so an empty note would scroll by its height. */}
       <div>
-          <DocumentEditor key={`${noteId}:${session.version}:${editable}`} initialDocument={session.document} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…"
+          <DocumentEditor key={yjsBinding ? `${noteId}:${session.version}:${editable}:yjs:${yjsBinding.epoch}` : `${noteId}:${session.version}:${editable}`} initialDocument={session.document} collaboration={yjsBinding ?? undefined} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…"
             onReady={(ready) => { editorRef.current = ready; setEditor(ready); setEditorReady((value) => value + 1) }}
-            onChange={(document, event) => session.record({ mode: event.mode, operations: event.operations, document })}>
-            <DocumentBubbleToolbar leading={(current) => <DocumentToolbarAction label="Add to chat" onRun={() => void selectionToChat.addToChat(current)}><AppIcon name="sparkles" className="size-4" /><span>Add to chat</span></DocumentToolbarAction>} /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
+            onChange={(document, event) => { if (!foldLive) session.record({ mode: event.mode, operations: event.operations, document }) }}>
+            <DocumentBubbleToolbar leading={(current) => <><DocumentToolbarAction label="Add to chat" onRun={() => void selectionToChat.addToChat(current)}><AppIcon name="sparkles" className="size-4" /><span>Add to chat</span></DocumentToolbarAction><DocumentToolbarAction label="Generate simulation" onRun={() => simulation.generate(current)}><AppIcon name="play" className="size-4" /><span>Generate simulation</span></DocumentToolbarAction></>} /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
           </DocumentEditor>
+          <FigureChangePopup editor={editor} session={session} />
           <NoteSuggestionsBar review={review} />
       </div>
     </> : null}
