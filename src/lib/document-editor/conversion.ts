@@ -145,6 +145,26 @@ function nodeToProseMirror(node: DocumentNode, path: string, issues: DocumentAda
       }
     case 'image': case 'fileAttachment': case 'audio': case 'videoEmbed': case 'pdfEmbed': case 'canvasEmbed':
       return { ...base, attrs: compact({ id: node.id, ...node.attrs }) }
+    case 'figure': {
+      // The canonical node is a reference only; the editor resolves fragments after load
+      // (hydrateFigures) and the title/caption become the figure's concept and text alternative.
+      const attrs = node.attrs ?? {}
+      if (typeof attrs.figureId !== 'string' || !attrs.figureId || typeof attrs.sdkVersion !== 'string' || !attrs.sdkVersion) {
+        issues.push({ code: 'invalid_content', path, message: 'Figure node is missing its reference', action: 'omitted' })
+        return null
+      }
+      return {
+        type: 'incantlyFigure',
+        attrs: compact({
+          id: node.id,
+          figureId: attrs.figureId,
+          sdkVersion: attrs.sdkVersion,
+          concept: attrs.title,
+          description: attrs.caption,
+          meta: { generationId: attrs.figureId },
+        }),
+      }
+    }
     default:
       issues.push({ code: 'unsupported_node', path, message: `Unsupported Incantly node "${String((node as { type?: unknown }).type)}"`, action: 'omitted' })
       return null
@@ -289,6 +309,20 @@ function nodeFromProseMirror(node: JSONContent, path: string, issues: DocumentAd
     case 'videoEmbed': return { id, type: 'videoEmbed', attrs: compact({ provider: value.provider, videoId: value.videoId, title: value.title, caption: value.caption }) }
     case 'pdfEmbed': return { id, type: 'pdfEmbed', attrs: compact({ assetId: value.assetId, page: value.page, display: value.display, extractedDocumentId: value.extractedDocumentId }) }
     case 'canvasEmbed': return { id, type: 'canvasEmbed', attrs: compact({ canvasId: value.canvasId, previewAssetId: value.previewAssetId, caption: value.caption, display: value.display }) }
+    case 'incantlyFigure': {
+      // Reference only: learner values, teaching position, fragments and snapshots live in the
+      // editor and the figure store, never in canonical JSON. The concept and text alternative
+      // round-trip as the display title and caption.
+      const figureId = typeof value.figureId === 'string' ? value.figureId : ''
+      const sdkVersion = typeof value.sdkVersion === 'string' ? value.sdkVersion : ''
+      if (!figureId || !sdkVersion) {
+        issues.push({ code: 'invalid_content', path, message: 'Figure node is missing its reference', action: 'omitted' })
+        return null
+      }
+      const title = typeof value.concept === 'string' && value.concept ? value.concept : undefined
+      const caption = typeof value.description === 'string' && value.description ? value.description : undefined
+      return { id, type: 'figure', attrs: compact({ figureId, sdkVersion, title, caption }) }
+    }
     default:
       issues.push({ code: 'unsupported_node', path, message: `Unsupported ProseMirror node "${String(node.type)}"`, action: 'omitted' })
       return null

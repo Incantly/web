@@ -1,4 +1,5 @@
 import { Node, mergeAttributes, type Extensions } from '@tiptap/core'
+import { CURRENT_DOCUMENT_SCHEMA_VERSION } from '@incantly/canvas-core/document'
 import { Blockquote } from '@tiptap/extension-blockquote'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
@@ -38,7 +39,7 @@ const Document = Node.create({
   topNode: true,
   content: 'block+',
   addAttributes: () => ({
-    schemaVersion: { default: 1, rendered: false },
+    schemaVersion: { default: CURRENT_DOCUMENT_SCHEMA_VERSION, rendered: false },
     documentId: { default: null, rendered: false },
     metadata: { default: null, rendered: false },
     createdAt: { default: null, rendered: false },
@@ -290,5 +291,5 @@ export const INCANTLY_NODE_ID_TYPES = new Set([
   'paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList', 'listItem',
   'checklist', 'checklistItem', 'horizontalRule', 'details', 'codeBlock', 'blockMath', 'table',
   'tableRow', 'tableHeaderCell', 'tableCell', 'image', 'fileAttachment', 'audio',
-  'videoEmbed', 'pdfEmbed', 'canvasEmbed', 'pageBreak',
+  'videoEmbed', 'pdfEmbed', 'canvasEmbed', 'incantlyFigure', 'pageBreak',
 ])

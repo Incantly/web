@@ -14,6 +14,11 @@ export type ImportsValue = {
    * Returns the unregister function.
    */
   registerNoteReloader: (noteId: string, reload: () => void) => () => void
+  /**
+   * A server-side addition landed in the note (a finished import, an assistant figure):
+   * reload it if it is open, and refresh its index entry. Unknown or closed notes are a no-op.
+   */
+  reloadNote: (noteId: string) => void
 }
 
 export const ImportsContext = createFeatureContext<ImportsValue>('Imports')
@@ -23,8 +28,12 @@ export function useImportsState(): ImportsValue {
   const user = useCurrentUser()
   const client = useQueryClient()
   const [reloaders] = useState(() => new Map<string, () => void>())
+  const reloadNote = useCallback((noteId: string) => {
+    reloaders.get(noteId)?.()
+    void client.invalidateQueries({ queryKey: ['note-index', noteId] })
+  }, [client, reloaders])
   const tracker = useImportTracker(user.id, (_job, item) => {
-    if (item.intoNoteId) { reloaders.get(item.intoNoteId)?.(); void client.invalidateQueries({ queryKey: ['note-index', item.intoNoteId] }) }
+    if (item.intoNoteId) reloadNote(item.intoNoteId)
   })
 
   const registerNoteReloader = useCallback((noteId: string, reload: () => void) => {
@@ -32,7 +41,7 @@ export function useImportsState(): ImportsValue {
     return () => { if (reloaders.get(noteId) === reload) reloaders.delete(noteId) }
   }, [reloaders])
 
-  return useMemo<ImportsValue>(() => ({ tracker, registerNoteReloader }), [tracker, registerNoteReloader])
+  return useMemo<ImportsValue>(() => ({ tracker, registerNoteReloader, reloadNote }), [tracker, registerNoteReloader, reloadNote])
 }
 
 /** `/v1/imports`: tracked imports and reloading a note when one into it finishes. Must be used inside `WorkspaceProviders`. */

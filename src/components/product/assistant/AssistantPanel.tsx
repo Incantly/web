@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import katex from 'katex'
-import type { AiCommand, AnswerCitation, GroundedAnswer, PendingApproval } from '../../../lib/api/ai'
+import type { AiCommand, AnswerCitation, GroundedAnswer, PendingApproval, RunClarifyOption } from '../../../lib/api/ai'
 import { useCurrentUser } from '../SessionGate'
 import { useAssistant } from '@/hooks/use-assistant'
 import { useLibrary } from '@/hooks/use-library'
@@ -16,7 +16,7 @@ import { suggestionBlockId, suggestionCountLabel } from '../workspace/suggestion
 import { sourceKindMeta, type NoteRecord, type SourceRecord, type SpaceRecord } from '../workspace/model'
 import { SidePanel, useMediaQuery } from '../workspace/sidePanel'
 import { iconButton } from '../workspace/ui'
-import { canRetry, chatModes, citationKind, citationLinks, editsNotStored, stepsSummary, type ActivityStep, mentionChip, mentionMenu, mentionRequest, modeRequest, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, mergeWebSources, MIN_PROMPT, paperByline, paperIds, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, WEB_BUSY_MESSAGE, webSearchBusy, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn, type WebMention } from './aiModel'
+import { canRetry, chatModes, citationKind, citationLinks, clarifyKey, editsNotStored, stepsSummary, type ActivityStep, mentionChip, mentionMenu, mentionRequest, modeRequest, resolveMode, isGroundedAnswer, isNoteAssist, isPracticeQuestions, locatorLabel, MAX_PROMPT, mergeWebSources, MIN_PROMPT, paperByline, paperIds, resolveCitations, revealSegments, segmentAnswer, textLength, answerBlocks, WEB_BUSY_MESSAGE, webSearchBusy, type AnswerSegment, type AssistantTurn, type InlineNode, type ResolvedCitation, type ScopeChoice, type ScopeKind, type Turn, type WebMention } from './aiModel'
 import { Citation, Citations, citationTargetId, type CitationItem } from './Citations'
 import { PromptInput, type PromptAction } from './PromptInput'
 import { StreamingResponse } from './StreamingResponse'
@@ -141,7 +141,8 @@ function ChatBody({ thread, onClose, context, initialDraft }: { thread: string; 
 
     <Thread turns={chat.turns} scope={scope} lookup={lookup} disabled={!scope || limited}
       onSuggest={(text, command) => send(text, command)} onRetry={chat.retry} onClarify={chat.clarify} onRevealed={chat.markRevealed}
-      onApproval={(turn, toolCallId, decision) => void chat.decideApproval(turn, toolCallId, decision)} />
+      onApproval={(turn, toolCallId, decision) => void chat.decideApproval(turn, toolCallId, decision)}
+      onAnswer={(turn, option) => void chat.answerClarification(turn, option)} />
 
     <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
       <PromptInput value={draft} onValueChange={setDraft} onSubmit={(text) => send(text)} maxLength={MAX_PROMPT}
@@ -220,18 +221,19 @@ function WebOffToggle({ off, onToggle }: { off: boolean; onToggle: () => void })
   </button>
 }
 
-function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify, onRevealed, onApproval }: {
+function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify, onRevealed, onApproval, onAnswer }: {
   turns: Turn[]; scope: ScopeChoice | null; lookup: Lookup; disabled: boolean
   onSuggest: (text: string, command: AiCommand) => void
   onRetry: (turn: AssistantTurn) => void
   onClarify: ReturnType<typeof useAssistantChat>['clarify']
   onRevealed: (id: string) => void
   onApproval: (turn: AssistantTurn, toolCallId: string, decision: 'approve' | 'reject') => void
+  onAnswer: (turn: AssistantTurn, option: Pick<RunClarifyOption, 'option' | 'figureId'>) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
   const last = turns.at(-1)
-  const lastKey = last ? `${last.id}:${last.role === 'assistant' ? `${last.state}:${last.progress ?? ''}:${last.approvals?.length ?? 0}:${last.steps?.map((step) => step.state).join() ?? ''}` : ''}` : ''
+  const lastKey = last ? `${last.id}:${last.role === 'assistant' ? `${last.state}:${last.progress ?? ''}:${last.approvals?.length ?? 0}:${last.clarification ? 'choice' : ''}:${last.steps?.map((step) => step.state).join() ?? ''}` : ''}` : ''
   // Follow the conversation while the reader is at the bottom; leave them alone if they scrolled up.
   useEffect(() => {
     const element = scroller.current
@@ -239,7 +241,7 @@ function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify,
     element.scrollTo({ top: element.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }, [lastKey, last?.role])
 
-  const status = last?.role === 'assistant' ? (last.approvals?.length ? 'The assistant is waiting for your OK.' : last.state === 'done' ? 'Answer ready.' : last.state === 'failed' ? last.error : last.state === 'clarify' ? 'The assistant needs you to choose.' : last.state === 'canceled' ? 'Stopped.' : last.progress) : ''
+  const status = last?.role === 'assistant' ? (last.approvals?.length ? 'The assistant is waiting for your OK.' : last.clarification ? 'The assistant needs you to choose.' : last.state === 'done' ? 'Answer ready.' : last.state === 'failed' ? last.error : last.state === 'clarify' ? 'The assistant needs you to choose.' : last.state === 'canceled' ? 'Stopped.' : last.progress) : ''
 
   return <div ref={scroller} onScroll={(event) => { const element = event.currentTarget; pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 48 }}
     className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -247,7 +249,7 @@ function Thread({ turns, scope, lookup, disabled, onSuggest, onRetry, onClarify,
     {turns.length ? <ol className="space-y-6 px-4 py-5" aria-label="Conversation">
       {turns.map((turn) => <li key={turn.id} className="min-w-0">
         {turn.role === 'user' ? <UserBubble text={turn.text} quote={turn.quote} label={turn.command === 'practice' ? 'Quiz' : null} />
-          : <AssistantReply turn={turn} lookup={lookup} onRetry={() => onRetry(turn)} onClarify={(option) => onClarify(turn, option)} onRevealed={() => onRevealed(turn.id)} onApproval={(toolCallId, decision) => onApproval(turn, toolCallId, decision)} />}
+          : <AssistantReply turn={turn} lookup={lookup} onRetry={() => onRetry(turn)} onClarify={(option) => onClarify(turn, option)} onRevealed={() => onRevealed(turn.id)} onApproval={(toolCallId, decision) => onApproval(turn, toolCallId, decision)} onAnswer={(option) => onAnswer(turn, option)} />}
       </li>)}
     </ol> : <Welcome scope={scope} disabled={disabled} onSuggest={onSuggest} />}
   </div>
@@ -322,7 +324,7 @@ function StepsDisclosure({ steps }: { steps: ActivityStep[] }) {
   </details>
 }
 
-function AssistantReply(props: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void }) {
+function AssistantReply(props: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void; onAnswer: (option: Pick<RunClarifyOption, 'option' | 'figureId'>) => void }) {
   const { turn } = props
   const live = turn.state === 'sending' || turn.state === 'running'
   return <>
@@ -331,13 +333,15 @@ function AssistantReply(props: { turn: AssistantTurn; lookup: Lookup; onRetry: (
   </>
 }
 
-function ReplyBody({ turn, lookup, onRetry, onClarify, onRevealed, onApproval }: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void }) {
+function ReplyBody({ turn, lookup, onRetry, onClarify, onRevealed, onApproval, onAnswer }: { turn: AssistantTurn; lookup: Lookup; onRetry: () => void; onClarify: (option: NonNullable<AssistantTurn['options']>[number]) => void; onRevealed: () => void; onApproval: (toolCallId: string, decision: 'approve' | 'reject') => void; onAnswer: (option: Pick<RunClarifyOption, 'option' | 'figureId'>) => void }) {
   if (turn.state === 'sending' || turn.state === 'running') return <div className="space-y-3">
     {turn.steps?.length ? <StepList steps={turn.steps} /> : null}
     <LiveSources turn={turn} lookup={lookup} />
-    {turn.steps?.some((step) => step.state === 'running') ? null : <Progress label={turn.progress ?? 'Working…'} />}
+    {turn.steps?.some((step) => step.state === 'running') || turn.clarification ? null : <Progress label={turn.progress ?? 'Working…'} />}
     {turn.approvals?.map((approval) => <ApprovalCard key={approval.toolCallId} approval={approval} busy={turn.deciding === approval.toolCallId} disabled={Boolean(turn.deciding)} onDecide={(decision) => onApproval(approval.toolCallId, decision)} />)}
     {turn.approvalError ? <p role="alert" className="text-sm text-danger">{turn.approvalError}</p> : null}
+    {turn.clarification ? <ClarifyCard turn={turn} onAnswer={onAnswer} /> : null}
+    {turn.clarifyError && turn.clarification ? <p role="alert" className="text-sm text-danger">{turn.clarifyError}</p> : null}
   </div>
   if (turn.state === 'clarify') return <div className="space-y-2.5">
     <p className="text-sm text-foreground">Did you want…</p>
@@ -515,6 +519,54 @@ function ApprovalCard({ approval, busy, disabled, onDecide }: { approval: Pendin
       <button type="button" disabled={disabled} onClick={() => onDecide('reject')} className={smallButton}>Don’t allow</button>
       <button type="button" disabled={disabled} onClick={() => onDecide('approve')} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-button px-3 text-sm font-medium text-inverse transition-colors hover:bg-button-hover disabled:opacity-50">{busy ? 'Sending…' : 'Allow'}</button>
     </div>
+  </div>
+}
+
+const clarifyIcon: Record<RunClarifyOption['option'], IconName> = { answer_in_chat: 'quote', edit_note: 'edit', generate_simulation: 'sparkles', change_figure: 'document' }
+
+/**
+ * The run's waiting choice, inline in the thread (never a modal): one stacked button per server
+ * option. One pick disables the card and the same run resumes; Stop in the composer below
+ * dismisses it. Server labels render as text; descriptions stay off for a compact card.
+ */
+function ClarifyCard({ turn, onAnswer }: { turn: AssistantTurn; onAnswer: (option: Pick<RunClarifyOption, 'option' | 'figureId'>) => void }) {
+  const clarification = turn.clarification!
+  const busy = turn.clarifying !== undefined
+  const group = useRef<HTMLDivElement>(null)
+  const expires = resetTime(clarification.expiresAt)
+  // Focus lands on the first choice so keyboard users can answer straight away.
+  useEffect(() => { group.current?.querySelector<HTMLButtonElement>('[data-choice]')?.focus() }, [])
+  return <div ref={group} role="group" aria-label="Just to check" aria-busy={busy}
+    onKeyDown={(event) => {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Home' && event.key !== 'End') return
+      event.preventDefault()
+      const items = [...(group.current?.querySelectorAll<HTMLButtonElement>('[data-choice]') ?? [])]
+      if (!items.length) return
+      const index = items.indexOf(document.activeElement as HTMLButtonElement)
+      const next = event.key === 'ArrowDown' ? (index + 1) % items.length : event.key === 'ArrowUp' ? (index - 1 + items.length) % items.length : event.key === 'Home' ? 0 : items.length - 1
+      items[next]?.focus()
+    }}
+    className="rounded-xl border border-strong bg-raised p-3.5">
+    <p className="flex items-center gap-2 text-xs font-medium text-muted"><AppIcon name="sparkles" className="size-3.5 text-button" />Just to check{expires ? ` · until ${expires}` : ''}</p>
+    <p className="mt-1.5 text-sm leading-6 text-foreground">{clarification.kind === 'FIGURE_TARGET' ? 'Which figure did you mean?' : 'This could be a few different things — which did you mean?'}</p>
+    <p role="status" aria-live="polite" className="sr-only">{busy ? 'Sending your choice…' : ''}</p>
+    <div className="mt-2.5 flex flex-col items-stretch gap-2">
+      {clarification.options.map((option) => {
+        const picked = turn.clarifying === clarifyKey(option)
+        return <button key={clarifyKey(option)} type="button" data-choice disabled={busy} onClick={() => onAnswer(option)}
+          aria-label={picked ? `${option.label}, sending` : option.label}
+          className={`${smallButton} w-full justify-start focus-visible:border-button ${picked ? 'border-button' : ''}`}>
+          {picked
+            ? <span aria-hidden="true" className="size-4 shrink-0 animate-spin rounded-full border-2 border-default border-t-button motion-reduce:animate-none" />
+            : <AppIcon name={clarifyIcon[option.option]} className="size-4 shrink-0 text-button" />}
+          <span className="min-w-0 flex-1 truncate text-left">{option.label}</span>
+        </button>
+      })}
+    </div>
+    {turn.clarifyError && turn.clarifyPick && !busy ? <div className="mt-2.5 flex flex-wrap gap-2">
+      <button type="button" onClick={() => onAnswer(turn.clarifyPick!)} className={smallButton}><AppIcon name="restore" className="size-4" />Try again</button>
+    </div> : null}
+    <p className="mt-2.5 text-xs leading-5 text-subtle">Pick one to continue, or Stop below to dismiss.</p>
   </div>
 }
 
