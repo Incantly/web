@@ -2,12 +2,16 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useImports } from '@/hooks/use-imports'
 import { noteProposalsKey } from '@/hooks/use-note-suggestions'
-import { aiApi, streamJobEvents, type AiCommand, type AiJobEvent, type ApprovalDecision, type ClarificationOption, type NoteSelection } from '../../../lib/api/ai'
+import { aiApi, streamJobEvents, type AiCommand, type AiJobEvent, type ApprovalDecision, type ClarificationOption, type NoteSelection, type RunClarifyOption } from '../../../lib/api/ai'
 import { ApiError, apiErrorMessage, isApiError } from '../../../lib/api/errors'
 import { newIdempotencyKey } from '../../../lib/api/idempotency'
 import { poll } from '../../../lib/api/poll'
-import { activitySteps, eventLabel, failureMessage, isNoteAssist, isWebSearchFinished, touchesApprovals, type ActivityStep, type AssistantTurn, type ScopeChoice, type Turn } from './aiModel'
+import { simulationsApi, streamSimulationEvents, type SimulationJobEvent } from '../../../lib/api/simulations'
+import { dispatchChatSimulation } from '../../../lib/document-editor/simulationPlaceholder'
+import { activitySteps, clarifyKey, eventLabel, failureMessage, isNoteAssist, isWebSearchFinished, simGenerationDone, simStageStep, simWaitingTarget, touchesApprovals, touchesClarification, type ActivityStep, type AssistantTurn, type ScopeChoice, type Turn } from './aiModel'
+import { simulationEventEnergy, simulationEventLabel } from '../workspace/simulationModel'
 
 const MAX_KEPT = 60
 
@@ -53,6 +57,7 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
   const controllers = useRef(new Map<string, AbortController>())
   const cancelRequested = useRef(new Set<string>())
   const client = useQueryClient()
+  const { reloadNote } = useImports()
   const limitRef = useRef(onLimitReached)
   const turnsRef = useRef(turns)
   useEffect(() => { limitRef.current = onLimitReached; turnsRef.current = turns })
@@ -75,6 +80,15 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
       const result = await aiApi.approvals(jobId, signal).catch(() => null)
       if (result && !signal.aborted) update(turnId, { approvals: result.approvals, stateVersion: result.stateVersion })
     }
+    // The choice the run waits on, if any. A resumed or answered job is not waiting: its 409
+    // clears a stale card rather than leaving it up.
+    const readClarification = async () => {
+      const result = await aiApi.clarification(jobId, signal).catch((error: unknown) => {
+        if (isApiError(error, 'AI_JOB_NOT_WAITING') && !signal.aborted) update(turnId, { clarification: undefined, clarifying: undefined })
+        return null
+      })
+      if (result && !signal.aborted) update(turnId, { clarification: result, clarifyError: undefined })
+    }
     // Web results land while the job runs: a 404 (AI_RESULT_NOT_READY) keeps the previous list.
     const readWebSources = async () => {
       const result = await aiApi.citations(jobId, signal).catch(() => null)
@@ -83,16 +97,85 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
       // Refetches can overtake each other; the list only grows, so never shrink it.
       if (result.web.length >= previous) update(turnId, { webSources: result.web })
     }
+    // The note this turn asked about: the request's own scope. (The job's `subject`
+    // backfills later and is usually still empty here, so it cannot gate this.)
+    const requestNoteId = () => {
+      const turn = turnsRef.current.find((candidate): candidate is AssistantTurn => candidate.id === turnId && candidate.role === 'assistant')
+      const scope = turn?.request.scope.scope
+      return scope?.kind === 'NOTE' ? scope.noteId : undefined
+    }
+    // One simulation follow per turn: a parked figure call's stages retitle its running step
+    // with the same copy the in-note placeholder shows, and draw that placeholder in the
+    // open note while the figure generates. The AI follow still settles the turn.
+    let simFollowed: string | null = null
+    const followSim = async (simJobId: string) => {
+      try {
+        let after = -1
+        let shownPlaceholder = false
+        const takeSim = (events: SimulationJobEvent[]) => {
+          const turn = turnsRef.current.find((candidate): candidate is AssistantTurn => candidate.id === turnId && candidate.role === 'assistant')
+          if (!turn || (turn.state !== 'sending' && turn.state !== 'running')) return
+          const noteId = requestNoteId()
+          for (const event of events) {
+            after = Math.max(after, event.seq)
+            // A failed generation leaves no figure: its placeholder goes at once (the chat
+            // reports why). A finished one stays until the turn settles and reloads the note.
+            if ((event.type === 'FAILED' || event.type === 'EXPIRED') && noteId) {
+              dispatchChatSimulation({ noteId, jobId: simJobId, phase: 'hide' })
+              shownPlaceholder = false
+              continue
+            }
+            const label = simulationEventLabel(event)
+            if (!label || signal.aborted) continue
+            update(turnId, { progress: label, ...(turn.steps ? { steps: simStageStep(turn.steps, label) } : {}) })
+            if (noteId) {
+              dispatchChatSimulation({ noteId, jobId: simJobId, phase: shownPlaceholder ? 'update' : 'show', label, energy: simulationEventEnergy(event) })
+              shownPlaceholder = true
+            }
+          }
+        }
+        // Live over the stream; if it can't be used or closes early, poll on from the last event seen.
+        const streamed = await streamSimulationEvents(simJobId, after, (event) => takeSim([event]), signal)
+        if (signal.aborted) return
+        if (streamed !== 'done') {
+          await poll(async () => {
+            const page = await simulationsApi.events(simJobId, after, signal)
+            takeSim(page.events)
+            after = page.nextAfter
+            return page
+          }, (page) => page.done, { signal, maxMs: 4000 })
+        }
+      } catch { /* aborted or unreachable: the AI follow still settles the turn */ }
+    }
     try {
       // A resumed job may already be waiting: its APPROVAL_REQUESTED event is behind the cursor.
-      if (after >= 0) await readApprovals()
+      if (after >= 0) {
+        await readApprovals()
+        await readClarification()
+        // Its TOOL_WAITING is behind the cursor too: refollow the parked simulation, if any.
+        if (resumed?.simJobId) {
+          simFollowed = resumed.simJobId
+          void followSim(resumed.simJobId)
+        }
+      }
       const take = (events: AiJobEvent[], next = cursor) => {
         cursor = Math.max(next, ...events.map((event) => event.seq))
         steps = events.reduce(activitySteps, steps)
         const label = events.map(eventLabel).filter(Boolean).at(-1)
-        update(turnId, { after: cursor, steps, ...(label ? { progress: label } : {}) })
+        // An answered or expired choice leaves no card: the run continues or ends from here.
+        const settled = events.some((event) => event.type === 'CLARIFIED' || event.type === 'CLARIFICATION_EXPIRED')
+        update(turnId, { after: cursor, steps, ...(label ? { progress: label } : {}), ...(settled ? { clarification: undefined, clarifying: undefined } : {}) })
         if (events.some(touchesApprovals)) void readApprovals()
+        if (events.some(touchesClarification)) void readClarification()
         if (events.some(isWebSearchFinished)) void readWebSources()
+        for (const event of events) {
+          const target = simWaitingTarget(event)
+          if (target && simFollowed !== target.simJobId) {
+            simFollowed = target.simJobId
+            update(turnId, { simJobId: target.simJobId })
+            void followSim(target.simJobId)
+          }
+        }
       }
       // Live over the stream; if it can't be used or closes early, poll on from the last event seen.
       const streamed = await streamJobEvents(jobId, cursor, (event) => take([event]), signal)
@@ -108,25 +191,35 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
       if (job.status === 'COMPLETED') {
         // Passages are kept 30 days; without them the answer still shows with bare markers.
         const citations = await aiApi.citations(jobId, signal).catch(() => null)
-        update(turnId, { state: 'done', job, passages: citations?.passages ?? [], ...(citations ? { webSources: citations.web } : {}), progress: undefined, approvals: undefined })
+        update(turnId, { state: 'done', job, passages: citations?.passages ?? [], ...(citations ? { webSources: citations.web } : {}), progress: undefined, approvals: undefined, clarification: undefined, clarifying: undefined })
+        const scopeNoteId = requestNoteId()
         // The note assistant stored suggested edits: the open note draws them.
-        if (isNoteAssist(job) && job.result.proposalIds.length && job.subject?.kind === 'NOTE' && job.subject.id) void client.invalidateQueries({ queryKey: noteProposalsKey(userId, job.subject.id) })
+        if (isNoteAssist(job) && job.result.proposalIds.length && scopeNoteId) void client.invalidateQueries({ queryKey: noteProposalsKey(userId, scopeNoteId) })
+        // A finished generation attached its figure as a new revision: the open note reloads to
+        // show it (like a finished import), unless local edits are still on their way.
+        if (isNoteAssist(job) && scopeNoteId && simGenerationDone(steps)) reloadNote(scopeNoteId)
       } else if (job.status === 'CANCELED') {
-        update(turnId, { state: 'canceled', job, progress: undefined, approvals: undefined })
+        update(turnId, { state: 'canceled', job, progress: undefined, approvals: undefined, clarification: undefined, clarifying: undefined })
       } else {
-        update(turnId, { approvals: undefined, state: 'failed', job, failureCode: job.failureCode, error: failureMessage(job.failureCode, job.status), progress: undefined })
+        update(turnId, { approvals: undefined, clarification: undefined, clarifying: undefined, state: 'failed', job, failureCode: job.failureCode, error: failureMessage(job.failureCode, job.status), progress: undefined })
         if (job.failureCode === 'AI_DAILY_LIMIT_REACHED') limitRef.current?.()
       }
     } catch (error) {
       if (signal.aborted) return
-      update(turnId, { state: 'failed', error: errorCopy(error), progress: undefined })
+      update(turnId, { state: 'failed', error: errorCopy(error), progress: undefined, clarification: undefined, clarifying: undefined })
     } finally {
       if (controllers.current.get(turnId) === controller) controllers.current.delete(turnId)
+      // Whatever settled the turn, its in-note placeholder goes with it (a finished
+      // figure arrives through the reload above; anything else leaves nothing behind).
+      if (simFollowed) {
+        const noteId = requestNoteId()
+        if (noteId) dispatchChatSimulation({ noteId, jobId: simFollowed, phase: 'hide' })
+      }
     }
-  }, [update, client, userId])
+  }, [update, client, userId, reloadNote])
 
   const dispatch = useCallback(async (turnId: string, request: Request, clarified = false) => {
-    update(turnId, { state: 'sending', progress: 'Sending…', options: undefined, error: undefined, failureCode: undefined, job: undefined, passages: undefined, webSources: undefined, jobId: undefined, after: undefined, revealed: undefined, approvals: undefined, stateVersion: undefined, approvalError: undefined, steps: undefined, request })
+    update(turnId, { state: 'sending', progress: 'Sending…', options: undefined, error: undefined, failureCode: undefined, job: undefined, passages: undefined, webSources: undefined, jobId: undefined, after: undefined, revealed: undefined, approvals: undefined, stateVersion: undefined, approvalError: undefined, steps: undefined, clarification: undefined, clarifying: undefined, clarifyPick: undefined, clarifyError: undefined, simJobId: undefined, request })
     try {
       // One key per user action; the client reuses it for network retries of this send.
       const response = await aiApi.ask({ surface: 'chat', text: request.text, scope: request.scope.scope, ...(request.command ? { command: request.command } : {}), ...(request.selection ? { selection: request.selection } : {}), ...(request.webSearch === undefined ? {} : request.webSearch ? { webSearch: true, webScope: request.webScope ?? 'web' } : { webSearch: false }), ...(clarified ? { clarified: true } : {}) }, newIdempotencyKey())
@@ -192,8 +285,26 @@ export function useAssistantChat(userId: string, thread: string, { onLimitReache
     }
   }, [update])
 
+  /**
+   * Answers the run's waiting choice; the same run resumes server-side and the follow loop keeps
+   * watching it. One pick disables the card; a failed send keeps the card (and the pick) for retry.
+   */
+  const answerClarification = useCallback(async (turn: AssistantTurn, option: Pick<RunClarifyOption, 'option' | 'figureId'>) => {
+    if (!turn.jobId || turn.clarification === undefined || turn.clarifying) return
+    const pick = { option: option.option, ...(option.figureId ? { figureId: option.figureId } : {}) }
+    update(turn.id, { clarifying: clarifyKey(pick), clarifyPick: pick, clarifyError: undefined })
+    try {
+      await aiApi.answerClarification(turn.jobId, { ...pick, stateVersion: turn.clarification.stateVersion }, newIdempotencyKey())
+      update(turn.id, { clarifying: undefined, clarification: undefined, clarifyPick: undefined, progress: 'Continuing…' })
+    } catch (error) {
+      // The choice moved on (another tab answered, or it changed): show what it offers now.
+      const fresh = isApiError(error, 'AI_JOB_STATE_CHANGED') ? await aiApi.clarification(turn.jobId).catch(() => null) : null
+      update(turn.id, { clarifying: undefined, clarifyError: errorCopy(error), ...(fresh ? { clarification: fresh } : {}) })
+    }
+  }, [update])
+
   const markRevealed = useCallback((id: string) => update(id, { revealed: true }), [update])
 
   const active = turns.findLast((turn): turn is AssistantTurn => turn.role === 'assistant' && (turn.state === 'sending' || turn.state === 'running'))
-  return { turns, active, send, clarify, retry, stop, markRevealed, decideApproval }
+  return { turns, active, send, clarify, retry, stop, markRevealed, decideApproval, answerClarification }
 }

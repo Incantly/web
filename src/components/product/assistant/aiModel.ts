@@ -1,4 +1,4 @@
-import type { AiCommand, AiJob, AiJobEvent, AiScope, AiWebScope, AnswerCitation, CitedPassage, ClarificationOption, GroundedAnswer, NoteAssistResult, NoteSelection, PendingApproval, PracticeQuestions, WebPaper } from '../../../lib/api/ai'
+import type { AiCommand, AiJob, AiJobEvent, AiScope, AiWebScope, AnswerCitation, CitedPassage, ClarificationOption, ClarifyOptionId, GroundedAnswer, NoteAssistResult, NoteSelection, PendingApproval, PracticeQuestions, RunClarification, RunClarifyOption, WebPaper } from '../../../lib/api/ai'
 
 export type ScopeKind = AiScope['kind']
 
@@ -70,6 +70,15 @@ export type AssistantTurn = {
   /** The approval being decided right now. */
   deciding?: string
   approvalError?: string
+  /** The mid-run choice the job waits on (job WAITING_CLARIFICATION), with server-written labels. */
+  clarification?: RunClarification
+  /** The picked option while its answer is being sent (`clarifyKey`). */
+  clarifying?: string
+  /** The last sent pick, kept so a failed send can be retried. */
+  clarifyPick?: { option: ClarifyOptionId; figureId?: string }
+  clarifyError?: string
+  /** The simulation job a parked tool call waits on, followed for staged progress. */
+  simJobId?: string
 }
 
 export type Turn = UserTurn | AssistantTurn
@@ -93,6 +102,9 @@ const tools: Record<string, ToolCopy> = {
   read_web_page: { running: 'Reading a web page', done: 'Read a web page', failed: 'Couldn’t read the web page' },
   list_images: { running: 'Looking through your images', done: 'Looked through your images', failed: 'Couldn’t look through your images', detail: (data) => (data.images === 0 ? 'none found' : count(data.images, 'image', 'images')) },
   web_task: { running: 'Researching on the web', done: 'Researched on the web', failed: 'Couldn’t finish the web research', detail: (data) => count(data.sources, 'source', 'sources') },
+  request_simulation: { running: 'Making your figure', done: 'Made your figure', failed: 'Couldn’t make your figure' },
+  request_figure_change: { running: 'Changing your figure', done: 'Changed your figure', failed: 'Couldn’t change your figure' },
+  list_note_figures: { running: 'Looking through your figures', done: 'Looked through your figures', failed: 'Couldn’t look through your figures', detail: (data) => count(data.figures, 'figure', 'figures') },
 }
 /** Why a step didn't work, in plain words (TOOL_FINISHED `reason`). Unknown codes show no detail. */
 const refusalReasons: Record<string, string> = {
@@ -135,6 +147,50 @@ export function activitySteps(steps: readonly ActivityStep[], event: Pick<AiJobE
   const reason = outcome !== 'done' && typeof data.reason === 'string' && data.reason ? data.reason : undefined
   const finished: ActivityStep = { id, tool, state: outcome, label: outcome === 'done' ? copy.done : copy.failed, ...(detail ? { detail } : {}), ...(reason ? { reason } : {}) }
   return existing >= 0 ? steps.map((step, index) => (index === existing ? finished : step)) : [...steps, finished]
+}
+
+/** Tools whose wait is a simulation job the chat can follow for staged progress. */
+const SIM_WAIT_TOOLS: ReadonlySet<string> = new Set(['request_simulation', 'request_figure_change'])
+
+/**
+ * The simulation job a TOOL_WAITING event parks on, if any: the tool must be a simulation
+ * tool and the event must name the vendor task. Older events (and crash re-parks) carry no
+ * task, so the chat keeps its generic copy for those.
+ */
+export function simWaitingTarget(event: Pick<AiJobEvent, 'type' | 'data'>): { tool: string; simJobId: string } | null {
+  if (event.type !== 'TOOL_WAITING') return null
+  const data = event.data ?? {}
+  const tool = typeof data.tool === 'string' ? data.tool : ''
+  const simJobId = typeof data.externalTaskId === 'string' ? data.externalTaskId : ''
+  if (!SIM_WAIT_TOOLS.has(tool) || data.vendor !== 'simulations' || !simJobId) return null
+  return { tool, simJobId }
+}
+
+/**
+ * True when a generation finished: its figure was attached to the note as a new revision,
+ * so the open note must reload to show it. A failed generation attached nothing; a figure
+ * change never attaches server-side (the caller swaps it), so neither reloads.
+ */
+export function simGenerationDone(steps: readonly ActivityStep[] = []): boolean {
+  return steps.some((step) => step.tool === 'request_simulation' && step.state === 'done')
+}
+
+/**
+ * Retitles the running simulation step with the job's stage copy (the same labels the
+ * in-note placeholder shows). The step list appends its own ellipsis, so one trailing
+ * ellipsis is stripped. Steps for other tools, and finished sim steps, are untouched.
+ */
+export function simStageStep(steps: readonly ActivityStep[], label: string): ActivityStep[] {
+  const text = label.replace(/(\u2026|\.\.\.)$/, '')
+  let changed = false
+  const next = steps.map((step) => {
+    if (!changed && step.state === 'running' && SIM_WAIT_TOOLS.has(step.tool) && step.label !== text) {
+      changed = true
+      return { ...step, label: text }
+    }
+    return step
+  })
+  return changed ? next : (steps as ActivityStep[])
 }
 
 /**
@@ -218,6 +274,9 @@ export function eventLabel(event: Pick<AiJobEvent, 'type' | 'data'>): string | n
     case 'TOOL_RESUMED': return 'Continuing…'
     case 'REJECTED': return 'Continuing without that…'
     case 'APPROVAL_EXPIRED': return 'The request to approve expired.'
+    case 'CLARIFICATION_REQUESTED': return 'Waiting for your choice…'
+    case 'CLARIFIED': return 'Continuing…'
+    case 'CLARIFICATION_EXPIRED': return 'Your choice expired.'
     case 'TOOL_WAITING': return 'Waiting on a tool…'
     case 'DEFERRED': return event.data?.code === 'AI_PROVIDER_UNAVAILABLE' ? 'AI is unavailable right now. Still retrying…' : 'Busy, retrying shortly…'
     default: return null
@@ -245,6 +304,8 @@ const failures: Record<string, string> = {
   AI_JOB_INPUT_INVALID: 'Questions can be 2 to 2,000 characters.',
   AI_SELECTION_NEEDS_NOTE: 'Selected text can only be sent while searching this note.',
   AI_APPROVAL_EXPIRED: 'The assistant stopped because its request to approve expired. Ask again.',
+  AI_CLARIFICATION_EXPIRED: 'The assistant stopped because your choice expired. Ask again.',
+  AI_CLARIFICATION_INVALID: 'That choice is no longer on offer. Ask again.',
 }
 
 /** Copy for a job's `failureCode` (or status when there is none). Unknown codes read as a generic failure. */
@@ -315,6 +376,16 @@ export function isNoteAssist(job: AiJob | undefined): job is AiJob & { result: N
 /** Events after which the job's pending approvals may have changed. */
 export function touchesApprovals(event: Pick<AiJobEvent, 'type'>) {
   return event.type === 'APPROVAL_REQUESTED' || event.type === 'APPROVED' || event.type === 'REJECTED' || event.type === 'APPROVAL_EXPIRED'
+}
+
+/** Events after which the job's waiting choice may have changed (or gone). */
+export function touchesClarification(event: Pick<AiJobEvent, 'type'>) {
+  return event.type === 'CLARIFICATION_REQUESTED' || event.type === 'CLARIFIED' || event.type === 'CLARIFICATION_EXPIRED'
+}
+
+/** One option's identity within a waiting choice: the enum plus its figure, if targeted. */
+export function clarifyKey(option: Pick<RunClarifyOption, 'option' | 'figureId'>) {
+  return option.figureId ? `${option.option}:${option.figureId}` : option.option
 }
 
 /** A finished web or paper search: new results may have landed, so the live sources are refetched. */

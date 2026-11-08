@@ -26,7 +26,7 @@ let ids: number
 
 async function open(options: Partial<Parameters<typeof NoteSync.open>[0]> = {}, server = { revisionNumber: 1, document: doc(), title: 'Note' }) {
   return NoteSync.open({
-    userId: 'u1', noteId: 'n1', clientId: 'web_client1', api: api as unknown as NoteSyncApi, store,
+    userId: 'u1', noteId: 'n1', clientId: 'web_client1', tabSessionId: 'tab_session1', api: api as unknown as NoteSyncApi, store,
     onState: (state) => states.push(state),
     schedule: (fn, ms) => { const entry = { fn, ms }; scheduled.push(entry); return () => { scheduled = scheduled.filter((item) => item !== entry) } },
     now: () => clock,
@@ -55,11 +55,11 @@ describe('NoteSync', () => {
     sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
     sync.record({ mode: 'incremental', operations: [op('b')], document: doc() })
     expect(api.transact).not.toHaveBeenCalled()
-    expect(scheduled.some((entry) => entry.ms === 1500)).toBe(true)
+    expect(scheduled.some((entry) => entry.ms === 1000)).toBe(true)
     await sync.flushNow()
     expect(api.transact).toHaveBeenCalledTimes(1)
     const sent: NoteTransaction = api.transact.mock.calls[0][1]
-    expect(sent).toMatchObject({ version: 1, clientId: 'web_client1', baseRevisionNumber: 1, operations: [op('a'), op('b')] })
+    expect(sent).toMatchObject({ version: 1, clientId: 'web_client1', tabSessionId: 'tab_session1', baseRevisionNumber: 1, operations: [op('a'), op('b')] })
     expect(sent.localSequence).toMatch(/^[1-9][0-9]*$/)
     expect(sync.current).toMatchObject({ status: 'saved', pending: 0, revisionNumber: 2 })
   })
@@ -94,15 +94,78 @@ describe('NoteSync', () => {
     expect(sequences[1] > sequences[0] && sequences[2] > sequences[1]).toBe(true)
   })
 
-  it('enters conflict on NOTE_TRANSACTION_CONFLICT and keeps the batch', async () => {
+  it('recovers from a transient conflict without surfacing it', async () => {
     api.transact.mockRejectedValueOnce(new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null))
     const sync = await open()
     sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
     await sync.flushNow()
+    expect(sync.current).toMatchObject({ status: 'saved', pending: 0 })
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    expect(api.checkpoint).toHaveBeenCalledTimes(1)
+    expect((await store.get(syncKey('u1', 'n1')))?.batches).toEqual([])
+  })
+
+  it('wedges with a background retry when conflicts persist, then heals without losing edits', async () => {
+    let calls = 0
+    api.transact.mockImplementation(async () => {
+      calls += 1
+      if (calls <= 6) throw new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null)
+      return { version: 1, status: 'applied', transactionId: 'x', revision: revision(9) }
+    })
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
+    const sync = await open()
+    const mine = contentDoc([['paragraph:a', 'mine']])
+    sync.record({ mode: 'incremental', operations: [op('a')], document: mine })
+    await sync.flushNow()
     expect(sync.current.status).toBe('conflict')
     expect((await store.get(syncKey('u1', 'n1')))?.batches).toHaveLength(1)
-    sync.record({ mode: 'incremental', operations: [op('b')], document: doc() })
+    expect(scheduled.some((entry) => entry.ms === 5000)).toBe(true)
+    // The background loop retries with backoff while the dialog stays available.
+    scheduled.find((entry) => entry.ms === 5000)!.fn()
+    await vi.waitFor(() => expect(scheduled.some((entry) => entry.ms === 10000)).toBe(true))
+    expect(sync.current.status).toBe('conflict')
+    scheduled.find((entry) => entry.ms === 10000)!.fn()
+    await vi.waitFor(() => expect(sync.current).toMatchObject({ status: 'saved', pending: 0 }))
+    expect(api.transact).toHaveBeenCalledTimes(7)
+  })
+
+  it('wedges instead of auto-rebasing when local is empty but the server has text', async () => {
+    api.transact.mockRejectedValue(new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server text']]) })
+    const sync = await open()
+    sync.record({ mode: 'incremental', operations: [op('a')], document: contentDoc([]) })
     await sync.flushNow()
+    // The user must choose: an empty local document must never auto-delete server content.
+    expect(sync.current.status).toBe('conflict')
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    for (const call of api.transact.mock.calls) {
+      const sent: NoteTransaction = call[1]
+      expect(sent.operations.some((item) => item.type === 'deleteNode')).toBe(false)
+    }
+    expect((await store.get(syncKey('u1', 'n1')))?.batches).toHaveLength(1)
+  })
+
+  it('persists edits recorded into a conflict', async () => {
+    api.transact.mockRejectedValue(new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
+    const sync = await open()
+    const mine = contentDoc([['paragraph:a', 'mine']])
+    sync.record({ mode: 'incremental', operations: [op('a')], document: mine })
+    await sync.flushNow()
+    expect(sync.current.status).toBe('conflict')
+    sync.record({ mode: 'incremental', operations: [op('b')], document: mine })
+    expect(scheduled.some((entry) => entry.ms === 300)).toBe(true)
+    await sync.dispose()
+    expect((await store.get(syncKey('u1', 'n1')))?.open).toHaveLength(1)
+  })
+
+  it('flushes continuously-typed work without waiting for idle', async () => {
+    const sync = await open()
+    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    expect(api.transact).not.toHaveBeenCalled()
+    clock += 2_500
+    sync.record({ mode: 'incremental', operations: [op('b')], document: doc() })
+    await vi.waitFor(() => expect(sync.current).toMatchObject({ status: 'saved' }))
     expect(api.transact).toHaveBeenCalledTimes(1)
   })
 
@@ -124,23 +187,31 @@ describe('NoteSync', () => {
     expect(third).toEqual(first)
   })
 
-  it('replaces a rejected batch (422) with a full-document save', async () => {
+  it('rebases a rejected batch (422) onto the head instead of a full save', async () => {
     api.transact.mockRejectedValueOnce(new ApiError(422, 'INVALID_NOTE_TRANSACTION', null, null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
     const sync = await open()
-    const latest = doc('Note')
-    sync.record({ mode: 'incremental', operations: [op('a')], document: latest })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: contentDoc([['paragraph:a', 'mine']]) })
     await sync.flushNow()
-    expect(api.saveCheckpoint).toHaveBeenCalledTimes(1)
-    expect(api.saveCheckpoint.mock.calls[0][2].metadata.title).toBe('Note')
+    expect(api.saveCheckpoint).not.toHaveBeenCalled()
+    expect(api.transact).toHaveBeenCalledTimes(2)
+    expect(api.transact.mock.calls[1][1]).toMatchObject({ baseRevisionNumber: 9 })
+    expect(api.transact.mock.calls[1][1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
     expect(sync.current.status).toBe('saved')
   })
 
-  it('stops the queue on sequence errors', async () => {
+  it('recovers from a sequence error with fresh identities', async () => {
     api.transact.mockRejectedValueOnce(new ApiError(409, 'CLIENT_SEQUENCE_REUSED', null, null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
     const sync = await open()
-    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: contentDoc([['paragraph:a', 'mine']]) })
     await sync.flushNow()
-    expect(sync.current.status).toBe('error')
+    expect(api.transact).toHaveBeenCalledTimes(2)
+    const [first, second] = api.transact.mock.calls.map((call) => call[1])
+    expect(second.transactionId).not.toBe(first.transactionId)
+    expect(BigInt(second.localSequence) > BigInt(first.localSequence)).toBe(true)
+    expect(second).toMatchObject({ baseRevisionNumber: 9 })
+    expect(sync.current.status).toBe('saved')
   })
 
   it('lets a full document supersede unsent operations, and folds later edits into it', async () => {
@@ -174,17 +245,43 @@ describe('NoteSync', () => {
     expect(api.saveCheckpoint.mock.calls[1][2].metadata.title).toBe('Photosynthesis')
   })
 
-  it('never lets a stale save overwrite: STALE_NOTE_REVISION → conflict, then keepMine saves on the latest base', async () => {
+  it('rebases a stale full save (STALE_NOTE_REVISION) onto the head instead of wedging', async () => {
     api.saveCheckpoint.mockRejectedValueOnce(new ApiError(409, 'STALE_NOTE_REVISION', null, null))
-    api.checkpoint.mockResolvedValue({ revision: revision(9), document: doc('Server') })
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
     const sync = await open()
-    const mine = doc('Note', 'mine')
-    sync.record({ mode: 'checkpoint', operations: [], document: mine })
+    sync.record({ mode: 'checkpoint', operations: [], document: contentDoc([['paragraph:a', 'mine']]) })
+    await sync.flushNow()
+    expect(api.saveCheckpoint).toHaveBeenCalledTimes(1)
+    expect(api.transact).toHaveBeenCalledTimes(1)
+    expect(api.transact.mock.calls[0][1]).toMatchObject({ baseRevisionNumber: 9 })
+    expect(api.transact.mock.calls[0][1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
+    expect(sync.current.status).toBe('saved')
+  })
+
+  it('requeues a stale rename on an unshared note as a PUT instead of dropping the title', async () => {
+    api.saveCheckpoint.mockRejectedValueOnce(new ApiError(409, 'STALE_NOTE_REVISION', null, null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
+    const sync = await open()
+    sync.rename('Renamed')
+    await sync.flushNow()
+    expect(api.transact).not.toHaveBeenCalled()
+    expect(api.saveCheckpoint).toHaveBeenCalledTimes(2)
+    expect(api.saveCheckpoint.mock.calls[1][1]).toBe(9)
+    expect(api.saveCheckpoint.mock.calls[1][2].metadata.title).toBe('Renamed')
+    expect(api.saveCheckpoint.mock.calls[1][2].content.map((node: { id: string }) => node.id)).toEqual(['paragraph:a'])
+    expect(sync.current.status).toBe('saved')
+  })
+
+  it('keeps the original base when rebase gates fail', async () => {
+    api.transact.mockRejectedValue(new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: { broken: true } as never })
+    const sync = await open()
+    sync.record({ mode: 'incremental', operations: [op('a')], document: contentDoc([['paragraph:a', 'mine']]) })
     await sync.flushNow()
     expect(sync.current.status).toBe('conflict')
-    await sync.keepMine()
-    expect(api.saveCheckpoint).toHaveBeenLastCalledWith('n1', 9, expect.objectContaining({ metadata: expect.objectContaining({ tags: ['mine'] }) }))
-    expect(sync.current.status).toBe('saved')
+    expect((await store.get(syncKey('u1', 'n1')))?.baseRevisionNumber).toBe(1)
+    expect((await store.get(syncKey('u1', 'n1')))?.batches).toHaveLength(1)
+    expect(api.transact).toHaveBeenCalledTimes(1)
   })
 
   it('takeServer discards local work and returns the validated server document', async () => {
@@ -269,7 +366,8 @@ describe('NoteSync', () => {
   it('saves Keep-my-version on a shared note as transactions on the latest base', async () => {
     const server = contentDoc([['paragraph:a', 'server']])
     const mine = contentDoc([['paragraph:a', 'mine']])
-    api.transact.mockRejectedValueOnce(new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null))
+    const conflict = () => new ApiError(409, 'NOTE_TRANSACTION_CONFLICT', 'r', null)
+    api.transact.mockRejectedValueOnce(conflict()).mockRejectedValueOnce(conflict()).mockRejectedValueOnce(conflict())
     api.checkpoint.mockResolvedValue({ revision: revision(9), document: server })
     const sync = await open({ shared: true }, { revisionNumber: 1, document: server, title: 'Note' })
     sync.record({ mode: 'incremental', operations: [op('a')], document: mine })
@@ -277,7 +375,7 @@ describe('NoteSync', () => {
     expect(sync.current.status).toBe('conflict')
     await sync.keepMine()
     expect(api.saveCheckpoint).not.toHaveBeenCalled()
-    expect(api.checkpoint).toHaveBeenCalledTimes(1)
+    expect(api.checkpoint).toHaveBeenCalledTimes(3)
     expect(api.transact).toHaveBeenLastCalledWith('n1', expect.objectContaining({ baseRevisionNumber: 9 }))
     expect(api.transact.mock.calls.at(-1)?.[1].operations).toMatchObject([{ type: 'updateNode', nodeId: 'paragraph:a' }])
     expect(sync.current.status).toBe('saved')
@@ -344,14 +442,16 @@ describe('NoteSync', () => {
     expect(api.transact).toHaveBeenCalledTimes(1)
   })
 
-  it('stops with an error instead of a full save when a shared transaction is rejected', async () => {
-    api.transact.mockRejectedValueOnce(new ApiError(422, 'INVALID_NOTE_TRANSACTION', null, null))
+  it('wedges with a background retry when a shared transaction keeps being rejected', async () => {
+    api.transact.mockRejectedValue(new ApiError(422, 'INVALID_NOTE_TRANSACTION', null, null))
+    api.checkpoint.mockResolvedValue({ revision: revision(9), document: contentDoc([['paragraph:a', 'server']]) })
     const sync = await open({ shared: true })
-    sync.record({ mode: 'incremental', operations: [op('a')], document: doc() })
+    sync.record({ mode: 'incremental', operations: [op('a')], document: contentDoc([['paragraph:a', 'mine']]) })
     await sync.flushNow()
     expect(sync.current.status).toBe('error')
     expect(api.saveCheckpoint).not.toHaveBeenCalled()
     expect(sync.hasPending).toBe(true)
+    expect(scheduled.some((entry) => entry.ms === 5000)).toBe(true)
   })
 
   it('drops a stale conversion when a newer full document arrives mid-fetch', async () => {

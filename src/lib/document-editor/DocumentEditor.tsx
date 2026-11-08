@@ -4,12 +4,15 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
   type AriaAttributes,
   type CSSProperties,
   type ReactNode,
 } from 'react'
 import { Editor, type FocusPosition } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
+import { isChangeOrigin } from '@tiptap/extension-collaboration'
+import { flushFigures } from '@incantly/tiptap'
 import { EditorState, type Transaction } from '@tiptap/pm/state'
 import {
   createDocument,
@@ -19,6 +22,8 @@ import {
   type IncantlyDocument,
 } from '@incantly/canvas-core/document'
 import { incantlyDocumentToProseMirror, type DocumentAdapterIssue } from './conversion'
+import { hydrateFigures } from './figures'
+import type { YjsNoteBinding } from './yjsBinding'
 import { createIncantlyDocumentExtensions } from './schema/index'
 import { DocumentEditorProvider } from './DocumentEditorContext'
 import { DocumentBubbleToolbar, DocumentSlashMenu, DocumentToolbar } from './components/FormattingUI'
@@ -27,7 +32,9 @@ import '@/components/tiptap-node/table-node/styles/table-node.scss'
 import {
   DocumentCheckpointTracker,
   mapProseMirrorTransaction,
+  setIncantlyTransactionMeta,
   type CanonicalDocumentChangeEvent,
+  type DocumentHistoryAction,
 } from './transactionMapping'
 
 export interface DocumentEditorSelection {
@@ -74,6 +81,12 @@ export interface DocumentEditorProps extends Pick<AriaAttributes,
   document?: IncantlyDocument
   /** Used only once when the component is uncontrolled. */
   initialDocument?: IncantlyDocument
+  /**
+   * Yjs realtime binding (migration Phase 1). Present only on `yjs`-flagged
+   * notes; the legacy path passes nothing and behaves exactly as before.
+   * Fixed per mount: the host remounts when the binding appears or drops.
+   */
+  collaboration?: YjsNoteBinding
   readonly?: boolean
   /** Overrides the default editable state unless readonly is true. */
   editable?: boolean
@@ -129,6 +142,50 @@ function replaceEditorDocument(editor: Editor, document: IncantlyDocument): void
   editor.view.updateState(EditorState.create({ schema: editor.schema, doc, plugins: editor.state.plugins }))
 }
 
+/** A Tiptap raw command: keyboard, chain, direct, and can() calls all funnel through these. */
+type RawEditorCommand = (...args: unknown[]) => (props: unknown) => boolean
+
+/** Marks wrapped raw commands so the ready effect never double-wraps. */
+const YJS_HISTORY_WRAPPED = 'incantlyYjsHistoryWrapped'
+
+/**
+ * Flags local Yjs undo/redo so onTransaction persists it. The Collaboration
+ * extension owns history on bound editors: its undo/redo commands mutate
+ * Y.Doc and the change converges back as a Y-origin transaction,
+ * indistinguishable from a peer's remote change. Without the flag the
+ * onChange gate skips it and the undo is silently never persisted — nobody
+ * submits it — while the canonical ref advances past the saved document.
+ *
+ * `editor.commands` is a getter returning fresh objects per access (and
+ * `chain()` resolves separately), so wrapping it would be a silent no-op;
+ * the wrap lives on the command manager's raw commands instead, which every
+ * path derives from. The Yjs observer dispatch is fully synchronous, so the
+ * try/finally flag covers the resulting transaction. `commandManager` is
+ * private in the Tiptap types, hence the structural read (verified against
+ * the pinned 3.32.0 dists).
+ */
+function wrapYjsHistoryCommands(editor: Editor, flag: { current: DocumentHistoryAction | null }): void {
+  const rawCommands = (editor as unknown as { commandManager?: { rawCommands?: Record<string, unknown> } | null })
+    .commandManager?.rawCommands
+  if (!rawCommands) return
+  for (const [name, action] of [['undo', 'undo'], ['redo', 'redo']] as const) {
+    const original = rawCommands[name]
+    if (typeof original !== 'function' || (original as unknown as Record<string, unknown>)[YJS_HISTORY_WRAPPED]) continue
+    const wrapped = (...args: unknown[]) => (props: unknown) => {
+      const previous = flag.current
+      flag.current = action
+      try {
+        return (original as RawEditorCommand)(...args)(props)
+      } finally {
+        flag.current = previous
+      }
+    }
+    const marked = wrapped as RawEditorCommand & Record<string, unknown>
+    marked[YJS_HISTORY_WRAPPED] = true
+    rawCommands[name] = marked
+  }
+}
+
 export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>(function DocumentEditor(
   props,
   forwardedRef,
@@ -146,22 +203,33 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
   if (!initialRef.current) initialRef.current = prepareDocument(props.document ?? props.initialDocument ?? createDocument())
   const currentDocumentRef = useRef(initialRef.current.document)
   const suppressTransactionsRef = useRef(false)
+  // Local Yjs history in flight (set only while bound; legacy editors never flag).
+  const yjsHistoryActionRef = useRef<DocumentHistoryAction | null>(null)
   const checkpointTrackerRef = useRef(new DocumentCheckpointTracker())
   const apiRef = useRef<DocumentEditorRef | null>(null)
   const readyEditorRef = useRef<Editor | null>(null)
   const placeholderRef = useRef(props.placeholder ?? 'Start writing…')
   placeholderRef.current = props.placeholder ?? 'Start writing…'
+  const collaborationRef = useRef(props.collaboration ?? null)
+  collaborationRef.current = props.collaboration ?? null
+  // Pre-seed typing hold: a bound editor renders room state the seed has not
+  // converged yet, so keystrokes would map against the checkpoint ref from a
+  // diverged base. Releases when the first seed settles; legacy editors never hold.
+  const [seedHold, setSeedHold] = useState(props.collaboration != null)
   const extensionsRef = useRef(createIncantlyDocumentExtensions({
     placeholder: () => placeholderRef.current,
+    collaboration: props.collaboration ? { document: props.collaboration.doc, field: props.collaboration.field } : undefined,
   }))
 
-  const editable = props.readonly === true ? false : props.editable ?? true
+  const editable = props.readonly === true || seedHold ? false : props.editable ?? true
   const initialEditableRef = useRef(editable)
   const initialAutofocusRef = useRef(props.autofocus ?? false)
 
   const editor = useEditor({
     extensions: extensionsRef.current,
-    content: incantlyDocumentToProseMirror(initialRef.current.document).value,
+    // A Yjs-bound editor renders the shared fragment (seeded from the
+    // checkpoint on ready); initial content would fight the binding.
+    content: props.collaboration ? undefined : incantlyDocumentToProseMirror(initialRef.current.document).value,
     editable: initialEditableRef.current,
     autofocus: initialAutofocusRef.current,
     immediatelyRender: false,
@@ -173,6 +241,11 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
     onTransaction: ({ editor: activeEditor, transaction }) => {
       if (suppressTransactionsRef.current) return
       try {
+        // Local Yjs undo/redo converges through Y.Doc like a remote change but
+        // must persist through noteSync: nobody else submits it. Stamp history
+        // meta before mapping so the checkpoint policy treats it as history.
+        const yjsHistoryAction = collaborationRef.current != null ? yjsHistoryActionRef.current : null
+        if (yjsHistoryAction) setIncantlyTransactionMeta(transaction, { origin: 'user', historyAction: yjsHistoryAction })
         const event = mapProseMirrorTransaction({
           document: currentDocumentRef.current,
           transaction,
@@ -182,7 +255,12 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
         callbacksRef.current.onTransaction?.(event, transaction, activeEditor)
         if (event.adapterReport?.issues.length)
           callbacksRef.current.onValidationIssue?.(event.adapterReport.issues, activeEditor)
-        if (event.mode !== 'none') callbacksRef.current.onChange?.(event.document, event, activeEditor)
+        // Yjs-originated transactions already converged from a peer who
+        // submitted them through their own noteSync: they advance the canonical
+        // document but never record, or every keystroke would save twice.
+        // Local history (flagged above) is the exception: it only exists here.
+        const yjsRemote = collaborationRef.current != null && isChangeOrigin(transaction) && yjsHistoryAction == null
+        if (event.mode !== 'none' && !yjsRemote) callbacksRef.current.onChange?.(event.document, event, activeEditor)
       } catch (error) {
         callbacksRef.current.onError?.({ error, phase: 'transaction' }, activeEditor)
       }
@@ -219,16 +297,27 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
         if (!activeEditor) return undefined
         try { return query(activeEditor) } catch (error) { reportError(error, 'query'); return undefined }
       },
-      getDocument() { return liveEditor() ? cloneDocument(currentDocumentRef.current) : null },
+      getDocument() {
+        const activeEditor = liveEditor()
+        // The SDK contract: learner values and teaching position pending in figure node views
+        // are written to the nodes before the document is read.
+        if (activeEditor) flushFigures(activeEditor)
+        return activeEditor ? cloneDocument(currentDocumentRef.current) : null
+      },
       replaceDocument(document: IncantlyDocument, options: ReplaceDocumentOptions = {}) {
         const activeEditor = liveEditor()
         if (!activeEditor) return false
         try {
           const prepared = prepareDocument(document)
           suppressTransactionsRef.current = true
-          replaceEditorDocument(activeEditor, prepared.document)
+          // A Yjs-bound editor replaces through the shared fragment (the
+          // binding renders it back); recreating EditorState would orphan it.
+          const binding = collaborationRef.current
+          if (binding) binding.reseed(prepared.document)
+          else replaceEditorDocument(activeEditor, prepared.document)
           currentDocumentRef.current = prepared.document
           checkpointTrackerRef.current.markCheckpoint()
+          void hydrateFigures(activeEditor).catch(() => undefined)
           if (prepared.issues.length) callbacksRef.current.onValidationIssue?.(prepared.issues, activeEditor)
           if (options.emitChange) {
             const event: CanonicalDocumentChangeEvent = {
@@ -257,7 +346,27 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
     readyEditorRef.current = editor
     if (initialRef.current?.issues.length)
       callbacksRef.current.onValidationIssue?.(initialRef.current.issues, editor)
+    const binding = collaborationRef.current
+    if (binding) {
+      binding.setCurrentDocumentSource(() => (!editor.isDestroyed ? currentDocumentRef.current : null))
+      // Flag local undo/redo so the onChange gate records it (without this it
+      // converges like a remote change and is silently never persisted).
+      wrapYjsHistoryCommands(editor, yjsHistoryActionRef)
+      // Seed from the server checkpoint the loader already gated (joiners with
+      // room state keep it; mounts over a stale fragment re-converge to it).
+      // The typing hold releases on settle either way: a failed seed reports
+      // through onError and editing continues against the checkpoint ref.
+      const controller = new AbortController()
+      void binding.seedWhenSynced(editor.schema, currentDocumentRef.current, { signal: controller.signal }).then(
+        () => { setSeedHold(false) },
+        (error: unknown) => { setSeedHold(false); if (!(error instanceof DOMException && error.name === 'AbortError')) reportError(error, 'initialization') },
+      )
+      callbacksRef.current.onReady?.(editor, apiRef.current)
+      void hydrateFigures(editor).catch(() => undefined)
+      return () => controller.abort()
+    }
     callbacksRef.current.onReady?.(editor, apiRef.current)
+    void hydrateFigures(editor).catch(() => undefined)
   }, [editor])
 
   useEffect(() => {
@@ -282,9 +391,12 @@ export const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>
     try {
       const prepared = prepareDocument(props.document)
       suppressTransactionsRef.current = true
-      replaceEditorDocument(editor, prepared.document)
+      const binding = collaborationRef.current
+      if (binding) binding.reseed(prepared.document)
+      else replaceEditorDocument(editor, prepared.document)
       currentDocumentRef.current = prepared.document
       checkpointTrackerRef.current.markCheckpoint()
+      void hydrateFigures(editor).catch(() => undefined)
       if (prepared.issues.length) callbacksRef.current.onValidationIssue?.(prepared.issues, editor)
     } catch (error) {
       reportError(error, 'controlled-update')

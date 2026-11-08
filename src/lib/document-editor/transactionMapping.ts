@@ -219,6 +219,24 @@ function checkpointDocument(
   return { document: { ...converted.value, updatedAt: timestamp }, report: converted.report }
 }
 
+/** Key-order-independent JSON comparison; `undefined` fields compare as absent, as in JSON. */
+function stable(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+  return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stable(item)}`).join(',')}}`
+}
+
+/**
+ * Whether two canonical documents hold the same content. `updatedAt` is excluded: every
+ * checkpoint stamps it, so comparing it would make every checkpoint look like a change.
+ */
+function sameCanonicalDocument(left: IncantlyDocument, right: IncantlyDocument): boolean {
+  return stable({ ...left, updatedAt: '' }) === stable({ ...right, updatedAt: '' })
+}
+
 function checkpointChangedNodeIds(before: ProseMirrorNode, after: ProseMirrorNode): string[] {
   const snapshots = (doc: ProseMirrorNode): Map<string, string> => {
     const output = new Map<string, string>()
@@ -273,6 +291,13 @@ export function mapProseMirrorTransaction(options: MapProseMirrorTransactionOpti
   }
 
   const checkpoint = checkpointDocument(transaction, document, timestamp)
+  // Some editor transactions change no canonical content: figure node views persist learner
+  // values and teaching position to node attributes on a settle timer, and hydration links
+  // resolved fragments the same way — none of it is canonical. Saving those would mint a new
+  // revision per slider drag, so a checkpoint that converts back identically is not a change.
+  if (sameCanonicalDocument(document, checkpoint.document)) {
+    return { origin: meta.origin, ...history, mode: 'none', operations: [], changedNodeIds: [], document }
+  }
   return {
     origin: meta.origin,
     ...history,

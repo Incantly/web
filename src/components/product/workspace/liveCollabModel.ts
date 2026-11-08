@@ -12,8 +12,8 @@ export const LIVE_CONNECTION_COPY: Record<LiveConnectionState, string> = {
   unavailable: 'Unavailable',
 }
 
-/** Saved-sync checkpoint poll: every 5 s while the tab is visible, plus on focus. */
-export const SAVED_SYNC_POLL_MS = 5_000
+/** Saved-sync checkpoint poll: every 2.5 s while the tab is visible, plus on focus and on room broadcasts. */
+export const SAVED_SYNC_POLL_MS = 2_500
 /** A failed saved-sync poll retries with backoff, at most this far apart. */
 export const SAVED_SYNC_POLL_MAX_MS = 60_000
 /** While live is paused, re-check live-status this often (plus on focus) to rejoin when it reopens. */
@@ -64,8 +64,6 @@ export function savedSyncBackoffMs(failures: number): number {
 }
 
 export type SavedSyncPollGate = {
-  /** True only for shared notes (the backend reports a live-room collaboration). */
-  shared: boolean
   /** False while the tab is hidden. */
   visible: boolean
   /** True once the session is denied or the note is gone. */
@@ -73,11 +71,12 @@ export type SavedSyncPollGate = {
 }
 
 /**
- * The poller runs only for shared notes in a visible tab on a live session.
- * Unshared notes, hidden tabs and denied sessions never poll.
+ * The poller runs in a visible tab on a live session, for shared and unshared notes alike:
+ * the same user editing elsewhere (another browser, another device) advances the head either
+ * way, and a 304 is cheap. Hidden tabs and denied sessions never poll.
  */
 export function canPollSavedSync(gate: SavedSyncPollGate): boolean {
-  return gate.shared && gate.visible && !gate.stopped
+  return gate.visible && !gate.stopped
 }
 
 /**
@@ -212,8 +211,9 @@ export function liveRateLimitDelayMs(error: { retryAfterSeconds: number | null; 
 export type CollaborationRoomEvent =
   | { type: 'ACCESS_CHANGED'; noteId: string; generation: number }
   | { type: 'RESTORED'; noteId: string; revisionId: string; actorUserId: string; restoredAt: string }
+  | { type: 'CONTENT_CHANGED'; noteId: string; revisionNumber: number; changedAt: string }
 
-/** Narrows an untrusted broadcast payload to the known room events (backend room-events.ts). */
+/** Narrows an untrusted broadcast payload to the known room events (backend room-events.ts). Unparseable dates are rejected so a forged broadcast can never throw in notice formatting. */
 export function parseRoomEvent(event: unknown): CollaborationRoomEvent | null {
   if (!event || typeof event !== 'object') return null
   const payload = event as Record<string, unknown>
@@ -226,8 +226,18 @@ export function parseRoomEvent(event: unknown): CollaborationRoomEvent | null {
     && typeof payload.revisionId === 'string'
     && typeof payload.actorUserId === 'string'
     && typeof payload.restoredAt === 'string'
+    && !Number.isNaN(Date.parse(payload.restoredAt))
   ) {
     return { type: 'RESTORED', noteId: payload.noteId, revisionId: payload.revisionId, actorUserId: payload.actorUserId, restoredAt: payload.restoredAt }
+  }
+  if (
+    payload.type === 'CONTENT_CHANGED'
+    && typeof payload.noteId === 'string'
+    && typeof payload.revisionNumber === 'number'
+    && typeof payload.changedAt === 'string'
+    && !Number.isNaN(Date.parse(payload.changedAt))
+  ) {
+    return { type: 'CONTENT_CHANGED', noteId: payload.noteId, revisionNumber: payload.revisionNumber, changedAt: payload.changedAt }
   }
   return null
 }

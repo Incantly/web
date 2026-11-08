@@ -4,14 +4,20 @@ import { TextSelection } from '@tiptap/pm/state'
 import { search } from 'prosemirror-search'
 import { addRowAfter, selectedRect } from '@tiptap/pm/tables'
 import StarterKit from '@tiptap/starter-kit'
+import { Collaboration } from '@tiptap/extension-collaboration'
+import type * as Y from 'yjs'
 import FileHandler from '@tiptap/extension-file-handler'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import { fileDropHub } from '../fileUploads'
+import { IncantlyFigure } from '../figures'
+import { FigureChange } from '../figureChange'
+import { SimulationPlaceholder } from '../simulationPlaceholder'
 import { incantlyDocumentMarks } from './marks'
 import { IncantlyNodeIds } from './nodeIds'
 import { IncantlyTableSchemaRoles, incantlyDocumentNodes } from './nodes'
+import { RemotePresence } from '../remotePresence'
 import { WebPagination, type WebPaginationOptions } from '../paginationExtension'
 import { DocumentClipboard, type DocumentClipboardOptions } from '../clipboardExtension'
 import { TableHandleExtension } from '@/components/tiptap-node/table-node/extensions/table-handle'
@@ -29,6 +35,32 @@ const restrictedStarterKit = StarterKit.configure({
   codeBlock: false,
   underline: false,
   trailingNode: false,
+  link: {
+    openOnClick: false,
+    autolink: false,
+    linkOnPaste: false,
+    protocols: ['http', 'https', 'mailto', 'tel'],
+  },
+})
+
+// Mirrors restrictedStarterKit minus the stock undo manager: on a Yjs-bound
+// editor Collaboration owns history (its Yjs UndoManager), so the two never
+// double-handle undo/redo. Kept as a separate literal so the legacy schema
+// above stays untouched byte-for-byte.
+const collaborationStarterKit = StarterKit.configure({
+  document: false,
+  text: false,
+  paragraph: false,
+  heading: false,
+  blockquote: false,
+  bulletList: false,
+  orderedList: false,
+  listItem: false,
+  horizontalRule: false,
+  codeBlock: false,
+  underline: false,
+  trailingNode: false,
+  undoRedo: false,
   link: {
     openOnClick: false,
     autolink: false,
@@ -110,14 +142,21 @@ export interface IncantlyDocumentExtensionOptions {
   placeholder?: string | (() => string)
   pagination?: false | WebPaginationOptions
   clipboard?: false | DocumentClipboardOptions
+  /**
+   * Yjs realtime (migration Phase 1): binds the editor to the note's Yjs doc.
+   * Absent on the legacy path. Stable Incantly node IDs round-trip as Yjs
+   * attributes, so the fold back to canonical JSON is exact.
+   */
+  collaboration?: { document: Y.Doc; field?: string }
 }
 
 export function createIncantlyDocumentExtensions(
   options: IncantlyDocumentExtensionOptions = {},
 ): Extensions {
   const placeholder = options.placeholder
+  const collaboration = options.collaboration
   return [
-    restrictedStarterKit,
+    collaboration ? collaborationStarterKit : restrictedStarterKit,
     Underline,
     Placeholder.configure({
       placeholder: typeof placeholder === 'function' ? () => placeholder() : placeholder ?? 'Start writing…',
@@ -126,10 +165,17 @@ export function createIncantlyDocumentExtensions(
       includeChildren: false,
     }),
     ...incantlyDocumentNodes,
+    IncantlyFigure,
+    FigureChange,
+    SimulationPlaceholder,
     IncantlyTableSchemaRoles,
     TableHandleExtension,
     ...incantlyDocumentMarks,
     IncantlyNodeIds,
+    // Realtime convergence for `yjs`-flagged notes only; legacy editors never
+    // see this extension. y-prosemirror awareness stays off: the custom
+    // selection-presence caret is unchanged by the migration.
+    ...(collaboration ? [Collaboration.configure({ document: collaboration.document, field: collaboration.field ?? 'default' })] : []),
     // Word-style text alignment (left/center/right only — justify is
     // deliberately unconfigured so no command, shortcut, or paste can set it).
     TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
@@ -138,6 +184,7 @@ export function createIncantlyDocumentExtensions(
     FileHandler.configure(fileDropHub.options),
     IncantlySearch,
     FormattingShortcuts,
+    RemotePresence,
     ...(options.pagination === false ? [] : [WebPagination.configure(options.pagination ?? {})]),
     ...(options.clipboard === false ? [] : [DocumentClipboard.configure(options.clipboard ?? {})]),
   ]

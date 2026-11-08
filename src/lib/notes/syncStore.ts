@@ -99,3 +99,23 @@ export function getClientId(): string {
     return memoryClientId
   }
 }
+
+const TAB_KEY = 'incantly-tab-id'
+let memoryTabId: string | null = null
+
+/**
+ * One ID per tab session (backend `tabSessionId`): same-browser tabs share a `clientId`, so
+ * this lets the server scope conflict recovery to the tab that actually wrote the batch.
+ */
+export function getTabSessionId(): string {
+  try {
+    const stored = sessionStorage.getItem(TAB_KEY)
+    if (stored && /^[A-Za-z0-9_-]{8,128}$/.test(stored)) return stored
+    const created = `tab_${crypto.randomUUID()}`
+    sessionStorage.setItem(TAB_KEY, created)
+    return created
+  } catch {
+    memoryTabId ??= `tab_${crypto.randomUUID()}`
+    return memoryTabId
+  }
+}

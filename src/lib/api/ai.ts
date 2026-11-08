@@ -14,7 +14,9 @@ export type AiCommand = NonNullable<AiRequest['command']>
 export type WebPaper = Schema<'WebPaperDto'>
 export type AiJob = Schema<'AiJobDto'>
 export type AiJobStatus = AiJob['status']
-export type AiJobEvent = Schema<'AiJobEventDto'>
+/** Mid-run clarification events are live on the backend but missing from the committed schema copy; widened here until the types are regenerated (§1.2, like AiWebScope). */
+export type AiJobEventType = Schema<'AiJobEventDto'>['type'] | 'CLARIFICATION_REQUESTED' | 'CLARIFIED' | 'CLARIFICATION_EXPIRED'
+export type AiJobEvent = Omit<Schema<'AiJobEventDto'>, 'type'> & { type: AiJobEventType }
 export type AiJobEvents = Schema<'AiJobEventsDto'>
 export type AiAccepted = Schema<'AiJobAcceptedDto'>
 export type AiClarification = Schema<'AiClarificationDto'>
@@ -30,6 +32,14 @@ export type NoteAssistResult = Schema<'NoteAssistResultDto'>
 export type AiApprovals = Schema<'AiApprovalsDto'>
 export type PendingApproval = Schema<'PendingApprovalDto'>
 export type ApprovalDecision = Schema<'ApprovalDecisionDto'>['decision']
+/**
+ * Mid-run clarification: one inline choice while a job waits (WAITING_CLARIFICATION), then the
+ * same run resumes. Option ids are a closed server enum; labels are server-written, render as text.
+ */
+export type ClarifyOptionId = 'answer_in_chat' | 'edit_note' | 'generate_simulation' | 'change_figure'
+export type ClarifyKind = 'SIM_AMBIGUOUS' | 'FIGURE_TARGET'
+export type RunClarifyOption = { option: ClarifyOptionId; figureId?: string; label: string; description?: string }
+export type RunClarification = { kind: ClarifyKind; options: RunClarifyOption[]; expiresAt: string; stateVersion: number }
 
 const id = (value: string) => encodeURIComponent(value)
 
@@ -64,6 +74,18 @@ export const aiApi = {
   async decideApproval(jobId: string, toolCallId: string, decision: ApprovalDecision, stateVersion: number) {
     return (await apiFetch<AiJob>(`/v1/ai/jobs/${id(jobId)}/approvals/${id(toolCallId)}`, { method: 'POST', body: { decision, stateVersion }, maxAttempts: 2 })).data
   },
+  /** The waiting choice for a WAITING_CLARIFICATION job. A job that is not waiting is 409 AI_JOB_NOT_WAITING. */
+  async clarification(jobId: string, signal?: AbortSignal) {
+    return (await apiFetch<RunClarification>(`/v1/ai/jobs/${id(jobId)}/clarification`, { signal })).data
+  },
+  /**
+   * Answers the waiting choice; the same run resumes. One `idempotencyKey` per pick; a stale
+   * `stateVersion` is 409 AI_JOB_STATE_CHANGED (reload the choices), an expired wait is 410
+   * AI_CLARIFICATION_EXPIRED, and an option outside the checkpoint is 422 AI_CLARIFICATION_INVALID.
+   */
+  async answerClarification(jobId: string, body: { option: ClarifyOptionId; figureId?: string; stateVersion: number }, idempotencyKey: string) {
+    return (await apiFetch<AiJob>(`/v1/ai/jobs/${id(jobId)}/clarification`, { method: 'POST', body, idempotencyKey, maxAttempts: 2 })).data
+  },
   async allowance(signal?: AbortSignal) {
     return (await apiFetch<AiAllowance>('/v1/ai/allowance', { signal, maxAttempts: 1 })).data
   },
@@ -73,6 +95,7 @@ export const aiApi = {
 const STREAM_EVENT_TYPES = [
   'ACCEPTED', 'STEP_STARTED', 'STEP_COMPLETED', 'WAITING_TURN', 'DEFERRED', 'CHILDREN_STARTED', 'CHILDREN_FINISHED',
   'APPROVAL_REQUESTED', 'APPROVED', 'REJECTED', 'APPROVAL_EXPIRED', 'TOOL_WAITING', 'TOOL_RESUMED',
+  'CLARIFICATION_REQUESTED', 'CLARIFIED', 'CLARIFICATION_EXPIRED',
   'TOOL_STARTED', 'TOOL_FINISHED', 'COMPLETED', 'FAILED', 'CANCELED', 'EXPIRED',
 ] as const satisfies readonly AiJobEvent['type'][]
 

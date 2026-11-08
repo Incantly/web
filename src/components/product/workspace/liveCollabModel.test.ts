@@ -53,19 +53,18 @@ describe('liveBackoffMs', () => {
 })
 
 describe('savedSyncBackoffMs', () => {
-  it('grows 5s doubling to a 60s cap', () => {
-    expect([0, 1, 2, 3, 4].map(savedSyncBackoffMs)).toEqual([5000, 10000, 20000, 40000, 60000])
+  it('grows 2.5s doubling to a 60s cap', () => {
+    expect([0, 1, 2, 3, 4, 5].map(savedSyncBackoffMs)).toEqual([2500, 5000, 10000, 20000, 40000, 60000])
   })
 })
 
 describe('canPollSavedSync', () => {
   it.each([
-    [{ shared: true, visible: true, stopped: false }, true],
-    [{ shared: false, visible: true, stopped: false }, false],
-    [{ shared: true, visible: false, stopped: false }, false],
-    [{ shared: true, visible: true, stopped: true }, false],
-    [{ shared: false, visible: false, stopped: true }, false],
-  ])('polls only for shared notes in a visible tab on a live session: %o → %s', (gate, expected) => {
+    [{ visible: true, stopped: false }, true],
+    [{ visible: false, stopped: false }, false],
+    [{ visible: true, stopped: true }, false],
+    [{ visible: false, stopped: true }, false],
+  ])('polls in a visible tab on a live session, shared or not: %o → %s', (gate, expected) => {
     expect(canPollSavedSync(gate)).toBe(expected)
   })
 })
@@ -178,6 +177,8 @@ describe('parseRoomEvent', () => {
     expect(parseRoomEvent({ type: 'ACCESS_CHANGED', noteId: 'n1', generation: 2 })).toEqual({ type: 'ACCESS_CHANGED', noteId: 'n1', generation: 2 })
     expect(parseRoomEvent({ type: 'RESTORED', noteId: 'n1', revisionId: 'r1', actorUserId: 'u1', restoredAt: '2026-01-01T14:05:00.000Z' }))
       .toEqual({ type: 'RESTORED', noteId: 'n1', revisionId: 'r1', actorUserId: 'u1', restoredAt: '2026-01-01T14:05:00.000Z' })
+    expect(parseRoomEvent({ type: 'CONTENT_CHANGED', noteId: 'n1', revisionNumber: 9, changedAt: '2026-01-01T14:05:00.000Z' }))
+      .toEqual({ type: 'CONTENT_CHANGED', noteId: 'n1', revisionNumber: 9, changedAt: '2026-01-01T14:05:00.000Z' })
   })
 
   it('rejects malformed and unknown payloads', () => {
@@ -185,6 +186,8 @@ describe('parseRoomEvent', () => {
     expect(parseRoomEvent('RESTORED')).toBeNull()
     expect(parseRoomEvent({ type: 'RESTORED', noteId: 'n1' })).toBeNull()
     expect(parseRoomEvent({ type: 'ACCESS_CHANGED', noteId: 'n1', generation: '2' })).toBeNull()
+    expect(parseRoomEvent({ type: 'CONTENT_CHANGED', noteId: 'n1' })).toBeNull()
+    expect(parseRoomEvent({ type: 'CONTENT_CHANGED', noteId: 'n1', revisionNumber: '9', changedAt: '2026-01-01T14:05:00.000Z' })).toBeNull()
     expect(parseRoomEvent({ type: 'SOME_FUTURE_EVENT' })).toBeNull()
   })
 })

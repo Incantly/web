@@ -1,6 +1,6 @@
-import { applyDocumentTransaction, createDocument, createParagraph, type IncantlyDocument } from '@incantly/canvas-core/document'
+import { applyDocumentTransaction, createDocument, createParagraph, type IncantlyDocument, type PageOrientation } from '@incantly/canvas-core/document'
 import { describe, expect, it } from 'vitest'
-import { diffDocuments, diffTransactionGroups } from './documentDiff'
+import { diffDocuments, diffTransactionGroups, hasNonTransmittableChanges } from './documentDiff'
 
 const para = (id: string, text: string) => createParagraph({ id, text })
 
@@ -112,5 +112,26 @@ describe('diffTransactionGroups', () => {
   it('groups an empty diff to nothing', () => {
     const server = doc([{ id: 'paragraph:a', text: 'a' }])
     expect(diffTransactionGroups(diffDocuments(server, structuredClone(server)), 1000)).toEqual([])
+  })
+})
+
+describe('hasNonTransmittableChanges', () => {
+  it('flags a title-only change the diff drops', () => {
+    const server = doc([{ id: 'paragraph:a', text: 'hello' }], 'Before')
+    const mine = { ...structuredClone(server), metadata: { ...server.metadata, title: 'After' } }
+    expect(hasNonTransmittableChanges(server, mine)).toBe(true)
+  })
+
+  it('ignores identical documents and content-only changes', () => {
+    const server = doc([{ id: 'paragraph:a', text: 'hello' }])
+    expect(hasNonTransmittableChanges(server, structuredClone(server))).toBe(false)
+    expect(hasNonTransmittableChanges(server, doc([{ id: 'paragraph:a', text: 'changed' }]))).toBe(false)
+  })
+
+  it('ignores page-setup changes, which travel as setPageSetup', () => {
+    const server = doc([{ id: 'paragraph:a', text: 'hello' }])
+    const flipped: PageOrientation = server.metadata.pageSetup.orientation === 'portrait' ? 'landscape' : 'portrait'
+    const mine = { ...structuredClone(server), metadata: { ...server.metadata, pageSetup: { ...server.metadata.pageSetup, orientation: flipped } } }
+    expect(hasNonTransmittableChanges(server, mine)).toBe(false)
   })
 })

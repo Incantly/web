@@ -6,6 +6,15 @@ export type LiveblocksUserDto = Schema<'LiveblocksUserDto'>
 export type LiveStatusDto = Schema<'LiveStatusDto'>
 export type LiveStatusMode = LiveStatusDto['mode']
 export type LiveStatusReason = NonNullable<LiveStatusDto['reason']>
+/** Which realtime writer the server selected for a note (live-status `collabMode`). Mirrors the backend `CollabMode`; the client never decides alone. */
+export type CollabMode = 'legacy' | 'yjs'
+
+/**
+ * Single-writer flag read point (Yjs migration Phase 0): the server's live-status `collabMode` selects exactly one send path per open note — the `noteSync` send for `legacy`, the canonical fold for `yjs` (Phase 2). Fails closed to `legacy` on missing or unexpected values so pre-rollout responses behave exactly as today.
+ */
+export function collabModeOf(status: { collabMode?: CollabMode }): CollabMode {
+  return status.collabMode === 'yjs' ? 'yjs' : 'legacy'
+}
 
 const id = (value: string) => encodeURIComponent(value)
 
