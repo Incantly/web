@@ -9,6 +9,7 @@ import { proseMirrorToIncantlyDocument } from '@/lib/document-editor/conversion'
 import { documentMetadata } from '@/lib/document-editor/documentMetadata'
 import { downloadExport, exportDocumentWeb, printPagedPreview, renderPagedPreview } from '@/lib/document-editor/exporters'
 import { hasHeaderFooter, pageMetrics } from '@/lib/document-editor/pageChrome'
+import { exportAfterVersion, recordExportVersion } from '@/lib/notes/exportVersion'
 
 type Preview = { status: 'idle' | 'rendering' | 'ready' | 'error'; pages: number; message?: string }
 
@@ -16,8 +17,10 @@ type Preview = { status: 'idle' | 'rendering' | 'ready' | 'error'; pages: number
  * Export for the open note: the format, whether headers and footers print, a page preview for
  * PDF, and the download or print itself. The document comes from the editor at the moment it is
  * needed, so the export always matches what is on screen. No provider (one note at a time).
+ * `recordVersion` (a live note's `session.flush`) checkpoints the note first so version history
+ * holds what was exported; it is best effort and never delays the export by more than a moment.
  */
-export function useNoteExport(editor: Editor | null, fallback: IncantlyDocument | null, title: string) {
+export function useNoteExport(editor: Editor | null, fallback: IncantlyDocument | null, title: string, recordVersion?: () => Promise<unknown>) {
   const [open, setOpen] = useState(false)
   const [format, setFormat] = useState<NoteExportFormat>('pdf')
   const [headerFooter, setHeaderFooter] = useState(true)
@@ -76,6 +79,9 @@ export function useNoteExport(editor: Editor | null, fallback: IncantlyDocument 
     setError(null)
     if (format === 'pdf') {
       if (!target || shownPreview.status !== 'ready') return
+      // Print stays inside the click (browsers may refuse a print dialog after a wait); the
+      // version is requested first and finishes in the background.
+      void recordExportVersion(recordVersion)
       printPagedPreview(target)
       return
     }
@@ -83,7 +89,7 @@ export function useNoteExport(editor: Editor | null, fallback: IncantlyDocument 
     if (!document) return
     setBusy(true)
     try {
-      const result = await exportDocumentWeb(document, format, { headerFooter })
+      const result = await exportAfterVersion(recordVersion, () => exportDocumentWeb(document, format, { headerFooter }))
       downloadExport(result)
       setNotes(result.warnings.map((warning) => warning.message))
     } catch (reason) {
@@ -91,7 +97,7 @@ export function useNoteExport(editor: Editor | null, fallback: IncantlyDocument 
     } finally {
       setBusy(false)
     }
-  }, [format, target, shownPreview.status, snapshot, headerFooter])
+  }, [format, target, shownPreview.status, snapshot, headerFooter, recordVersion])
 
   const setup = currentPageSetup(metadata?.pageSetup)
   return {

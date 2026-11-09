@@ -75,6 +75,14 @@ export const notesApi = {
   async revision(noteId: string, revisionId: string, signal?: AbortSignal) {
     return (await apiFetch<NoteCheckpoint>(`/v1/notes/${id(noteId)}/revisions/${id(revisionId)}`, { signal })).data
   },
+  /**
+   * Checkpoints a shared note's live room now (`POST …/checkpoints`, editors only) and returns the
+   * head revision, so a selection-based request names a revision that holds the latest text.
+   * 409 NOTE_NOT_SHARED on unshared notes; 503 COLLABORATION_BUSY / LIVE_COLLABORATION_UNAVAILABLE are retryable.
+   */
+  async saveNow(noteId: string) {
+    return (await apiFetch<Schema<'SaveNowResultDto'>>(`/v1/notes/${id(noteId)}/checkpoints`, { method: 'POST', body: {} })).data
+  },
   async restore(noteId: string, sourceRevisionId: string) {
     return (await apiFetch<Schema<'NoteRevisionResultDto'>>(`/v1/notes/${id(noteId)}/restore`, { method: 'POST', body: { sourceRevisionId } })).data
   },

@@ -5,7 +5,8 @@ import { diffDocuments, diffTransactionGroups, hasNonTransmittableChanges } from
 import { checkDocumentForSave, loadDocument, withTitle } from './documentGate'
 import { hasPendingWork, syncKey, type NoteSyncRecord, type NoteSyncStore } from './syncStore'
 
-export type SyncStatus = 'saved' | 'saving' | 'offline' | 'conflict' | 'error' | 'gone' | 'denied'
+/** `live`: the server answered `409 NOTE_IS_LIVE`; sending stopped and the screen switches the note to live mode. */
+export type SyncStatus = 'saved' | 'saving' | 'offline' | 'conflict' | 'error' | 'gone' | 'denied' | 'live'
 export type SyncState = { status: SyncStatus; pending: number; revisionNumber: number; message?: string }
 
 /** What the editor reports per change (subset of `CanonicalDocumentChangeEvent`). */
@@ -29,6 +30,12 @@ export type NoteSyncOptions = {
   onAck?: (revisionNumber: number) => void
   /** Called once the server reports NOTE_ACCESS_DENIED mid-session (toast + read-only). */
   onAccessDenied?: (error: ApiError) => void
+  /**
+   * Called when the server answers `409 NOTE_IS_LIVE`: the note is edited live through its
+   * room, so this queue stops sending. Its pending work stays persisted for the live screen
+   * to carry into the room.
+   */
+  onNoteIsLive?: () => void
   /** True when the note metadata carries a collaboration: full saves convert to transactions, never PUT. */
   shared?: boolean
   /** Idle time before sending a batch (default 1000 ms) and the per-batch op cap (default 200). */
@@ -42,6 +49,8 @@ export type NoteSyncOptions = {
 }
 
 const MAX_OPS_PER_REQUEST = 1000
+/** The note is live (`collabMode: 'yjs'`): user transactions and full saves are refused. */
+export const NOTE_IS_LIVE = 'NOTE_IS_LIVE'
 const STOP_CODES = new Set(['TRANSACTION_ID_REUSED', 'CLIENT_SEQUENCE_REUSED', 'CLIENT_SEQUENCE_OUT_OF_ORDER', 'IDEMPOTENCY_KEY_REUSED'])
 const CONFLICT_CODES = new Set(['NOTE_TRANSACTION_CONFLICT', 'STALE_NOTE_REVISION'])
 /** Immediate rebase attempts per failure before the wedge dialog appears (the background loop keeps retrying). */
@@ -55,7 +64,7 @@ const FLUSH_MAX_AGE_MS = 2_000
  * True when the body carries anything a rebase must not silently drop: visible text or
  * referenced media/figures. Recovery placeholders count only when they carry such content.
  */
-function hasCarriedContent(document: IncantlyDocument): boolean {
+export function hasCarriedContent(document: IncantlyDocument): boolean {
   const stack: unknown[] = [...document.content]
   while (stack.length > 0) {
     const node = stack.pop() as { text?: unknown; content?: unknown; type?: unknown; attrs?: unknown } | null | undefined
@@ -102,7 +111,7 @@ export class NoteSync {
   private disposed = false
   /** Last known head document: the diff base for shared full saves. Memory-only; a revision mismatch refetches. */
   private lastServer: { revisionNumber: number; document: unknown } | null = null
-  private readonly options: Required<Omit<NoteSyncOptions, 'onState' | 'onAck' | 'onAccessDenied'>> & Pick<NoteSyncOptions, 'onState' | 'onAck' | 'onAccessDenied'>
+  private readonly options: Required<Omit<NoteSyncOptions, 'onState' | 'onAck' | 'onAccessDenied' | 'onNoteIsLive'>> & Pick<NoteSyncOptions, 'onState' | 'onAck' | 'onAccessDenied' | 'onNoteIsLive'>
 
   private constructor(options: NoteSyncOptions, record: NoteSyncRecord) {
     this.options = {
@@ -155,7 +164,7 @@ export class NoteSync {
     this.touch()
     // Wedged states keep recording (the recovery loop picks the edits up), and the record is
     // still persisted: work typed into a conflict must survive a crash exactly like any other.
-    if (this.state.status === 'conflict' || this.state.status === 'error' || this.state.status === 'gone' || this.state.status === 'denied') {
+    if (this.state.status === 'conflict' || this.state.status === 'error' || this.state.status === 'gone' || this.state.status === 'denied' || this.state.status === 'live') {
       this.schedulePersist()
       return this.emit({})
     }
@@ -250,7 +259,7 @@ export class NoteSync {
   }
 
   private canSend() {
-    return !this.disposed && this.state.status !== 'conflict' && this.state.status !== 'error' && this.state.status !== 'gone' && this.state.status !== 'denied'
+    return !this.disposed && this.state.status !== 'conflict' && this.state.status !== 'error' && this.state.status !== 'gone' && this.state.status !== 'denied' && this.state.status !== 'live'
   }
 
   private async drain() {
@@ -364,6 +373,13 @@ export class NoteSync {
   private async handleFailure(error: unknown) {
     const code = error instanceof ApiError ? error.code : NETWORK_ERROR
     const status = error instanceof ApiError ? error.status : 0
+    if (code === NOTE_IS_LIVE) {
+      // Live notes save through the room only: stop here with the work kept for the live screen.
+      this.cancelRetry?.(); this.cancelRetry = null
+      this.emit({ status: 'live', message: undefined })
+      this.options.onNoteIsLive?.()
+      return false
+    }
     if (code === 'USE_TRANSACTIONS' && this.data.pendingCheckpoint && this.data.batches.length === 0) {
       // The note was shared while open (PUT only runs once batches have drained): convert from now on.
       this.options.shared = true

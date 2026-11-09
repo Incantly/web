@@ -9,7 +9,7 @@ import { newIdempotencyKey } from '@/lib/api/idempotency'
 import { poll } from '@/lib/api/poll'
 import { simulationsApi, streamSimulationEvents, type CreateSimulationBody, type SimulationJob, type SimulationJobEvent, type SimulationSelectionRange } from '@/lib/api/simulations'
 import { selectedText, selectedTextRanges } from '@/lib/document-editor/blockNavigation'
-import { placeSimulationFigure, type SimulationPlacement } from '@/lib/document-editor/figures'
+import { findFigureNodeId, placeSimulationFigure, type SimulationPlacement } from '@/lib/document-editor/figures'
 import { NOTE_SIMULATION_KEY, anchorNodeIdForSelection, animateFigureReveal, failSimulationPlaceholder, hideSimulationPlaceholder, showSimulationPlaceholder, updateSimulationPlaceholder } from '@/lib/document-editor/simulationPlaceholder'
 
 export type SimulationFigurePhase =
@@ -34,6 +34,9 @@ const WAITING_SAVE = 'Waiting for your edits to save…'
 /** How long placement waits for a draining save before asking for an explicit retry. */
 const SAVE_WAIT_ATTEMPTS = 15
 const SAVE_WAIT_MS = 2_000
+/** Live notes: how long placement waits for the server's figure node to arrive through the room. */
+const ROOM_NODE_WAIT_MS = 15_000
+const ROOM_NODE_POLL_MS = 250
 
 function sleep(ms: number, signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -129,8 +132,8 @@ export function useSimulationFigure(noteId: string, session: NoteSession, editor
       return
     }
     // The server attached the node as a new revision: drain local edits, then load it. The
-    // load remounts the editor on the legacy path (or patches the live Yjs doc without a
-    // reload); either way the placement effect below reveals the node there.
+    // load remounts the editor on the legacy path; on live notes the server wrote it into the
+    // room. Either way the placement effect below reveals the node there.
     setStatus({ phase: 'working', label: 'Placing it in your note…', energy: 1 })
     for (let waited = 0; ; waited++) {
       const state = await session.flush()
@@ -146,8 +149,19 @@ export function useSimulationFigure(noteId: string, session: NoteSession, editor
     if (signal.aborted) return
     // A failed reload throws before the placement is armed, so the effect below never places
     // against a document that lacks the server's node (that would duplicate its stable ID).
-    await session.applyServerHead('figure')
+    await session.applyServerHead()
     if (signal.aborted) return
+    if (session.live) {
+      // The server inserts the node into the room; placing before it arrives would insert a
+      // second copy concurrently. Wait for it, then the placement effect only reveals it.
+      for (let waited = 0; !findFigureNodeId(editorRef.current, placement.jobId); waited += ROOM_NODE_POLL_MS) {
+        if (waited >= ROOM_NODE_WAIT_MS) {
+          fail('Your figure is ready. It will appear once the note finishes syncing — retry then.', true)
+          return
+        }
+        await sleep(ROOM_NODE_POLL_MS, signal)
+      }
+    }
     setPendingPlacement(placement)
   }, [session, fail])
 

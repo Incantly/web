@@ -5,10 +5,12 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useCurrentUser } from '@/components/product/SessionGate'
 import { createFeatureContext, useFeatureContext } from '@/components/product/features/createFeatureContext'
 import type { NoteRecord } from '@/components/product/workspace/model'
-import { createNoteVariables, trashKey, useCreateNote, useDeleteNote, useNotesList } from '@/components/product/workspace/useNotes'
+import { createNoteVariables, trashKey, useCreateNote, useDeleteNote, useNotesList, useSharedWithMeList } from '@/components/product/workspace/useNotes'
 import { noteSyncStore, resumePendingNotes } from '@/components/product/workspace/useNoteSession'
 import type { ListStatus } from '@/components/product/workspace/views'
 import { useNavigation } from '@/hooks/use-navigation'
+import { useNotePreload } from '@/hooks/use-note-prefetch'
+import { sharedWithMeRecord } from '@/components/product/workspace/noteOpenModel'
 import { useSpaces } from '@/hooks/use-spaces'
 import { authClient } from '@/lib/auth-client'
 import { isSharedNote } from '@/lib/api/notes'
@@ -47,6 +49,14 @@ export function useNotesState(): NotesValue {
     shared: isSharedNote(note),
   })), [query.notes, noteSpaceId])
 
+  // Notes others shared with this user are not in the owner list: they are shared by definition,
+  // so the open note's shared flag is right for grantees too (it opens pending, never legacy).
+  const sharedWithMe = useSharedWithMeList(user.id)
+  const sharedRecords = useMemo<NoteRecord[]>(() => sharedWithMe.shared.map(sharedWithMeRecord), [sharedWithMe.shared])
+
+  // The most recent notes open with text at once: warmed after idle (never live-status or tokens).
+  useNotePreload(notes, activeNoteId)
+
   // Send edits still waiting on this device: once on load, and again whenever the connection returns.
   const activeNoteIdRef = useRef(activeNoteId)
   useEffect(() => { activeNoteIdRef.current = activeNoteId }, [activeNoteId])
@@ -81,10 +91,10 @@ export function useNotesState(): NotesValue {
   return useMemo<NotesValue>(() => ({
     notes,
     status: { loading: isPending, error: isError ? error : null, retry: () => void refetch(), hasMore: hasNextPage, loadMore: () => void fetchNextPage(), loadingMore: isFetchingNextPage },
-    activeNote: activeNoteId ? notes.find((note) => note.id === activeNoteId) : undefined,
+    activeNote: activeNoteId ? notes.find((note) => note.id === activeNoteId) ?? sharedRecords.find((note) => note.id === activeNoteId) : undefined,
     createNote,
     deleteNote,
-  }), [notes, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, activeNoteId, createNote, deleteNote])
+  }), [notes, isPending, isError, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage, activeNoteId, sharedRecords, createNote, deleteNote])
 }
 
 /** `/v1/notes`: the notes list, the open note, and creating and deleting notes. Sharing lives in `useSharing`. Must be used inside `WorkspaceProviders`. */

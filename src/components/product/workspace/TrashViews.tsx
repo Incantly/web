@@ -3,6 +3,7 @@
 import { AppIcon } from '../AppIcon'
 import { apiErrorMessage } from '../../../lib/api/errors'
 import { useNavigation } from '@/hooks/use-navigation'
+import { useNoteIntent } from '@/hooks/use-note-prefetch'
 import { useSharedNotes } from '@/hooks/use-shared-notes'
 import { useTrash } from '@/hooks/use-trash'
 import { updatedLabel } from './SpaceViews'
@@ -50,13 +51,14 @@ export function TrashView() {
 export function SharedWithMeView() {
   const { shared, status: sharedStatus } = useSharedNotes()
   const { openNote } = useNavigation()
+  const noteIntent = useNoteIntent()
   return <PageFrame>
     <PageHeading title="Shared with me" subtitle="Notes other people shared with you. Open one to read it; what you can change depends on your role." />
     <div className="mt-8">
       {sharedStatus.loading ? <ListSkeleton rows={6} label="Loading shared notes" />
         : sharedStatus.error ? <ErrorState message={apiErrorMessage(sharedStatus.error)} onRetry={sharedStatus.retry} />
         : shared.length ? <><div className="divide-y divide-default border-y border-default">
-        {shared.map((item) => <button type="button" key={item.id} onClick={() => openNote(item.note.id)} className="flex min-h-[4.25rem] w-full min-w-0 items-center gap-3 py-3 text-left">
+        {shared.map((item) => <button type="button" key={item.id} onClick={() => openNote(item.note.id)} {...noteIntent(item.note.id)} className="flex min-h-[4.25rem] w-full min-w-0 items-center gap-3 py-3 text-left">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><AppIcon name="share" className="size-4" /></span>
           <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-foreground">{item.note.title || 'Untitled note'}</span>
             <span className="mt-0.5 block truncate text-xs text-muted">Shared by {item.note.owner.name} · Updated {updatedLabel(Date.parse(item.note.updatedAt) || 0)}</span></span>

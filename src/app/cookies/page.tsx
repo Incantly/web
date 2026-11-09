@@ -46,6 +46,7 @@ const sections: LegalSection[] = [
         [code('better-auth.state'), 'First-party cookie, HTTP-only', 'Protects Google sign-in against forgery by linking the request to the response.', 'Around 10 minutes, during sign-in only'],
         [code(CONSENT_COOKIE), 'First-party cookie', 'Records your cookie choices and when you made them.', '6 months'],
         [code('incantly-notes'), 'IndexedDB', 'Copies of your notes and changes waiting to sync, so Incantly works offline and doesn’t lose edits.', 'Until synced, you sign out, or you clear site data'],
+        [code('note:<note>:<n>'), 'IndexedDB', 'Copies of shared notes you edit live, so changes made while offline sync when you reconnect.', 'Until you sign out or clear site data'],
         [code('incantly-documents'), 'IndexedDB', 'Local copies of documents open in the editor.', 'Until you clear site data'],
         [<span key="names" className="flex flex-col gap-1">{code('incantly-assets')}{code('incantly-asset-previews')}</span>, 'IndexedDB', 'Images and file previews used in your notes, so they display quickly and offline.', 'Until you clear site data'],
         [code('incantly-api'), 'IndexedDB', 'Remembers uploads and imports in progress, so they resume after a reload and a retry is never applied twice.', 'Until the upload or import finishes'],

@@ -245,6 +245,31 @@ export async function hydrateFigures(editor: Editor): Promise<void> {
   if (transaction.docChanged) editor.view.dispatch(transaction)
 }
 
+/**
+ * Live notes: loads every figure's fragments into this tab's memory store without touching
+ * the document. Hydration links a device-local `fragmentsRef` by writing the node, which on a
+ * live note would write into the shared room on every mount; the references are content
+ * hashes, so a figure whose node already carries one mounts from the warmed store.
+ */
+export async function warmFigureSources(document: { content: readonly unknown[] }): Promise<void> {
+  const figureIds = new Set<string>()
+  const stack: unknown[] = [...document.content]
+  while (stack.length) {
+    const node = stack.pop() as { type?: unknown; attrs?: { figureId?: unknown }; content?: unknown } | null
+    if (!node || typeof node !== 'object') continue
+    if (node.type === 'figure' || node.type === 'incantlyFigure') {
+      const figureId = node.attrs?.figureId ?? (node as { figureId?: unknown }).figureId
+      if (typeof figureId === 'string' && figureId) figureIds.add(figureId)
+    }
+    if (Array.isArray(node.content)) stack.push(...node.content)
+  }
+  const store = figureStore()
+  await Promise.all([...figureIds].map(async (figureId) => {
+    const source = await loadSource(figureId)
+    if (source) await store.putFragments(source.fragments)
+  }))
+}
+
 /** The canonical block ID of the figure showing `figureId`, if it is in the document. */
 export function findFigureNodeId(editor: Editor | null, figureId: string): string | null {
   if (!editor || editor.isDestroyed) return null

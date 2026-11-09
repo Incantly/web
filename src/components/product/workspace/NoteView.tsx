@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { DocumentBubbleToolbar, DocumentToolbarAction, DocumentFileUploads, DocumentFindBar, DocumentSlashMenu, revealBlockRange } from '../../../lib/document-editor'
 import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle'
@@ -23,10 +23,12 @@ import { useCurrentUser } from '../SessionGate'
 import { useAddSelectionToChat } from '@/hooks/use-assistant'
 import { useImports } from '@/hooks/use-imports'
 import { useLiveCollab, useSavedSyncPoll } from '@/hooks/use-live-collab'
-import { useYjsNoteBinding } from '@/lib/document-editor/yjsBinding'
-import { selectCollabWriter, subscribeOnlineStatus } from '@/lib/document-editor/yjsDegraded'
-import { writerKindForCollabMode, type NoteWriterKind } from '@/lib/document-editor/yjsFold'
-import { useYjsFoldWriter } from '@/hooks/use-yjs-fold-writer'
+import { useLiveNote } from '@/hooks/use-live-note'
+import { useEditorHandoff } from '@/hooks/use-editor-handoff'
+import { useLiveVerdictHint } from '@/hooks/use-note-prefetch'
+import { useLiveSaveStatus, type LiveSaveStatus } from '@/hooks/use-live-save-status'
+import type { LiveCollabVerdict } from '@/hooks/use-live-collab'
+import { LIVE_SAVE_COPY, noteWriteMode, type NoteWriteMode } from './liveCollabModel'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 import { useNotifications } from '@/hooks/use-notifications'
@@ -73,6 +75,23 @@ const syncCopy: Record<SyncState['status'], { label: (state: SyncState) => strin
   error: { label: () => 'Not saving', icon: 'alert', tone: 'text-danger' },
   gone: { label: () => 'Deleted', icon: 'trash', tone: 'text-danger' },
   denied: { label: () => 'Read only', icon: 'unlink', tone: 'text-muted' },
+  live: { label: () => 'Switching to live editing…', icon: 'clock', tone: 'text-muted' },
+}
+
+const liveSaveIcon: Record<LiveSaveStatus, IconName> = { connecting: 'clock', saving: 'clock', saved: 'checkCircle', reconnecting: 'clock', offline: 'alert' }
+
+/**
+ * Live notes: Saving… · Saved · Reconnecting… · Offline – changes will sync, from the Liveblocks
+ * sync status. Never a conflict. It subscribes itself, so sync traffic re-renders only this.
+ */
+function LiveSaveIndicator({ bound }: { bound: boolean }) {
+  const status = useLiveSaveStatus(bound)
+  const label = LIVE_SAVE_COPY[status]
+  return <span role="status" aria-live="polite" className="flex shrink-0 items-center">
+    <span className="flex min-h-11 items-center gap-1.5 px-2 text-xs text-muted" aria-label={label}>
+      <AppIcon name={liveSaveIcon[status]} className="size-4 shrink-0" /><span className="hidden sm:inline">{label}</span>
+    </span>
+  </span>
 }
 
 /** Saved · Saving · Offline (n pending) · Conflict, announced politely to assistive tech. */
@@ -92,12 +111,18 @@ function TitleInput({ title, disabled, onRename }: { title: string; disabled: bo
   const [value, setValue] = useState(title)
   const timer = useRef<number | undefined>(undefined)
   const editing = useRef(false)
+  // Typed since focusing: only then does blur rename (focus alone must never overwrite a peer's live rename).
+  const dirty = useRef(false)
   useEffect(() => { if (!editing.current) setValue(title) }, [title])
   useEffect(() => () => window.clearTimeout(timer.current), [])
   return <input value={value} disabled={disabled} maxLength={300}
-    onFocus={() => { editing.current = true }}
-    onBlur={() => { editing.current = false; window.clearTimeout(timer.current); if (value.trim()) onRename(value); else setValue(title) }}
-    onChange={(event) => { const next = event.target.value; setValue(next); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { if (next.trim()) onRename(next) }, 800) }}
+    onFocus={() => { editing.current = true; dirty.current = false }}
+    onBlur={() => {
+      editing.current = false; window.clearTimeout(timer.current)
+      if (dirty.current && value.trim()) onRename(value); else if (!value.trim()) setValue(title)
+      dirty.current = false
+    }}
+    onChange={(event) => { const next = event.target.value; dirty.current = true; setValue(next); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { if (next.trim()) onRename(next) }, 800) }}
     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }}
     // Edits in place like plain text: no ring or outline on focus; the caret shows where you type.
     aria-label="Note title" className="-mx-1.5 min-h-11 min-w-0 flex-1 bg-transparent px-1.5 font-display text-base text-foreground outline-none focus-visible:outline-none disabled:opacity-70" />
@@ -218,56 +243,70 @@ function ConflictDialog({ open, onClose, state, onKeepMine, onTakeServer, onAcce
 
 /** One open note: its session (load, sync, history) plus the screen. Mounted per note id. */
 export function NoteRoute({ noteId }: { noteId: string }) {
-  // Single-writer selection (Yjs migration): the server flag plus live room
-  // state picks exactly one persistence writer per open note. The scope below
-  // remounts on a flip (teardown flushes pending work first), so the note is
-  // never without a writer and never has two.
-  const { collabMode, connection, mode } = useLiveCollab()
-  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine)
-  useEffect(() => subscribeOnlineStatus(setOnline), [])
-  const writerKind: NoteWriterKind = useMemo(() => {
-    const writer = selectCollabWriter({ collabMode: collabMode ?? 'legacy', connection, online, liveMode: mode })
-    return writerKindForCollabMode(writer === 'yjs' ? 'yjs' : 'legacy')
-  }, [collabMode, connection, mode, online])
-  return <NoteSessionScope key={`${noteId}:${writerKind}`} noteId={noteId} writerKind={writerKind} />
+  // One write path per open note: live notes write only to their Liveblocks room, the rest
+  // through transactions. The scope remounts only when the path changes (never on a
+  // connection change), and the legacy teardown keeps unsent work for the live screen.
+  const { collab, retry } = useLiveCollab()
+  const { activeNote } = useNotes()
+  const listShared = activeNote?.id === noteId && (activeNote.shared ?? false)
+  // 409 NOTE_IS_LIVE forces live only until a fresh live-status verdict arrives (a new `collab`).
+  const [forced, setForced] = useState<{ seen: LiveCollabVerdict | null } | null>(null)
+  const forcedLive = forced != null && (collab === forced.seen || collab?.noteId !== noteId)
+  const collabRef = useRef(collab)
+  useEffect(() => { collabRef.current = collab })
+  // A live-status read moments ago (hover, focus) decides a live note from the first frame.
+  const hint = useLiveVerdictHint(noteId)
+  const verdict = collab?.noteId === noteId ? collab.mode : hint
+  const [settled, setSettled] = useState<NoteWriteMode | null>(null)
+  const mode = noteWriteMode({ verdict, listShared, forcedLive, previous: settled })
+  // Latch during render (idempotent): the last decided path survives a rejoin's re-read.
+  if (mode !== 'pending' && mode !== settled) setSettled(mode)
+  // 409 NOTE_IS_LIVE: switch to live now and re-read live-status (which joins the room).
+  const onNoteIsLive = useCallback(() => { setForced({ seen: collabRef.current }); retry() }, [retry])
+  return <NoteSessionScope key={`${noteId}:${mode === 'live' ? 'live' : 'legacy'}`} noteId={noteId} mode={mode} onNoteIsLive={onNoteIsLive} />
 }
 
-function NoteSessionScope({ noteId, writerKind }: { noteId: string; writerKind: NoteWriterKind }) {
+function NoteSessionScope({ noteId, mode, onNoteIsLive }: { noteId: string; mode: NoteWriteMode; onNoteIsLive: () => void }) {
   const user = useCurrentUser()
   const cache = useNotesCache(user.id)
   const { registerNoteReloader } = useImports()
   const session = useNoteSession(user.id, noteId, {
-    writerKind,
+    live: mode === 'live',
+    // Shared note awaiting its verdict: read-only, and NoteSync never starts until it is legacy.
+    hold: mode === 'pending',
+    onNoteIsLive,
     onAck: (_revision, title) => cache.upsert({ id: noteId, updatedAt: new Date().toISOString(), ...(title ? { title } : {}) }),
   })
   // An import into this note finished: show it now, unless local edits are still on their way.
+  // Live notes need nothing: the server writes imports into the room.
   const sessionRef = useRef(session)
   useEffect(() => { sessionRef.current = session })
   useEffect(() => registerNoteReloader(noteId, () => {
     const current = sessionRef.current
-    if (current.phase === 'ready' && !current.sync?.pending) void current.applyServerHead('import').catch(() => {})
+    if (current.live) return
+    if (current.phase === 'ready' && !current.sync?.pending) void current.applyServerHead().catch(() => {})
   }), [registerNoteReloader, noteId])
   const assets = useServerAssetHost(user.id)
-  return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} /></DocumentAssetsProvider>
+  return <DocumentAssetsProvider host={assets}><NoteScreen noteId={noteId} session={session} pending={mode === 'pending'} /></DocumentAssetsProvider>
 }
 
 /** The note's top bar, editor, and side panels. Everything beyond the session comes from the feature contexts. */
-export function NoteScreen({ noteId, session }: { noteId: string; session: NoteSession }) {
+export function NoteScreen({ noteId, session, pending = false }: { noteId: string; session: NoteSession; pending?: boolean }) {
   const { navigate, focusBlock: requestedBlock, focusThread: requestedThread } = useNavigation()
   const { activeNote, deleteNote } = useNotes()
   const { noteSpace: space } = useSpaces()
   const { openShareDialog } = useSharing()
-  const { noteId: liveNoteId, room, connection, collabMode } = useLiveCollab()
+  const { noteId: liveNoteId, room } = useLiveCollab()
   const { noteMuted, toggleNoteMute, muting, prefsLoading } = useNotifications()
   // Shared when the list says so, or live-status confirmed it (the list can lag a fresh share).
   const shared = (activeNote?.shared ?? false) || liveNoteId === noteId
-  useSavedSyncPoll(noteId, session)
-  // Yjs realtime (migration Phase 1, flagged notes only): the binding owns the
-  // note's Yjs doc and room provider. Null keeps the legacy editor untouched.
-  const yjsBinding = useYjsNoteBinding({ noteId, seed: session.document, room, roomSettled: room != null || connection === 'unavailable', collabMode })
-  // Canonical fold (migration Phase 2): when live, Yjs updates persist through
-  // the fold and legacy editor transactions must not record (double submit).
-  const foldLive = useYjsFoldWriter({ noteId, binding: yjsBinding, session, editable: session.phase === 'ready' && session.canEdit })
+  // Live notes: the room's doc and provider, its title, and the carry-over of unsent legacy edits.
+  const liveNote = useLiveNote(noteId, session)
+  // Legacy notes poll the saved head, and so does the read-only view of a live note this user
+  // cannot join; a bound live editor receives every change through the room.
+  useSavedSyncPoll(noteId, session, !session.live || liveNote.phase === 'paused')
+  const user = useCurrentUser()
+  const cache = useNotesCache(user.id)
   const { openImport } = useWorkspaceUI()
   const title = activeNote?.title ?? ''
   /** A passage to jump to (from search); `nonce` repeats the jump for the same blocks. */
@@ -335,13 +374,31 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
   }, [requestedThread, noteId])
   const [dialog, setDialog] = useState<'history' | 'delete' | 'conflict' | null>(null)
   const [renamed, setRenamed] = useState<string | null>(null)
-  const editable = session.phase === 'ready' && session.canEdit && session.sync?.status !== 'gone' && session.sync?.status !== 'denied'
+  const editable = session.phase === 'ready' && session.canEdit && !pending
+    && session.sync?.status !== 'gone' && session.sync?.status !== 'denied' && session.sync?.status !== 'live'
+    && (!session.live || (liveNote.phase === 'ready' && liveNote.attached))
   const pageSetup = usePageSetup(editor, editable)
   const headerFooter = useHeaderFooter(editor, editable)
-  // The loaded document keeps its original title; a rename made here wins until the list catches up.
-  const shownTitle = renamed ?? (title || session.document?.metadata.title || '')
-  const noteExport = useNoteExport(editor, session.document ?? null, shownTitle)
-  const rename = (next: string) => { setRenamed(next.trim()); session.rename(next) }
+  // Live notes show the room's title (renames from anyone, live). Legacy: the loaded document
+  // keeps its original title, and a rename made here wins until the list catches up.
+  const shownTitle = session.live
+    ? (liveNote.title ?? (title || session.document?.metadata.title || ''))
+    : renamed ?? (title || session.document?.metadata.title || '')
+  // Shared notes swap the cached head for the room's doc without a blank frame or scroll jump.
+  const editorKey = liveNote.binding ? `${noteId}:live:${liveNote.binding.id}` : `${noteId}:${session.version}:${editable}`
+  const handoff = useEditorHandoff(editorKey, session.document, { enabled: session.live || pending, bound: liveNote.binding != null })
+  // Live notes checkpoint before an export so version history holds it; legacy notes export as before.
+  const noteExport = useNoteExport(editor, session.document ?? null, shownTitle, session.live ? session.flush : undefined)
+  const rename = (next: string) => {
+    if (session.live) { liveNote.rename(next); return }
+    setRenamed(next.trim()); session.rename(next)
+  }
+  // A live rename (local or a peer's) shows in the sidebar right away; the server copies it at checkpoint.
+  const liveTitle = session.live ? liveNote.title : null
+  const listedTitle = activeNote?.id === noteId ? activeNote.title : null
+  useEffect(() => {
+    if (liveTitle && listedTitle != null && liveTitle !== listedTitle) cache.upsert({ id: noteId, title: liveTitle })
+  }, [liveTitle, listedTitle, cache, noteId])
 
   return <>
     <TopBar banner={<ConnectionBanner />}>
@@ -352,7 +409,11 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
       </nav>
       <div className="ml-auto flex shrink-0 items-center gap-0.5">
         <LivePresence />
-        {session.phase === 'ready' || session.phase === 'cached' ? <SyncIndicator state={session.sync} cached={session.phase === 'cached'} onResolve={() => setDialog('conflict')} /> : null}
+        {session.phase === 'ready' || session.phase === 'cached'
+          ? session.live
+            ? <LiveSaveIndicator bound={liveNote.bound} />
+            : <SyncIndicator state={session.sync} cached={session.phase === 'cached'} onResolve={() => setDialog('conflict')} />
+          : null}
         <ActionMenu label="Note actions" items={[
           { label: 'Find in note', icon: 'search', hint: '⌘F', onSelect: () => setFindOpen(true), disabled: !session.document },
           { label: 'Note context', icon: 'link', onSelect: () => setContextOpen(true) },
@@ -376,18 +437,34 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
     {session.phase === 'error' ? <PageFrame><ErrorState message={session.errorMessage ?? 'This note couldn’t be opened.'} onRetry={session.retry} /></PageFrame> : null}
 
     {session.document && (session.phase === 'ready' || session.phase === 'cached') && session.sync?.status !== 'gone' ? <>
-      {session.phase === 'cached' ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
+      {session.phase === 'cached' && (session.instantSource !== 'cache' || session.errorMessage) ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">{session.errorMessage ? `${session.errorMessage} Showing the copy saved on this device.` : 'Showing your saved copy while the latest version loads…'}</p> : null}
       {missingBlock ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">That passage has changed since it was indexed, so it can’t be highlighted.</p> : null}
       {selectionToChat.error ? <p role="status" className="mx-auto mt-2 flex w-fit items-center gap-1 rounded-full bg-surface pl-3 text-xs text-muted">{selectionToChat.error}<button type="button" onClick={selectionToChat.dismissError} aria-label="Dismiss" className="grid size-8 place-items-center rounded-full hover:text-foreground"><AppIcon name="close" className="size-3.5" /></button></p> : null}
       <LiveCollabNotice />
       {session.repaired ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Some content in this note was repaired when it opened.</p> : null}
+      {session.live && session.phase === 'ready' && (liveNote.phase === 'connecting' || liveNote.phase === 'loading' || liveNote.phase === 'seeding')
+        ? <p role="status" className="mx-auto mt-2 w-fit rounded-full bg-surface px-3 py-1 text-xs text-muted">Loading note…</p>
+        : null}
+      {session.live && liveNote.notice
+        ? <p role="status" className="mx-auto mt-2 flex w-fit max-w-full items-center gap-1 rounded-2xl bg-surface pl-3 text-xs text-muted">
+          <span className="min-w-0 break-words">{liveNote.notice}</span>
+          <button type="button" onClick={liveNote.dismissNotice} aria-label="Dismiss" className="grid size-11 shrink-0 place-items-center rounded-lg hover:bg-raised hover:text-foreground"><AppIcon name="close" className="size-3.5" /></button>
+        </p>
+        : null}
       {/* No full-height stretch: the top bar shares this scroll box, so an empty note would scroll by its height. */}
       <div>
-          <DocumentEditor key={yjsBinding ? `${noteId}:${session.version}:${editable}:yjs:${yjsBinding.epoch}` : `${noteId}:${session.version}:${editable}`} initialDocument={session.document} collaboration={yjsBinding ?? undefined} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…"
-            onReady={(ready) => { editorRef.current = ready; setEditor(ready); setEditorReady((value) => value + 1) }}
-            onChange={(document, event) => { if (!foldLive) session.record({ mode: event.mode, operations: event.operations, document }) }}>
+          {/* Live: one editor per room binding, never remounted on connection changes; until the
+              room has loaded it shows the checkpoint read-only. Legacy: as before. While a shared
+              note's next editor mounts, the previous read-only one keeps its place (same key). */}
+          <div className={handoff.outgoing ? 'relative' : undefined}>
+          {handoff.outgoing ? <DocumentEditor key={handoff.outgoing.key} initialDocument={handoff.outgoing.document} readonly ui="none" aria-label={`Edit ${shownTitle}`} className="pointer-events-none" /> : null}
+          <DocumentEditor key={editorKey} initialDocument={session.document} collaboration={liveNote.binding ?? undefined} readonly={!editable} ui="none" aria-label={`Edit ${shownTitle}`} placeholder="Start writing, or type “/” to see commands…"
+            className={handoff.hideIncoming ? 'invisible absolute inset-x-0 top-0' : undefined}
+            onReady={(ready) => { editorRef.current = ready; setEditor(ready); setEditorReady((value) => value + 1); handoff.onReady(editorKey); if (liveNote.binding) liveNote.onEditorReady(ready) }}
+            onChange={(document, event) => { if (!session.live) session.record({ mode: event.mode, operations: event.operations, document }) }}>
             <DocumentBubbleToolbar leading={(current) => <><DocumentToolbarAction label="Add to chat" onRun={() => void selectionToChat.addToChat(current)}><AppIcon name="sparkles" className="size-4" /><span>Add to chat</span></DocumentToolbarAction><DocumentToolbarAction label="Generate simulation" onRun={() => simulation.generate(current)}><AppIcon name="play" className="size-4" /><span>Generate simulation</span></DocumentToolbarAction></>} /><DocumentSlashMenu items={incantlySlashMenuItems} /><TableHandle /><TableSelectionOverlay showResizeHandles cellMenu={WorkspaceTableCellMenu} /><TableExtendRowColumnButtons /><DocumentFileUploads afterUpload={libraryFollowUp} /><DocumentFindBar open={findOpen} onOpenChange={setFindOpen} showToggle={false} />
           </DocumentEditor>
+          </div>
           <FigureChangePopup editor={editor} session={session} />
           <NoteSuggestionsBar review={review} />
       </div>
@@ -404,8 +481,8 @@ export function NoteScreen({ noteId, session }: { noteId: string; session: NoteS
       <CommentsPanel noteId={noteId} />
     </SidePanel> : null}
     <ExportDialog state={noteExport} onOpenPageSetup={() => { noteExport.close(); setPageSetupOpen(true) }} />
-    <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={(session.sync?.pending ?? 0) > 0} onRestore={session.restore} onAccessDenied={session.markAccessDenied} />
-    <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} onAccessDenied={session.markAccessDenied} />
+    <HistoryDialog open={dialog === 'history'} onClose={() => setDialog(null)} noteId={noteId} hasPending={!session.live && (session.sync?.pending ?? 0) > 0} onRestore={session.restore} onAccessDenied={session.markAccessDenied} />
+    {session.live ? null : <ConflictDialog open={dialog === 'conflict'} onClose={() => setDialog(null)} state={session.sync} onKeepMine={session.keepMine} onTakeServer={session.takeServer} onAccessDenied={session.markAccessDenied} />}
     <ConfirmDialog open={dialog === 'delete'} onClose={() => setDialog(null)} destructive confirmLabel={DELETE_NOTE_COPY.confirmLabel} title={deleteNoteTitle(shownTitle)}
       body={DELETE_NOTE_COPY.body} onConfirm={() => void onDelete()} />
   </>
