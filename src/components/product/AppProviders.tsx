@@ -4,6 +4,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@ta
 import { useEffect, useState, type ReactNode } from 'react'
 import { configureApiClient } from '../../lib/api/client'
 import { ApiError } from '../../lib/api/errors'
+import { registerNoteQueryClient } from '../../lib/notes/noteOpenCache'
 import { ApiErrorToaster, notifyApiError } from './ApiErrorToaster'
 
 /** Set `meta: { silentErrors: true }` on a query or mutation that renders its own error state. */
@@ -29,6 +30,8 @@ function createQueryClient() {
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient)
+  // Sign-out (every path) drops note bodies held in this client.
+  useEffect(() => registerNoteQueryClient(queryClient), [queryClient])
 
   useEffect(() => configureApiClient({
     onUnauthorized: () => {

@@ -11,6 +11,7 @@ import { updateSpaceBody, useSpaceActions, useSpaceNotes, useSpaceSources } from
 import { useCurrentUser } from '../SessionGate'
 import { useLibrary } from '@/hooks/use-library'
 import { useNavigation } from '@/hooks/use-navigation'
+import { useNoteIntent } from '@/hooks/use-note-prefetch'
 import { useNotes } from '@/hooks/use-notes'
 import { useSpaces } from '@/hooks/use-spaces'
 import { useWorkspaceUI } from '@/hooks/use-workspace-ui'
@@ -61,6 +62,7 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
   const { notes, createNote } = useNotes()
   const { sources } = useLibrary()
   const { navigate, openNote: onOpenNote } = useNavigation()
+  const noteIntent = useNoteIntent()
   const { openDialog } = useWorkspaceUI()
   const { linkSource } = useSpaces()
   const onCreateNote = (spaceId: string) => createNote({ spaceId })
@@ -123,7 +125,7 @@ export function SpaceView({ space }: { space: SpaceRecord }) {
           const home = note.id === space.homeNoteId
           const noteArchived = note.status === 'ARCHIVED'
           return <li key={note.id} className="flex items-center gap-2">
-            <button type="button" onClick={() => onOpenNote(note.id, space.id)} className="flex min-h-[4.5rem] min-w-0 flex-1 items-center gap-3 py-3 text-left">
+            <button type="button" onClick={() => onOpenNote(note.id, space.id)} {...noteIntent(note.id)} className="flex min-h-[4.5rem] min-w-0 flex-1 items-center gap-3 py-3 text-left">
               <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface text-muted"><AppIcon name={home ? 'pin' : 'document'} className="size-4" /></span>
               <span className="min-w-0 flex-1"><span className="flex min-w-0 items-center gap-2"><span className="truncate text-sm font-medium text-foreground">{note.title || 'Untitled note'}</span>{home ? <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-xs text-muted">Home</span> : null}{noteArchived ? <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-xs text-subtle">Archived</span> : null}</span><span className="mt-0.5 block truncate text-xs text-muted">Updated {updatedLabel(Date.parse(note.updatedAt) || 0)}</span></span>
             </button>

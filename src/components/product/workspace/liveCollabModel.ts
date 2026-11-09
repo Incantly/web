@@ -12,6 +12,57 @@ export const LIVE_CONNECTION_COPY: Record<LiveConnectionState, string> = {
   unavailable: 'Unavailable',
 }
 
+/**
+ * A pause or full-room notice for a live (`yjs`) note the user cannot join: such notes never
+ * save through transactions, so the note is read-only instead of "changes still save".
+ */
+export function liveReadOnlyNotice(text: string, family: LiveNoticeFamily): string {
+  if (family === 'full') return 'This note is full (10 people). You can read it; editing opens when someone leaves.'
+  return text.replace(/ Your changes still save\.$/, ' The note is read-only until live editing resumes.')
+}
+
+/** How the open note saves: live through its room, legacy transactions, or not decided yet. */
+export type NoteWriteMode = 'live' | 'legacy' | 'pending'
+
+/**
+ * Picks the open note's write path from live-status (`verdict`: undefined until it answers,
+ * null when it failed). `collabMode` is per note: `yjs` is live for everyone (a user who cannot
+ * join reads it read-only), `legacy` uses transactions. Notes the list marks shared stay
+ * `pending` (read-only, no transactions) until a verdict arrives, even if live-status fails;
+ * other notes start legacy at once, exactly as before. A `409 NOTE_IS_LIVE` (`forcedLive`)
+ * switches to live. While a rejoin re-reads live-status, the `previous` decision holds, so a
+ * retry never flips the screen; only a `legacy` verdict leaves live.
+ */
+export function noteWriteMode(input: { verdict: 'legacy' | 'yjs' | null | undefined; listShared: boolean; forcedLive: boolean; previous: NoteWriteMode | null }): NoteWriteMode {
+  if (input.forcedLive || input.verdict === 'yjs') return 'live'
+  if (input.verdict === 'legacy') return 'legacy'
+  if (input.previous && input.previous !== 'pending') return input.previous
+  return input.listShared ? 'pending' : 'legacy'
+}
+
+/** What the save indicator shows on a live note. */
+export type LiveSaveStatus = 'connecting' | 'saving' | 'saved' | 'reconnecting' | 'offline'
+
+export const LIVE_SAVE_COPY: Record<LiveSaveStatus, string> = {
+  connecting: 'Connecting…',
+  saving: 'Saving…',
+  saved: 'Saved',
+  reconnecting: 'Reconnecting…',
+  offline: 'Offline – changes will sync',
+}
+
+/**
+ * Live save status: Liveblocks' client sync status (`synchronizing` / `synchronized`) while
+ * connected; "Offline" only when the browser itself is offline; "Reconnecting…" while the room
+ * connection is down on a reachable network; connecting until the note's doc first loads.
+ */
+export function liveSaveStatus(input: { sync: 'synchronizing' | 'synchronized'; online: boolean; connection: LiveConnectionState; bound: boolean }): LiveSaveStatus {
+  if (!input.online) return 'offline'
+  if (!input.bound) return 'connecting'
+  if (input.connection !== 'live') return 'reconnecting'
+  return input.sync === 'synchronizing' ? 'saving' : 'saved'
+}
+
 /** Saved-sync checkpoint poll: every 2.5 s while the tab is visible, plus on focus and on room broadcasts. */
 export const SAVED_SYNC_POLL_MS = 2_500
 /** A failed saved-sync poll retries with backoff, at most this far apart. */
@@ -41,6 +92,12 @@ export function noteIdFromRoomId(roomId: string): string | null {
   const generation = roomId.slice(separator + 1)
   if (!NOTE_ID.test(noteId) || !GENERATION.test(generation)) return null
   return noteId
+}
+
+/** `note:{noteId}:{generation}` → the generation number, or null when it is not a room ID. */
+export function roomGeneration(roomId: string): number | null {
+  if (!noteIdFromRoomId(roomId)) return null
+  return Number(roomId.slice(roomId.lastIndexOf(':') + 1))
 }
 
 /** A bare Incantly user ID becomes the namespaced `user:…` ID resolveUsers expects. */

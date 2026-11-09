@@ -1,37 +1,174 @@
-import { useEffect, useRef, useState } from 'react'
 import type { Room } from '@liveblocks/client'
 import { LiveblocksYjsProvider } from '@liveblocks/yjs'
 import type { Schema } from '@tiptap/pm/model'
-import type { DocumentNode, DocumentOperation, IncantlyDocument } from '@incantly/canvas-core/document'
+import { createDocumentNodeId, type DocumentNode, type DocumentOperation, type IncantlyDocument } from '@incantly/canvas-core/document'
 import * as Y from 'yjs'
-import { prosemirrorJSONToYXmlFragment } from 'y-prosemirror'
-import type { CollabMode } from '../api/live'
-import { incantlyBlocksToProseMirror, incantlyDocumentToProseMirror } from './conversion'
-import { foldYjsToCanonical } from './yjsFold'
-import { dropYjsPatchHost, registerYjsPatchHost, type YjsPatchHost } from './yjsPatch'
+import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProseMirrorRootNode } from 'y-prosemirror'
+import { IndexeddbPersistence } from 'y-indexeddb'
+import { diffDocuments } from '../notes/documentDiff'
+import { incantlyBlocksToProseMirror, proseMirrorToIncantlyDocument } from './conversion'
 
 /**
- * Phase 1 Yjs binding: one `Y.Doc` per open `yjs` note, synced through the
- * note's existing Liveblocks room and rendered by the Tiptap `Collaboration`
- * extension (registered in `schema/extensions.ts`).
+ * Live notes (`collabMode: 'yjs'`): one `Y.Doc` and one Liveblocks provider per
+ * open note and entered room. The room is the only place edits are written;
+ * Incantly's durable copy is checkpointed by the server from the room.
  *
- * The binding is convergence only. Persistence flows through `noteSync` via the
- * fold writer (`useYjsFoldWriter`, constructed by the screen — not here): the
- * screen records legacy editor transactions only while the fold is not live,
- * and transactions the binding applied from Yjs (`isChangeOrigin`, see
- * DocumentEditor) advance the canonical document without recording — the peer
- * that typed them already submitted them.
+ * Contract (docs/arch/live-autosave.md in the backend):
+ * - `XmlFragment` `default`: the Tiptap document, each block carrying its stable
+ *   Incantly node ID as the `id` attribute.
+ * - `Map` `meta`, key `title`: the note title as a plain string.
+ * - The server seeds rooms inside authorize. This module never seeds,
+ *   populates or replaces a room, and a doc is only ever attached to the room
+ *   it was created with: a new room (rotation, rejoin) gets a fresh binding.
+ * - A doc may be created for a room ID before that room is entered (`openYjsRoomCopy`):
+ *   it loads the room's own offline copy, and only a Room with exactly that ID adopts it.
  */
 
 /** The text fragment Tiptap binds to (the Collaboration extension's default field). */
 export const YJS_TEXT_FIELD = 'default'
+/** The shared map holding note-level values. */
+export const YJS_META_MAP = 'meta'
+/** `meta` key for the note title. */
+export const YJS_TITLE_KEY = 'title'
+/** Mirrors the title input's limit (in code points, as the server counts); longer room values are cut. */
+export const MAX_LIVE_TITLE_LENGTH = 300
+
+/** `loading` until the server's first sync; `synchronizing` while local updates are unacknowledged. */
+export type YjsBindingStatus = 'loading' | 'synchronizing' | 'synchronized'
+
+/** What loading the room's offline copy from IndexedDB found: still reading, nothing (or blank), or content. */
+export type YjsOfflineState = 'loading' | 'empty' | 'loaded'
+
+/** What every doc the editor can show offers, whether or not its room is entered yet. */
+export interface YjsRoomDoc {
+  /** Unique per doc: the editor keys on it. An adopted copy keeps its ID, so the editor stays mounted. */
+  readonly id: number
+  readonly noteId: string
+  readonly roomId: string
+  readonly doc: Y.Doc
+  readonly fragment: Y.XmlFragment
+  readonly field: string
+  /** The offline copy's load result; it never changes after `loading`. */
+  offlineState(): YjsOfflineState
+  onOfflineState(listener: (state: YjsOfflineState) => void): () => void
+  /** True once a local edit landed in this doc (typing, a rename, a merge). */
+  edited(): boolean
+  /**
+   * Whether this doc's offline copy may be edited before the room's first server sync: the
+   * room synchronized on this device recently, or the browser is offline (decided at open).
+   */
+  readonly offlineTrusted: boolean
+  /**
+   * This device's edits since the offline copy loaded, as top-level operations against what
+   * loaded (each update or delete carries the loaded block, so it applies only where nobody
+   * changed it). For a doc that never reached its room (its room ID changed): the caller
+   * carries them into the new room with `applyCarryOver`. Empty when nothing was typed.
+   */
+  strandedEdits(schema: Schema): CarryOverEdit[]
+  /** The server's emptiness rule: no blocks, or only paragraphs and headings without text. */
+  isEmpty(): boolean
+  /** The room's title (`meta.title`), trimmed and length-limited; null when absent or not a string. */
+  readTitle(): string | null
+  /** Writes `meta.title`. Blank titles are ignored. */
+  writeTitle(title: string): void
+  /** Runs `listener` whenever `meta.title` changes (locally or from a peer); returns an unsubscribe. */
+  onTitle(listener: (title: string | null) => void): () => void
+  destroy(): void
+}
 
 /**
- * Applies one canonical top-level block operation to a live fragment. Block
- * identity is the `id` attribute (canonical `node.id` round-trips through
- * ProseMirror attrs into Yjs attributes 1:1). Anything unmappable throws and
- * the caller fails closed to the legacy reload.
+ * A room's doc before its Room is entered: created for one room ID, it loads only that room's
+ * own offline copy (the IndexedDB database Liveblocks names after the room ID) and persists
+ * local edits there. It never talks to a server. `createYjsNoteBinding` adopts it only for a
+ * Room with exactly the same ID; otherwise the caller destroys it.
  */
+export interface YjsRoomCopy extends YjsRoomDoc {
+  readonly kind: 'copy'
+  /** Replaces the local-update callback (adoption hands it to the room's acknowledgement tracking). */
+  setOnLocalUpdate(listener: (() => void) | undefined): void
+}
+
+/**
+ * One carried-over legacy edit. `head` is the block as the head checkpoint had it: an update
+ * or delete applies only while the room's block still equals it (nobody changed it since).
+ * Without `head` (an older base) an update never replaces the room's block.
+ */
+export type CarryOverEdit = { operation: DocumentOperation; head: DocumentNode | null }
+
+export interface YjsNoteBinding extends YjsRoomDoc {
+  readonly kind: 'room'
+  /** The entered Room this doc was created for; it is never attached to any other. */
+  readonly room: Room
+  status(): YjsBindingStatus
+  /** Runs `listener` on every provider status change; returns an unsubscribe. */
+  onStatus(listener: (status: YjsBindingStatus) => void): () => void
+  /**
+   * Applies this user's own unsent legacy edits as one Yjs update (after `409 NOTE_IS_LIVE`).
+   * Inserts whose node ID is already in the room are no-ops, targets someone deleted are
+   * skipped, and an update to a block someone else changed is added below it as a new block
+   * with fresh IDs instead of replacing their text. Returns how many edits were added below.
+   */
+  applyCarryOver(schema: Schema, edits: readonly CarryOverEdit[]): { addedBelow: number }
+  /**
+   * Same-room rejoin: merges this user's updates from the previous doc for the same room ID
+   * (never across room IDs) before the new doc is shown.
+   */
+  mergeFrom(previous: YjsNoteBinding | YjsRoomCopy): void
+  /** Deletes this room's offline copy from IndexedDB (sign-out). */
+  clearOfflineData(): Promise<void>
+}
+
+const liveBindings = new Set<YjsNoteBinding>()
+/** Copies not adopted yet (sign-out deletes their offline data too). */
+const openCopies = new Set<YjsRoomCopy>()
+let nextBindingId = 1
+
+/** What adoption takes over from a copy: its persistence and listeners. Never exposed. */
+type CopyInternals = {
+  persistence: IndexeddbPersistence
+  adopted: boolean
+  destroyed: boolean
+}
+
+/** A fragment as a canonical document (null when it cannot be read with this schema). */
+function fragmentDocument(fragment: Y.XmlFragment, schema: Schema): IncantlyDocument | null {
+  try {
+    return proseMirrorToIncantlyDocument(yXmlFragmentToProseMirrorRootNode(fragment, schema).toJSON()).value
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Edits between two states of the same doc, as carry-over edits: same base, so each update or
+ * delete carries the base block and applies only while the target room still has it.
+ */
+export function editsSince(base: IncantlyDocument, current: IncantlyDocument): CarryOverEdit[] {
+  const baseBlocks = new Map<string, DocumentNode>(base.content.map((node) => [node.id, node]))
+  const edits: CarryOverEdit[] = []
+  for (const operation of diffDocuments(base, current).content) {
+    if (operation.type === 'insertNode' || operation.type === 'moveNode') edits.push({ operation, head: null })
+    else if (operation.type === 'updateNode' || operation.type === 'deleteNode') edits.push({ operation, head: baseBlocks.get(operation.nodeId) ?? null })
+  }
+  return edits
+}
+const copyInternals = new WeakMap<YjsRoomCopy, CopyInternals>()
+
+/** Sanitizes an untrusted room title for display, cutting by code points like the server. */
+function cleanTitle(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = Array.from(value.trim()).slice(0, MAX_LIVE_TITLE_LENGTH).join('').trim()
+  return trimmed || null
+}
+
+/** Mirrors the backend `isRoomDocumentEmpty`. */
+function isFragmentEmpty(fragment: Y.XmlFragment): boolean {
+  return fragment.toArray().every((block) => {
+    if (!(block instanceof Y.XmlElement) || (block.nodeName !== 'paragraph' && block.nodeName !== 'heading')) return false
+    return block.toArray().every((child) => child instanceof Y.XmlText && child.length === 0)
+  })
+}
+
 function blockIndexById(fragment: Y.XmlFragment, nodeId: string): number {
   const children = fragment.toArray()
   for (let index = 0; index < children.length; index++) {
@@ -41,325 +178,305 @@ function blockIndexById(fragment: Y.XmlFragment, nodeId: string): number {
   return -1
 }
 
-/** Converts one canonical block to an unintegrated Yjs element, ready to insert. */
-function canonicalNodeToYjsElement(schema: Schema, node: DocumentNode): Y.XmlElement {
-  const converted = incantlyBlocksToProseMirror([node])
-  const json = converted[0]
-  if (!json) throw new Error('[yjs-binding] patch node conversion returned nothing')
-  const staging = new Y.XmlFragment()
+/** A canonical block as an integrated scratch fragment (readable, unlike a detached one). */
+function stagedBlock(schema: Schema, node: DocumentNode): Y.XmlFragment | null {
+  const json = incantlyBlocksToProseMirror([node])[0]
+  if (!json) return null
+  const staging = new Y.Doc().getXmlFragment('staging')
   prosemirrorJSONToYXmlFragment(schema, { type: 'doc', content: [json] }, staging)
-  const staged = staging.toArray()
-  const first = staged[0]
-  if (!(first instanceof Y.XmlElement) || staged.length !== 1) {
-    throw new Error('[yjs-binding] patch node conversion returned no single element')
-  }
-  return first.clone()
+  return staging.length === 1 && staging.toArray()[0] instanceof Y.XmlElement ? staging : null
 }
 
-function applyCanonicalOperation(fragment: Y.XmlFragment, schema: Schema, operation: DocumentOperation): void {
+/** Converts one canonical block to an unintegrated Yjs element, ready to insert. */
+function canonicalNodeToYjsElement(schema: Schema, node: DocumentNode): Y.XmlElement | null {
+  const first = stagedBlock(schema, node)?.toArray()[0]
+  return first instanceof Y.XmlElement ? first.clone() : null
+}
+
+/** Whether a room block still holds exactly the given canonical block (compared as ProseMirror nodes). */
+function blockEquals(schema: Schema, element: Y.XmlElement, node: DocumentNode): boolean {
+  try {
+    const expected = stagedBlock(schema, node)
+    if (!expected) return false
+    const actual = new Y.Doc().getXmlFragment('staging')
+    actual.insert(0, [element.clone()])
+    return yXmlFragmentToProseMirrorRootNode(expected, schema).eq(yXmlFragmentToProseMirrorRootNode(actual, schema))
+  } catch {
+    return false
+  }
+}
+
+/** A copy of a block with fresh node IDs throughout (it is added next to the original, never replacing it). */
+function withFreshIds(node: DocumentNode): DocumentNode {
+  const copy = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(copy)
+    if (value === null || typeof value !== 'object') return value
+    const entries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, key === 'content' ? copy(item) : item])
+    const result = Object.fromEntries(entries) as Record<string, unknown>
+    if (typeof result.id === 'string') result.id = createDocumentNodeId()
+    return result
+  }
+  return copy(node) as DocumentNode
+}
+
+const clampIndex = (index: number, length: number) => Math.max(0, Math.min(Number.isInteger(index) ? index : length, length))
+
+function applyCarryOverEdit(fragment: Y.XmlFragment, schema: Schema, edit: CarryOverEdit): 'applied' | 'added-below' | 'skipped' {
+  const { operation, head } = edit
+  // Only top-level block operations: anything nested or unknown is skipped, never guessed.
+  if ('parentId' in operation && operation.parentId !== undefined) return 'skipped'
   switch (operation.type) {
-    case 'deleteNode': {
-      const index = blockIndexById(fragment, operation.nodeId)
-      if (index < 0) throw new Error(`[yjs-binding] patch target missing: ${operation.nodeId}`)
-      fragment.delete(index, 1)
-      return
-    }
     case 'insertNode': {
-      if (operation.index < 0 || operation.index > fragment.length) {
-        throw new Error('[yjs-binding] patch insert index out of range')
-      }
-      fragment.insert(operation.index, [canonicalNodeToYjsElement(schema, operation.node)])
-      return
+      if (blockIndexById(fragment, operation.node.id) >= 0) return 'skipped'
+      const element = canonicalNodeToYjsElement(schema, operation.node)
+      if (!element) return 'skipped'
+      fragment.insert(clampIndex(operation.index, fragment.length), [element])
+      return 'applied'
     }
     case 'updateNode': {
       const index = blockIndexById(fragment, operation.nodeId)
-      if (index < 0) throw new Error(`[yjs-binding] patch target missing: ${operation.nodeId}`)
-      const replacement = canonicalNodeToYjsElement(schema, operation.node)
+      if (index < 0) return 'skipped'
+      const current = fragment.toArray()[index]
+      if (!(current instanceof Y.XmlElement)) return 'skipped'
+      if (head && blockEquals(schema, current, head)) {
+        const element = canonicalNodeToYjsElement(schema, operation.node)
+        if (!element) return 'skipped'
+        fragment.delete(index, 1)
+        fragment.insert(index, [element])
+        return 'applied'
+      }
+      // Someone else changed this block: keep their text and add this version below it.
+      const element = canonicalNodeToYjsElement(schema, withFreshIds(operation.node))
+      if (!element) return 'skipped'
+      fragment.insert(index + 1, [element])
+      return 'added-below'
+    }
+    case 'deleteNode': {
+      const index = blockIndexById(fragment, operation.nodeId)
+      if (index < 0 || !head) return 'skipped'
+      const current = fragment.toArray()[index]
+      if (!(current instanceof Y.XmlElement) || !blockEquals(schema, current, head)) return 'skipped'
       fragment.delete(index, 1)
-      fragment.insert(index, [replacement])
-      return
+      return 'applied'
     }
     case 'moveNode': {
       const from = blockIndexById(fragment, operation.nodeId)
-      if (from < 0 || operation.index < 0 || operation.index >= fragment.length) {
-        throw new Error('[yjs-binding] patch move out of range')
-      }
+      if (from < 0) return 'skipped'
       const current = fragment.toArray()[from]
-      if (!(current instanceof Y.XmlElement)) throw new Error('[yjs-binding] patch move target is not an element')
-      // Insert the clone first so the target index keeps its mine-order meaning,
-      // then delete the original (shifted by one when it sat at/after the target).
-      fragment.insert(operation.index, [current.clone()])
-      fragment.delete(from >= operation.index ? from + 1 : from, 1)
-      return
+      if (!(current instanceof Y.XmlElement)) return 'skipped'
+      const copy = current.clone()
+      fragment.delete(from, 1)
+      // The index is evaluated after removal.
+      fragment.insert(clampIndex(operation.index, fragment.length), [copy])
+      return 'applied'
     }
     default:
-      // setPageSetup and any future op kind: the planner only emits content ops
-      // on the patch path, so anything else fails closed to the legacy reload.
-      throw new Error('[yjs-binding] patch operation not supported without reseed')
+      return 'skipped'
   }
 }
 
-/** How long a seed waits for room state before assuming the room is empty. */
-const YJS_SYNC_TIMEOUT_MS = 10_000
-const YJS_SYNC_POLL_MS = 50
 /**
- * Encoded room-state budget for the first seed. Past this the state can only
- * be hostile or corrupt (an order of magnitude past the fold's 10M-char text
- * budget): the seed skips the fold compare and re-converges straight to the
- * trusted checkpoint. This bounds seed-time work, not the pre-seed render —
- * bind-after-sync hardening stays a Phase 6 item.
+ * Opens a fresh doc for one room ID and loads that room's own offline copy into it (read
+ * from IndexedDB; nothing is fetched, seeded or sent). Local edits are persisted to the same
+ * copy and reach the room once a Room with this exact ID adopts the doc and syncs.
  */
-const MAX_PRESEED_STATE_BYTES = 32_000_000
-
-export type YjsSeedOutcome = 'seeded' | 'existing' | 'reseeded'
-
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
-
-/** Key-order-independent JSON comparison; `undefined` fields compare as absent, as in JSON. */
-function stableJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, item]) => item !== undefined)
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-  return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`
-}
-
-export interface YjsNoteBinding {
-  readonly noteId: string
-  /**
-   * Binding generation: bumped whenever room rotation recreates the binding.
-   * The editor keys on this (with the binding's doc) so rotation remounts the
-   * editor onto a freshly seeded doc instead of orphaning it on the old one.
-   */
-  readonly epoch: number
-  /** The note's Yjs document. Phase 2 reads this for the canonical fold. */
-  readonly doc: Y.Doc
-  /** The text fragment Tiptap binds to. */
-  readonly fragment: Y.XmlFragment
-  readonly field: string
-  /**
-   * Attaches the live-collab room's Yjs provider, replacing any previous one.
-   * Null detaches (idle leave, degraded): the doc keeps its state and editing
-   * continues locally through noteSync. Re-attach to the same room merges
-   * (correct: same CRDT state); rotation into a new room recreates the whole
-   * binding (see the hook's room epoch) so the new room reseeds from head.
-   */
-  attachRoom(room: Room | null): void
-  /** The editor's live canonical document (the diff base for server patches). */
-  setCurrentDocumentSource(source: () => IncantlyDocument | null): void
-  /**
-   * Seeds the fragment from the head checkpoint: populates when empty, keeps
-   * room state that already matches it, and re-converges anything else to it
-   * (today's reload semantics), so a mount can never render ProseMirror ahead
-   * of the canonical document it maps against.
-   */
-  seedFromCheckpoint(schema: Schema, document: IncantlyDocument): YjsSeedOutcome
-  /**
-   * `seedFromCheckpoint` after the provider syncs, so the first seed never
-   * duplicates room state as independent items. Without a provider (degraded)
-   * it seeds immediately. Past the timeout it proceeds anyway; the next
-   * checkpoint cycle reconciles through the same compare-and-reseed.
-   */
-  seedWhenSynced(schema: Schema, document: IncantlyDocument, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<YjsSeedOutcome>
-  /** Full replace from a canonical document (restore, conflict reload). One undo step, never a merge. */
-  reseed(document: IncantlyDocument): void
-  destroy(): void
-}
-
-/**
- * Creates the note's Yjs doc and fragment. No room traffic until `attachRoom`;
- * no editor binding until the host registers `Collaboration` on `doc`.
- */
-export function createYjsNoteBinding(noteId: string, epoch = 0): YjsNoteBinding {
+export function openYjsRoomCopy(noteId: string, roomId: string, options: {
+  /** A local-origin update (not the server's, not the offline copy loading): the room has unsaved edits. */
+  onLocalUpdate?: () => void
+  /** See `YjsRoomDoc.offlineTrusted` (default false: read-only until the first sync). */
+  offlineTrusted?: boolean
+} = {}): YjsRoomCopy {
   const doc = new Y.Doc()
   const fragment = doc.getXmlFragment(YJS_TEXT_FIELD)
-  let provider: LiveblocksYjsProvider | null = null
-  let providerRoom: Room | null = null
-  let schema: Schema | null = null
-  let currentDocument: (() => IncantlyDocument | null) | null = null
-  let seeded = false
-  let destroyed = false
+  const meta = doc.getMap<unknown>(YJS_META_MAP)
+  const persistence = new IndexeddbPersistence(roomId, doc)
+  const internals: CopyInternals = { persistence, adopted: false, destroyed: false }
+  let state: YjsOfflineState = 'loading'
+  let edited = false
+  let onLocalUpdate = options.onLocalUpdate
+  /** The doc as its offline copy loaded it: the base local edits are measured against. */
+  let baseline: Uint8Array | null = null
+  const listeners = new Set<(state: YjsOfflineState) => void>()
+  // Server updates arrive with origin `backend` and offline loads with an IndexedDB persistence
+  // as origin (this one, or the provider's after adoption); everything else was made here.
+  doc.on('update', (_update: Uint8Array, origin: unknown) => {
+    if (origin === 'backend' || origin instanceof IndexeddbPersistence) return
+    edited = true
+    onLocalUpdate?.()
+  })
+  void persistence.whenSynced.then(() => {
+    if (internals.destroyed || state !== 'loading') return
+    baseline = Y.encodeStateAsUpdate(doc)
+    state = isFragmentEmpty(fragment) ? 'empty' : 'loaded'
+    for (const listener of [...listeners]) listener(state)
+    // Adopted meanwhile: the provider's own persistence owns the copy from here on.
+    if (internals.adopted) void persistence.destroy()
+  })
 
-  const populate = (nextSchema: Schema, document: IncantlyDocument): void => {
-    const json = incantlyDocumentToProseMirror(document).value
-    doc.transact(() => {
-      if (fragment.length > 0) fragment.delete(0, fragment.length)
-      prosemirrorJSONToYXmlFragment(nextSchema, json, fragment)
-    })
-  }
-
-  const fragmentMatchesDocument = (document: IncantlyDocument): boolean => {
-    // The fold reads the same y-prosemirror layout the seed writes; an
-    // unreadable fragment (hostile room content, budget overrun) loses to the
-    // trusted checkpoint instead of rendering.
-    const folded = foldYjsToCanonical(fragment, document)
-    if (!folded.ok) return false
-    return stableJson({ ...folded.document, updatedAt: '' }) === stableJson({ ...document, updatedAt: '' })
-  }
-
-  const registerIfLive = (): void => {
-    if (seeded && provider && !destroyed) registerYjsPatchHost(host)
-  }
-
-  const seedFromCheckpoint = (nextSchema: Schema, document: IncantlyDocument): YjsSeedOutcome => {
-    schema = nextSchema
-    if (destroyed) return 'existing'
-    if (fragment.length === 0) {
-      populate(nextSchema, document)
-      seeded = true
-      registerIfLive()
-      return 'seeded'
-    }
-    seeded = true
-    if (fragmentMatchesDocument(document)) {
-      registerIfLive()
-      return 'existing'
-    }
-    populate(nextSchema, document)
-    registerIfLive()
-    return 'reseeded'
-  }
-
-  const seedWhenSynced = async (nextSchema: Schema, document: IncantlyDocument, options: { timeoutMs?: number; signal?: AbortSignal } = {}): Promise<YjsSeedOutcome> => {
-    schema = nextSchema
-    const started = provider
-    if (started) {
-      const deadline = Date.now() + (options.timeoutMs ?? YJS_SYNC_TIMEOUT_MS)
-      while (provider === started && !started.synced) {
-        if (options.signal?.aborted) throw new DOMException('Yjs seeding aborted', 'AbortError')
-        if (Date.now() >= deadline) break
-        await sleep(YJS_SYNC_POLL_MS)
-      }
-      if (options.signal?.aborted) throw new DOMException('Yjs seeding aborted', 'AbortError')
-    } else if (options.signal?.aborted) {
-      throw new DOMException('Yjs seeding aborted', 'AbortError')
-    }
-    if (provider != null && fragment.length > 0 && Y.encodeStateAsUpdate(doc).length > MAX_PRESEED_STATE_BYTES) {
-      // Hostile or corrupt room state: the fold's own budgets would refuse it
-      // anyway, so skip the compare and re-converge to the trusted checkpoint.
-      schema = nextSchema
-      populate(nextSchema, document)
-      seeded = true
-      registerIfLive()
-      return 'reseeded'
-    }
-    return seedFromCheckpoint(nextSchema, document)
-  }
-
-  const reseed = (document: IncantlyDocument): void => {
-    if (destroyed) return
-    const cached = schema
-    if (!cached) throw new Error('[yjs-binding] reseed before the editor schema was set')
-    populate(cached, document)
-    seeded = true
-    registerIfLive()
-  }
-
-  const attachRoom = (room: Room | null): void => {
-    if (destroyed || room === providerRoom) return
-    provider?.destroy()
-    provider = null
-    providerRoom = null
-    // Cross-room isolation is a Phase 4 dependency, not a property of this
-    // attach: the same Y.Doc re-attaches to the new provider, so prior room
-    // state still converges into the new room at the CRDT level until the P4
-    // rejoin reseed-from-head lands. At least the patch host never
-    // re-registers without a fresh seed (seeded resets here), so server
-    // patches fall back to the legacy reload instead of diffing merged state.
-    dropYjsPatchHost(noteId)
-    seeded = false
-    if (!room) return
-    provider = new LiveblocksYjsProvider(room, doc)
-    providerRoom = room
-    registerIfLive()
-  }
-
-  const host: YjsPatchHost = {
+  const copy: YjsRoomCopy = {
+    kind: 'copy',
+    id: nextBindingId++,
     noteId,
-    currentDocument: () => (destroyed ? null : currentDocument?.() ?? null),
-    applyOperations: (operations) => {
-      if (destroyed) throw new Error('[yjs-binding] binding is destroyed')
-      const cached = schema
-      if (!cached) throw new Error('[yjs-binding] binding has no schema yet')
-      if (!seeded) throw new Error('[yjs-binding] binding is not seeded')
-      // One atomic Yjs transaction: peers converge on a single update and the
-      // local editor reconciles through y-prosemirror without remounting.
-      // Anything unmappable throws and the patch fails closed to the legacy
-      // reload, which reseeds this fragment from the head (wiping any partial
-      // application: Yjs transact does not roll back).
-      doc.transact(() => {
-        for (const operation of operations) applyCanonicalOperation(fragment, cached, operation)
-      })
-    },
-    reseed,
-  }
-
-  return {
-    noteId,
-    epoch,
+    roomId,
     doc,
     fragment,
     field: YJS_TEXT_FIELD,
-    attachRoom,
-    setCurrentDocumentSource: (source: () => IncantlyDocument | null) => { currentDocument = source },
-    seedFromCheckpoint,
-    seedWhenSynced,
-    reseed,
+    offlineState: () => state,
+    onOfflineState: (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    edited: () => edited,
+    offlineTrusted: options.offlineTrusted === true,
+    setOnLocalUpdate: (listener) => { onLocalUpdate = listener },
+    strandedEdits: (schema) => {
+      if (!edited || internals.destroyed && !internals.adopted) return []
+      const base = new Y.Doc()
+      if (baseline) Y.applyUpdate(base, baseline)
+      const before = fragmentDocument(base.getXmlFragment(YJS_TEXT_FIELD), schema)
+      const after = fragmentDocument(fragment, schema)
+      base.destroy()
+      return before && after ? editsSince(before, after) : []
+    },
+    isEmpty: () => isFragmentEmpty(fragment),
+    readTitle: () => cleanTitle(meta.get(YJS_TITLE_KEY)),
+    writeTitle: (title) => {
+      const next = cleanTitle(title)
+      if (internals.destroyed || !next || next === cleanTitle(meta.get(YJS_TITLE_KEY))) return
+      doc.transact(() => meta.set(YJS_TITLE_KEY, next))
+    },
+    onTitle: (listener) => {
+      const handler = (event: Y.YMapEvent<unknown>) => { if (event.keysChanged.has(YJS_TITLE_KEY)) listener(cleanTitle(meta.get(YJS_TITLE_KEY))) }
+      meta.observe(handler)
+      return () => meta.unobserve(handler)
+    },
     destroy: () => {
-      if (destroyed) return
-      destroyed = true
-      dropYjsPatchHost(noteId)
-      provider?.destroy()
-      provider = null
-      providerRoom = null
+      // After adoption the binding owns the doc: destroying it is the binding's job.
+      if (internals.destroyed || internals.adopted) return
+      internals.destroyed = true
+      openCopies.delete(copy)
+      listeners.clear()
+      void persistence.destroy()
       doc.destroy()
     },
   }
+  copyInternals.set(copy, internals)
+  openCopies.add(copy)
+  return copy
 }
 
 /**
- * The open note's Yjs binding, or null on the legacy path. Creation waits for
- * the room (or a settled degraded verdict) so the first seed never races room
- * state; later room flaps only re-attach. Recreated per note and flag change,
- * never per document identity — a takeServer remount reuses the doc.
+ * Creates the note's provider for one entered room, on the room's copy when one was opened
+ * for exactly this room ID (`copy`), otherwise on a copy opened now. The provider persists
+ * updates offline (Liveblocks `offlineSupport_experimental`, an IndexedDB database named
+ * after the room ID), so edits made while disconnected survive a reload and sync on reconnect.
+ * Throws when `copy` belongs to another room ID or was destroyed or adopted already: a doc is
+ * never attached to a room it was not created for.
  */
-export function useYjsNoteBinding(options: {
-  noteId: string
-  /** Head checkpoint document from the session loader; the Yjs seed source. */
-  seed: IncantlyDocument | null
-  room: Room | null
-  /** The room entered, or live-status settled on degraded: creation waits for this, destruction ignores it. */
-  roomSettled: boolean
-  collabMode: CollabMode | null
-}): YjsNoteBinding | null {
-  const { noteId, seed, room, roomSettled, collabMode } = options
-  const [binding, setBinding] = useState<YjsNoteBinding | null>(null)
-  const [bound, setBound] = useState(false)
-  const latest = useRef({ room })
-  latest.current = { room }
-  const wanted = collabMode === 'yjs' && seed != null
-  // Latch during render (idempotent, no effect): opens once the first seed is
-  // safe, closes only when the note stops wanting a binding.
-  if (!wanted && bound) setBound(false)
-  else if (wanted && roomSettled && !bound) setBound(true)
-  // Room rotation hands this hook a new Room object (reconnects reuse the
-  // cached instance). A new room must reseed from the head checkpoint, never
-  // merge prior-room CRDT state into it — so rotation recreates the binding.
-  const prevRoomRef = useRef<Room | null>(null)
-  const [roomEpoch, setRoomEpoch] = useState(0)
-  useEffect(() => {
-    const prev = prevRoomRef.current
-    prevRoomRef.current = room
-    if (prev && room && prev !== room) setRoomEpoch((epoch) => epoch + 1)
-  }, [room])
-  useEffect(() => {
-    if (!bound) return
-    const created = createYjsNoteBinding(noteId, roomEpoch)
-    created.attachRoom(latest.current.room)
-    setBinding(created)
-    return () => { created.destroy(); setBinding(null) }
-  }, [bound, noteId, roomEpoch])
-  useEffect(() => { binding?.attachRoom(room) }, [binding, room])
-  return bound ? binding : null
+export function createYjsNoteBinding(noteId: string, room: Room, options: {
+  /** A local-origin update (not the server's, not the offline copy loading): the room has unsaved edits. */
+  onLocalUpdate?: () => void
+  /** The room's doc opened before entering; adopted in place (same doc, same ID). */
+  copy?: YjsRoomCopy
+  /** For a doc opened here: see `YjsRoomDoc.offlineTrusted`. */
+  offlineTrusted?: boolean
+} = {}): YjsNoteBinding {
+  const copy = options.copy ?? openYjsRoomCopy(noteId, room.id, { onLocalUpdate: options.onLocalUpdate, offlineTrusted: options.offlineTrusted })
+  const internals = copyInternals.get(copy)
+  if (!internals || internals.destroyed || internals.adopted || copy.roomId !== room.id || copy.noteId !== noteId) {
+    throw new Error('A room doc can only be attached to the room it was created for')
+  }
+  internals.adopted = true
+  openCopies.delete(copy)
+  // From here local edits wait for this room's acknowledgement, not the copy's leave guard.
+  copy.setOnLocalUpdate(options.onLocalUpdate)
+  const { doc, fragment } = copy
+  const provider = new LiveblocksYjsProvider(room, doc, { offlineSupport_experimental: true })
+  // The provider now persists the doc itself; the copy's own persistence stops once its load finished.
+  if (copy.offlineState() !== 'loading') void internals.persistence.destroy()
+  let destroyed = false
+
+  const binding: YjsNoteBinding = {
+    kind: 'room',
+    id: copy.id,
+    noteId,
+    room,
+    roomId: room.id,
+    doc,
+    fragment,
+    field: YJS_TEXT_FIELD,
+    offlineState: copy.offlineState,
+    onOfflineState: copy.onOfflineState,
+    edited: copy.edited,
+    offlineTrusted: copy.offlineTrusted,
+    strandedEdits: (schema) => (destroyed ? [] : copy.strandedEdits(schema)),
+    status: () => provider.getStatus(),
+    onStatus: (listener) => {
+      const handler = () => { if (!destroyed) listener(provider.getStatus()) }
+      provider.on('status', handler)
+      return () => provider.off('status', handler)
+    },
+    isEmpty: copy.isEmpty,
+    readTitle: copy.readTitle,
+    writeTitle: (title) => { if (!destroyed) copy.writeTitle(title) },
+    onTitle: copy.onTitle,
+    applyCarryOver: (schema, edits) => {
+      let addedBelow = 0
+      if (destroyed || edits.length === 0) return { addedBelow }
+      doc.transact(() => {
+        for (const edit of edits) if (applyCarryOverEdit(fragment, schema, edit) === 'added-below') addedBelow += 1
+      })
+      return { addedBelow }
+    },
+    mergeFrom: (previous) => {
+      if (destroyed || previous.doc === doc || previous.roomId !== room.id) return
+      try {
+        Y.applyUpdate(doc, Y.encodeStateAsUpdate(previous.doc, Y.encodeStateVector(doc)), 'rejoin-merge')
+      } catch {
+        // A destroyed previous doc has nothing left to merge; its offline copy already holds the edits.
+      }
+    },
+    clearOfflineData: () => provider.clearOfflineData().catch(() => undefined),
+    destroy: () => {
+      if (destroyed) return
+      destroyed = true
+      internals.destroyed = true
+      liveBindings.delete(binding)
+      // Destroying the provider also destroys the doc (its handler owns it), and the doc's
+      // destroy closes any persistence still attached to it.
+      provider.destroy()
+      doc.destroy()
+    },
+  }
+  liveBindings.add(binding)
+  return binding
+}
+
+/**
+ * Access lost: deletes the offline data of every unadopted copy of this room ID and destroys
+ * it, so nothing of a room the user can no longer open stays editable or on disk.
+ */
+export async function discardRoomCopies(roomId: string): Promise<void> {
+  await Promise.all([...openCopies].filter((copy) => copy.roomId === roomId).map(async (copy) => {
+    await copyInternals.get(copy)?.persistence.clearData().catch(() => undefined)
+    copy.destroy()
+  }))
+}
+
+/** Sign-out: deletes the offline copy of every open live note and destroys its binding or unadopted copy. */
+export async function clearOpenYjsBindings(): Promise<void> {
+  const open = [...liveBindings]
+  const copies = [...openCopies]
+  await Promise.all([
+    ...open.map(async (binding) => {
+      await binding.clearOfflineData()
+      binding.destroy()
+    }),
+    ...copies.map(async (copy) => {
+      const internals = copyInternals.get(copy)
+      // clearData also closes the persistence; the doc goes with the copy.
+      await internals?.persistence.clearData().catch(() => undefined)
+      copy.destroy()
+    }),
+  ])
 }

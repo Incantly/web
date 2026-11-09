@@ -98,7 +98,7 @@ export function useNoteSuggestions(noteId: string, session: NoteSession, editor:
         messages.push(outcome)
       }
       // Load the revision the server wrote; never reapply the change here.
-      if (accepted.length) await session.applyServerHead('ai-edit')
+      if (accepted.length) await session.applyServerHead()
       setUndoable((stack) => [...stack, ...accepted])
       setNotice({ tone: messages.some((message) => message.tone === 'warning') ? 'warning' : 'done', text: messages.map((message) => message.text).join(' ') })
     } catch (error) {
@@ -134,7 +134,7 @@ export function useNoteSuggestions(noteId: string, session: NoteSession, editor:
       if (!(await saved())) return
       await proposalsApi.undo(noteId, last.proposalId, last.changeId)
       setUndoable((stack) => stack.slice(0, -1))
-      await session.applyServerHead('ai-edit')
+      await session.applyServerHead()
       setNotice({ tone: 'done', text: 'Change undone.' })
     } catch (error) {
       if (isApiError(error, 'NOTE_ACCESS_DENIED')) {

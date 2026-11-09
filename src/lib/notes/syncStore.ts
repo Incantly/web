@@ -49,7 +49,9 @@ export class MemoryNoteSyncStore implements NoteSyncStore {
   async listForUser(userId: string) { return [...this.items.values()].filter((item) => item.userId === userId).map((item) => structuredClone(item)) }
 }
 
-const DB_NAME = 'incantly-notes'
+/** The local note queue and cache database; sign-out deletes it. */
+export const NOTE_SYNC_DB_NAME = 'incantly-notes'
+const DB_NAME = NOTE_SYNC_DB_NAME
 const STORE = 'sync'
 
 export class IndexedDbNoteSyncStore implements NoteSyncStore {
@@ -63,6 +65,13 @@ export class IndexedDbNoteSyncStore implements NoteSyncStore {
       request.onerror = () => reject(request.error)
     })
     return this.database
+  }
+
+  /** Closes the connection (sign-out deletes the database next); a later call reopens it. */
+  close() {
+    const database = this.database
+    this.database = undefined
+    void database?.then((open) => open.close(), () => undefined)
   }
 
   private async run<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>) {

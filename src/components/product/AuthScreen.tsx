@@ -8,6 +8,8 @@ import { authClient, googleAuthEnabled } from '../../lib/auth-client'
 import { type AuthClientError, type AuthProblem, describeAuthError, describeNetworkError, retryAfterSeconds, WAITLIST_ONLY_PROBLEM } from '../../lib/auth-errors'
 import { WaitlistButton } from '../WaitlistButton'
 import { GrowthShader } from '../landing/GrowthShader'
+import { useSignOut } from '@/hooks/use-sign-out'
+import { ConfirmDialog } from './workspace/ui'
 
 type Mode = 'login' | 'signup'
 const titles: Record<Mode, string> = { login: 'Welcome back.', signup: 'Get started.' }
@@ -122,15 +124,14 @@ export function AuthScreen({ initialMode = 'login', oauthError }: { initialMode?
     if (failure) { setProblem(failure); setPending(false) }
   }
 
-  async function signOut() {
-    setPending(true); setProblem(null)
-    try {
-      const result = await authClient.signOut()
-      if (result.error) setProblem({ message: 'We couldn’t sign you out. Please try again.' })
-      else await session.refetch()
-    } catch (cause) { setProblem(describeNetworkError(cause)) }
-    finally { setPending(false) }
-  }
+  // Sends unsaved note edits first and asks before discarding any; then clears this device's note copies.
+  const signOutFlow = useSignOut(() => session.refetch())
+  const signOut = () => { setProblem(null); void signOutFlow.signOut() }
+  useEffect(() => {
+    if (!signOutFlow.error) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- surface a failed sign-out as the page's problem
+    setProblem(signOutFlow.error instanceof Error && signOutFlow.error.message === 'sign-out failed' ? { message: 'We couldn’t sign you out. Please try again.' } : describeNetworkError(signOutFlow.error))
+  }, [signOutFlow.error])
 
   const signedInUser = session.data?.user
   const heading = signedInUser ? 'You’re signed in.' : codeSent ? 'Check your email.' : titles[mode]
@@ -157,7 +158,9 @@ export function AuthScreen({ initialMode = 'login', oauthError }: { initialMode?
               <p className="break-words text-muted">You’re signed in as <span className="font-semibold text-foreground">{signedInUser.email}</span>.</p>
               <div className="mt-7 grid gap-3">
                 <button type="button" disabled={pending} onClick={() => { router.replace(safeNext()); router.refresh() }} className={primaryButton}>Continue to Incantly</button>
-                <button type="button" disabled={pending} onClick={signOut} className={`${secondaryButton} min-h-12 w-full`}>{pending ? 'Signing out…' : 'Sign out'}</button>
+                <button type="button" disabled={pending || signOutFlow.pending} onClick={signOut} className={`${secondaryButton} min-h-12 w-full`}>{signOutFlow.pending ? 'Signing out…' : 'Sign out'}</button>
+                <ConfirmDialog open={signOutFlow.confirming} onClose={signOutFlow.cancel} onConfirm={signOutFlow.confirm} destructive title="Sign out with unsaved changes?"
+                  body="Some of your note edits haven’t reached the server yet. Signing out deletes them from this device. Cancel and open the note until it says Saved to keep them." confirmLabel="Sign out anyway" />
               </div>
             </div>
           ) : (

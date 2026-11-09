@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Room, Status } from '@liveblocks/client'
 import { notifyApiError } from '@/components/product/ApiErrorToaster'
@@ -19,6 +19,7 @@ import {
   livePausedNotice,
   liveRateLimitDelayMs,
   liveblocksUserId,
+  liveReadOnlyNotice,
   mapCollaborators,
   mapMentionSuggestions,
   parseRoomEvent,
@@ -30,15 +31,16 @@ import {
   type LiveNoticeFamily,
   type MentionSuggestion,
 } from '@/components/product/workspace/liveCollabModel'
-import { liveblocksClient, registerLiveAuth, unregisterLiveAuth } from '@/components/product/workspace/liveblocksClient'
-import { dropYjsPatchHost } from '@/lib/document-editor/yjsPatch'
+import { liveblocksClient, pendingLiveAuthPrefetch, registerLiveAuth, takePrefetchedLiveAuth, unregisterLiveAuth, whenSynchronized } from '@/components/product/workspace/liveblocksClient'
 import { noteSyncStore, type NoteSession } from '@/components/product/workspace/useNoteSession'
 import { useCurrentUser } from '@/components/product/SessionGate'
 import { ApiError, isApiError } from '@/lib/api/errors'
 import { collabModeOf, liveApi, type CollabMode, type LiveStatusDto } from '@/lib/api/live'
 import { notesApi } from '@/lib/api/notes'
+import { forgetLiveStatuses, readFreshLiveStatus } from '@/lib/notes/noteOpenCache'
+import { discardRoomOfflineData } from '@/components/product/workspace/localNoteData'
 import { syncKey } from '@/lib/notes/syncStore'
-import { notifyNoteChanged, subscribeNoteChanged, type NoteChangedOrigin } from '@/lib/notes/syncNotify'
+import { notifyNoteChanged, subscribeNoteChanged } from '@/lib/notes/syncNotify'
 import { useNavigation } from '@/hooks/use-navigation'
 import { useNotes } from '@/hooks/use-notes'
 
@@ -46,6 +48,12 @@ export type { LiveConnectionState }
 export type { MentionSuggestion }
 
 export type LiveCollaborator = { id: string; name: string; initials: string }
+
+/**
+ * The live-status verdict for one note: `yjs` (live, the room is the only write path),
+ * `legacy` (transaction auto-save), or null when live-status could not be read.
+ */
+export type LiveCollabVerdict = { noteId: string; mode: CollabMode | null }
 
 export type LiveCollabValue = {
   /** The open note, once live-status confirms it is shared. Null hides presence. */
@@ -59,8 +67,18 @@ export type LiveCollabValue = {
   collaborators: LiveCollaborator[]
   /** Live or saved-sync, once live-status answers. */
   mode: LiveStatusDto['mode'] | null
-  /** Which realtime writer the server selected for the open note (Yjs migration flag). Null until live-status answers. */
-  collabMode: CollabMode | null
+  /**
+   * Which write path the server selected, tagged with the note it belongs to (always compare
+   * `noteId`: on a note switch it still names the previous note for one render). Null until
+   * live-status answers or fails.
+   */
+  collab: LiveCollabVerdict | null
+  /**
+   * The room ID this note is joining now (from live-status, then each authorize), tagged with
+   * its note. Known ~as soon as live-status answers, before authorize: the open note loads that
+   * room's own offline copy early. Null until then, and for notes that are not live.
+   */
+  statusRoom: { noteId: string; roomId: string } | null
   /** At most one notice per note: pauses, a full room, or a restore. Dismissible. */
   notice: string | null
   dismissNotice: () => void
@@ -78,6 +96,9 @@ function statusToConnection(status: Status): LiveConnectionState {
     default: return 'connecting'
   }
 }
+
+/** How long a note switch keeps the old room for unacknowledged live edits. */
+const LIVE_LEAVE_DRAIN_MS = 10_000
 
 function isGone(error: unknown): boolean {
   return error instanceof ApiError && (error.code === 'NOTE_ACCESS_DENIED' || error.code === 'NOTE_NOT_FOUND' || error.status === 404)
@@ -105,18 +126,24 @@ export function useLiveCollabState(): LiveCollabValue {
   const [connection, setConnection] = useState<LiveConnectionState>('unavailable')
   const [collaborators, setCollaborators] = useState<LiveCollaborator[]>([])
   const [mode, setMode] = useState<LiveStatusDto['mode'] | null>(null)
-  const [collabMode, setCollabMode] = useState<CollabMode | null>(null)
+  const [collab, setCollab] = useState<LiveCollabVerdict | null>(null)
+  const [statusRoom, setStatusRoom] = useState<{ noteId: string; roomId: string } | null>(null)
+  const queryClient = useQueryClient()
   const [notice, setNotice] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const listShared = activeNote?.id === activeNoteId && (activeNote?.shared ?? false)
 
   const dismissNotice = useCallback(() => setNotice(null), [])
-  const retry = useCallback(() => { setNotice(null); setAttempt((value) => value + 1) }, [])
+  // A retry (re-authorize, 409 NOTE_IS_LIVE) must read live-status fresh, never a hover's copy.
+  const retry = useCallback(() => {
+    forgetLiveStatuses(queryClient)
+    setNotice(null); setAttempt((value) => value + 1)
+  }, [queryClient])
 
   useEffect(() => {
     if (activeNoteId == null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset room state when no note is open
-      setNoteId(null); setRoom(null); setRoomNoteId(null); setConnection('unavailable'); setCollaborators([]); setMode(null); setCollabMode(null); setNotice(null)
+      setNoteId(null); setRoom(null); setRoomNoteId(null); setConnection('unavailable'); setCollaborators([]); setMode(null); setCollab(null); setNotice(null); setStatusRoom(null)
       return
     }
     const note = activeNoteId
@@ -141,25 +168,34 @@ export function useLiveCollabState(): LiveCollabValue {
       const timer = setTimeout(() => { timers.delete(timer); fn() }, ms)
       timers.add(timer)
     }
+    /** The note's write path from live-status: on a `yjs` note that cannot join, the note is read-only. */
+    let verdict: CollabMode | null = null
     const sayOnce = (text: string | null, family: LiveNoticeFamily) => {
       if (disposed || noticed || !text) return
       noticed = true
       noticeFamily = family
-      setNotice(text)
+      setNotice(verdict === 'yjs' ? liveReadOnlyNotice(text, family) : text)
     }
     const trackMode = (next: LiveStatusDto['mode'] | null) => { liveMode = next; setMode(next) }
+    const trackVerdict = (status: LiveStatusDto) => {
+      verdict = collabModeOf(status)
+      setCollab({ noteId: note, mode: verdict })
+      if (status.mode === 'live' && status.roomId) trackRoomId(status.roomId)
+    }
+    const trackRoomId = (roomId: string) => {
+      setStatusRoom((current) => (current?.noteId === note && current.roomId === roomId ? current : { noteId: note, roomId }))
+    }
 
-    setNoteId(null); setConnection('connecting'); setCollaborators([]); setMode(null); setCollabMode(null); setNotice(null)
+    // A retry for the same note keeps its verdict until live-status answers again.
+    setNoteId(null); setConnection('connecting'); setCollaborators([]); setMode(null); setNotice(null)
+    setCollab((current) => (current?.noteId === note ? current : null))
+    setStatusRoom((current) => (current?.noteId === note ? current : null))
 
     const leave = () => {
       leaveRoom?.()
       leaveRoom = null
       if (roomId) unregisterLiveAuth(roomId)
       roomId = null
-      // The patch host drops on every leave and only re-registers after a fresh seed. Full cross-room
-      // isolation (rejoin reseed-from-head) is a Phase 4 item: until it lands, the re-attached Y.Doc
-      // can still converge prior room state into the new room at the CRDT level.
-      dropYjsPatchHost(note)
       if (!disposed) { setRoom(null); setRoomNoteId(null); setCollaborators([]) }
     }
 
@@ -186,7 +222,8 @@ export function useLiveCollabState(): LiveCollabValue {
           const status = await liveApi.liveStatus(note, controller.signal)
           if (!isCurrent(at)) return
           trackMode(status.mode)
-          setCollabMode(collabModeOf(status))
+          trackVerdict(status)
+          liveStatusRoomId = status.mode === 'live' ? status.roomId ?? null : null
           if (status.mode === 'live') {
             setNoteId(note)
             void joinLive(at, false)
@@ -207,6 +244,7 @@ export function useLiveCollabState(): LiveCollabValue {
       leave()
       idleLeft = false
       roomId = nextRoomId
+      trackRoomId(nextRoomId)
       const entered = liveblocksClient().enterRoom(nextRoomId, { initialPresence: { selection: null } })
       leaveRoom = entered.leave
       const room = entered.room
@@ -257,11 +295,11 @@ export function useLiveCollabState(): LiveCollabValue {
           // A checkpoint landed: re-read it now instead of waiting out the poll interval.
           notifyNoteChanged(parsed.noteId)
         } else {
-          // A restore also advances the head: reload it like any other change. The poller
-          // re-seeds (never patches) a restore. The notice waits for a confirming
-          // checkpoint read: anyone in the room can broadcast, so an unverified
-          // claim never names a user.
-          notifyNoteChanged(parsed.noteId, 'restore')
+          // RESTORED: live notes already hold the restored content in the room, so this only
+          // shows a notice (legacy pollers re-read the head as for any change). The notice
+          // waits for a confirming checkpoint read: anyone in the room can broadcast, so an
+          // unverified claim never names a user.
+          notifyNoteChanged(parsed.noteId)
           void (async () => {
             try {
               const head = await notesApi.checkpoint(note, controller.signal)
@@ -283,12 +321,29 @@ export function useLiveCollabState(): LiveCollabValue {
       armIdle(at)
     }
 
+    /** The first join of an open may use the token a hover or focus already minted (one use). */
+    let firstJoin = true
+    /** The room ID this open's own live-status read reported. */
+    let liveStatusRoomId: string | null = null
+    /** Access lost: no room ID stays known, and the room's offline data on this device goes. */
+    const forgetRoom = (lost: string | null) => {
+      setStatusRoom(null)
+      if (lost) void discardRoomOfflineData(lost)
+    }
     const joinLive = async (at: number, removalCheck: boolean) => {
       if (!isCurrent(at)) return
       setConnection('connecting')
       try {
-        // Always re-read the room ID: a revocation rotation changes it and drops the old connection.
-        const authorized = await liveApi.authorize(note, controller.signal)
+        let authorized: { roomId: string; token: string } | null = null
+        if (firstJoin && !removalCheck && liveStatusRoomId) {
+          firstJoin = false
+          await pendingLiveAuthPrefetch(note)
+          if (!isCurrent(at)) return
+          // Only for exactly the room this open's fresh live-status reported (never a rotated one).
+          authorized = takePrefetchedLiveAuth(note, liveStatusRoomId)
+        }
+        // Otherwise always re-read the room ID: a revocation rotation changes it and drops the old connection.
+        authorized ??= await liveApi.authorize(note, controller.signal)
         if (!isCurrent(at)) return
         registerLiveAuth(authorized.roomId, note, authorized.token)
         enter(at, authorized.roomId)
@@ -301,10 +356,12 @@ export function useLiveCollabState(): LiveCollabValue {
       } catch (error) {
         if (!isCurrent(at) || controller.signal.aborted) return
         if (removalCheck && isGone(error)) {
-          // Our own access was revoked: close the note and clear its collaboration cache.
+          // Our own access was revoked: close the note and clear its collaboration cache,
+          // including the room's early copy and its offline database.
+          forgetRoom(roomId ?? liveStatusRoomId)
           leave()
           trackMode(null)
-          setCollabMode(null)
+          setCollab(null)
           setNoteId(null)
           setConnection('unavailable')
           await noteSyncStore().remove(syncKey(ownerId, note)).catch(() => {})
@@ -313,6 +370,7 @@ export function useLiveCollabState(): LiveCollabValue {
           return
         }
         if (isApiError(error, 'NOTE_NOT_SHARED') || isGone(error)) {
+          if (isGone(error)) forgetRoom(roomId ?? liveStatusRoomId)
           setNoteId(null); trackMode('saved_sync'); setConnection('unavailable')
           return
         }
@@ -353,10 +411,14 @@ export function useLiveCollabState(): LiveCollabValue {
       const at = seen
       let status: LiveStatusDto
       try {
-        status = await liveApi.liveStatus(note, controller.signal)
+        // Always fresh (shared with a hover's read still in flight); the result refreshes the cache.
+        status = await readFreshLiveStatus(queryClient, ownerId, note)
       } catch (error) {
         if (!isCurrent(at) || controller.signal.aborted) return
         if (isGone(error)) return // The session owns access loss; presence just hides.
+        // Unknown write path: the screen falls back to transaction auto-save, and a live note
+        // answers 409 NOTE_IS_LIVE, which switches it to live mode.
+        setCollab({ noteId: note, mode: null })
         // Transient: saved-sync-only from the list's shared flag, and recheck for recovery.
         if (listShared) {
           setNoteId(note); trackMode('saved_sync')
@@ -367,8 +429,9 @@ export function useLiveCollabState(): LiveCollabValue {
         return
       }
       if (!isCurrent(at)) return
+      liveStatusRoomId = status.mode === 'live' ? status.roomId ?? null : null
       trackMode(status.mode)
-      setCollabMode(collabModeOf(status))
+      trackVerdict(status)
       if (status.mode === 'saved_sync') {
         if (status.reason === 'NOT_SHARED') return // Unshared notes use the note API; presence hides.
         setNoteId(note)
@@ -414,15 +477,20 @@ export function useLiveCollabState(): LiveCollabValue {
       disposers.forEach((dispose) => dispose())
       activityEvents.forEach((name) => window.removeEventListener(name, onActivity))
       document.removeEventListener('visibilitychange', onVisible)
+      // Switching notes with live edits still unacknowledged: keep the room (and so its
+      // provider) until they reach the server, bounded, then leave.
+      const leaving = leaveRoom
+      leaveRoom = null
       leave()
+      if (leaving) void whenSynchronized(LIVE_LEAVE_DRAIN_MS).then(leaving)
     }
     // The join pipeline intentionally restarts only on note-switch, shared-flag change, or manual retry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNoteId, listShared, attempt])
 
   return useMemo<LiveCollabValue>(() => ({
-    noteId, room, roomNoteId, connection, collaborators, mode, collabMode, notice, dismissNotice, retry,
-  }), [noteId, room, roomNoteId, connection, collaborators, mode, collabMode, notice, dismissNotice, retry])
+    noteId, room, roomNoteId, connection, collaborators, mode, collab, statusRoom, notice, dismissNotice, retry,
+  }), [noteId, room, roomNoteId, connection, collaborators, mode, collab, statusRoom, notice, dismissNotice, retry])
 }
 
 /** Live collaboration for the open note: room state, collaborators, and the saved-sync poller. Must be used inside `WorkspaceProviders`. */
@@ -457,23 +525,24 @@ export function useMentionSuggestions(noteId: string, query: string, active: boo
 }
 
 /**
- * Saved-sync polling for one open note, shared or not: the conditional checkpoint read
+ * Saved-sync polling for one open note: every legacy note, shared or not, and a live note the
+ * user cannot join (paused, full), whose read-only view follows the head. A bound live editor
+ * receives every change through the room, so `enabled` is false for it: the conditional checkpoint read
  * every 2.5 s while the tab is visible, plus on window focus and immediately when a room
  * broadcast says the head moved (cheap 304 when unchanged). On change with no pending
  * local work it fast-forwards to the server version; with pending work it retries soon
  * (the rebase flow owns the merge). Failures back off silently; nothing here ever toasts.
  * No shared state, so no provider: `NoteScreen` calls it with its session.
  */
-export function useSavedSyncPoll(noteId: string, session: NoteSession) {
+export function useSavedSyncPoll(noteId: string, session: NoteSession, enabled: boolean) {
   const sessionRef = useRef(session)
   useEffect(() => { sessionRef.current = session })
   useEffect(() => {
+    if (!enabled) return
     let stopped = false
     let etag: string | null = null
     let failures = 0
     let inFlight = false
-    /** Upgrade-only: a restore re-seeds instead of patching, and only a fast-forward read consumes it. */
-    let pendingOrigin: NoteChangedOrigin = 'content'
     let timer: ReturnType<typeof setTimeout> | null = null
     const controller = new AbortController()
     const schedule = (short = false) => {
@@ -483,8 +552,8 @@ export function useSavedSyncPoll(noteId: string, session: NoteSession) {
     const tick = async () => {
       if (stopped || inFlight || controller.signal.aborted) return
       const current = sessionRef.current
-      const settled = current.phase === 'ready' && current.sync != null
-        && current.sync.status !== 'denied' && current.sync.status !== 'gone'
+      const settled = current.phase === 'ready' && (current.live
+        || (current.sync != null && current.sync.status !== 'denied' && current.sync.status !== 'gone'))
       if (!canPollSavedSync({ visible: !document.hidden, stopped: !settled })) { schedule(); return }
       inFlight = true
       let changedBusy = false
@@ -495,20 +564,19 @@ export function useSavedSyncPoll(noteId: string, session: NoteSession) {
         failures = 0
         if (read.notModified) {
           etag = read.etag ?? etag
-          // A 304 never consumes a pending restore; the fast-forward read below does.
         } else {
           const latest = sessionRef.current
           const sync = latest.sync
-          const changed = sync != null && read.revision.revisionNumber > sync.revisionNumber
-          if (changed && sync && shouldFastForwardSavedSync({ pending: sync.pending, status: sync.status })) {
+          const base = latest.live ? latest.headRevision : sync?.revisionNumber ?? null
+          const changed = base != null && read.revision.revisionNumber > base
+          // A live note never holds local transactions: it always follows the head.
+          const idle = latest.live || (sync != null && shouldFastForwardSavedSync({ pending: sync.pending, status: sync.status }))
+          if (changed && idle) {
             etag = read.etag
-            const origin = pendingOrigin
-            pendingOrigin = 'content'
             // applyServerHead marks a mid-poll denial read-only itself; the throw stays silent here.
-            await latest.applyServerHead(origin).catch(() => {})
+            await latest.applyServerHead().catch(() => {})
           } else if (!changed) {
             etag = read.etag
-            // Unchanged reads never consume a pending restore either.
           } else {
             // Changed but busy: keep the old ETag and retry soon, so the fast-forward lands
             // right after the drain instead of waiting out the interval.
@@ -534,7 +602,7 @@ export function useSavedSyncPoll(noteId: string, session: NoteSession) {
       void tick()
     }
     const onVisible = () => { if (!document.hidden) pollNow() }
-    const onNotified = (changed: string, origin: NoteChangedOrigin) => { if (changed === noteId) { if (origin === 'restore') pendingOrigin = origin; pollNow() } }
+    const onNotified = (changed: string) => { if (changed === noteId) pollNow() }
     const unsubscribe = subscribeNoteChanged(onNotified)
     window.addEventListener('focus', pollNow)
     document.addEventListener('visibilitychange', onVisible)
@@ -547,5 +615,5 @@ export function useSavedSyncPoll(noteId: string, session: NoteSession) {
       window.removeEventListener('focus', pollNow)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [noteId])
+  }, [noteId, enabled])
 }
